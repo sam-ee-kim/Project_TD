@@ -1,0 +1,132 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5602576200100221418
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071067
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.000000030908616
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.000000030908623
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      propertyPath: m_Name
+      value: Tower_TwinCannon
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8292620893995193867}
+  m_SourcePrefab: {fileID: 100100000, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+--- !u!4 &1209655885853884327 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2519246395159876019, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1683141846007226041 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6529060340755533651, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3220014467478224402 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2202379756326850568, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3257781575195220066 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2236689999496296056, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3575399000247033438 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8961608195248934836, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4064289142437044339 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8477771417136918937, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4684078478952574139 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8292620893995193867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4684078478952574139}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94900144de6fa954d866341a1df2bceb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerAim
+  yawPivot: {fileID: 3575399000247033438}
+  pitchPivot: {fileID: 3220014467478224402}
+  muzzle: {fileID: 3257781575195220066}
+  firePoints:
+  - {fileID: 4064289142437044339}
+  - {fileID: 1683141846007226041}
+  barrelAxis: {x: 0, y: 1, z: 0}
+  muzzleTipOffset: 0.13
+  recoilPivots:
+  - {fileID: 1209655885853884327}
+  - {fileID: 4705488232159148820}
+  recoilDistance: 0.18
+  recoilReturnTime: 0.15
+  fireAlignAngle: 8
+  minPitch: -25
+  maxPitch: 15
+  yawSpeed: 240
+  pitchSpeed: 120
+--- !u!4 &4705488232159148820 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8318964611262420226, guid: 078788d14fb347840999e7831bfeb5f0, type: 3}
+  m_PrefabInstance: {fileID: 5602576200100221418}
+  m_PrefabAsset: {fileID: 0}

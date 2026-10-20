@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f816ac6cf91af9b44aa43aaa832dabb4, type: 3}
+  m_Name: normal
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.MonsterDef
+  id: normal
+  displayName: "\uC77C\uBC18 \uBAAC\uC2A4\uD130"
+  category: 0
+  hp: 100
+  speed: 1
+  reward: 5
+  nexusDamage: 1
+  traits: []
+  spawnIdleSec: 0.5
+  viewPrefab: {fileID: 3557801056693971949, guid: 41959ed6d7d349340b2658af5ddf9c82, type: 3}
+  viewScale: 0.25
+  aimHeight: 0.25
+  walkAnimSpeed: 1
+  animCrossFadeSec: 0.12

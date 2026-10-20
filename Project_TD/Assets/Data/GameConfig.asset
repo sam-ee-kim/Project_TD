@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97808b3ee0328e14fa44e222df226700, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.GameConfig
+  breakTimeSec: 120
+  floorTransitionSec: 2
+  startCash: 100
+  nexusHp: 20
+  finalFloor: 46
+  upgradeEnabled: 0
+  sellRefundRate: 0.7
+  recoveryRefundRate: 0.7
+  rules:
+    mapTierEveryFloors: 3
+    mapBaseSize: 7
+    mapGrowPerTier: 2
+    baseWaves: 2
+    waveIncreaseEveryFloors: 5
+    baseMonsterCount: 10
+    monsterIncreaseEveryWaves: 2
+    monsterIncreaseAmount: 2
+    spawnIntervalSec: 1
+    spawnCount: 1
+    defaultMonsterId: normal
+  mapPool:
+    mapsPerTier: 1
+    prefetchNextTier: 1
+  performance:
+    monsterPoolPrewarm: 300
+    projectilePoolPrewarm: 200
+    towerPoolPrewarm: 100
+    effectPoolPrewarm: 48
+    mapGenUseThread: 1
+    mapGenFrameBudgetMs: 2
+  ui:
+    panelSlideSec: 0.25
+    blockedTint: {r: 0.8980392, g: 0.4509804, b: 0.4509804, a: 1}
+    blockedAlpha: 0.28
+    blockedHoverAlpha: 0.4
+    startPromptText: "\uC544\uBB34 \uACF3\uC774\uB098 \uD074\uB9AD \uC2DC \uAC8C\uC784
+      \uC2DC\uC791"
+    bottomButtons:
+    - id: build
+      label: "\uD0C0\uC6CC \uAC74\uCD95"
+      enabled: 1
+      disabledTooltip: 
+    - id: upgrade
+      label: "\uD0C0\uC6CC \uC5C5\uADF8\uB808\uC774\uB4DC"
+      enabled: 0
+      disabledTooltip: "\uC900\uBE44 \uC911"
+  cashLog:
+    enabled: 0
+    maxLines: 5
+    lifetimeSec: 3
