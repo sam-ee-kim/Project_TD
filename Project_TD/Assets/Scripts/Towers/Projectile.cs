@@ -15,5 +15,7 @@ namespace TowerDefence
         public bool Active;
         public TowerDef Kind;     // 어느 풀에 돌려줄지 (쏜 타워 종류의 정의 데이터, 타워 인스턴스가 아님)
         public Transform View;
+        public ParticleSystem Fx; // 표시가 파티클이면 (번개) 쏠 때마다 처음부터 다시 재생. 생성 때 1번 찾는다
+        public bool SpawnsField;  // 명중한 자리에 나노필드를 깐다 (연발의 첫 발만)
     }
 }

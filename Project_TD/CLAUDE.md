@@ -40,7 +40,10 @@ Unity 6 (6000.3.11f1) 3D URP 프로젝트. 타워 디펜스 게임.
 - 물리 엔진(Collider, Rigidbody, OnTrigger) 사용 금지. 명중·사거리는 칸/거리 계산.
 
 ## 범위
-- 보류 기능(캐시 로그 UI, 타워 업그레이드, 웨이브 보너스, 다중 스폰, 층 보정 배율)은 만들지 않는다. 플래그와 빈 자리만.
+- 보류 기능(캐시 로그 UI, 웨이브 보너스)은 만들지 않는다. 플래그와 빈 자리만.
+- 테크트리(GameConfig.upgradeEnabled, TowerDef.upgradeTo·tier·unlockFloor)와 층 클리어 아이템(GameConfig.floorItems)은 기본 GameConfig에서 꺼져 있다. 켜진 설정은 테스트 씬(Test_TechTree / Test_Items / Test_TechTreeItems, 메뉴 TowerDefence → Setup → Balance Test Scenes)에서만 쓴다. SampleScene은 그대로 둔다.
+- 몬스터 체력: 기본 체력 × 층·웨이브 배율(맵 확장 M × 복잡성 C × 단계 안 층 F × 웨이브 W), 0.5 단위. 표는 Docs/HpLevelDesign.md, 값은 GameConfig.rules.hp*.
+- 진행: 10층, 2층마다 맵 단계(복잡성 1~5, 맵 7×7~15×15), 웨이브 최대 5. 복잡성 2·4에서 스타트 지점 추가(최대 3, 본선에 합류). 넥서스는 스타트 지점이 몰린 변의 반대쪽, 비율이 비슷하면 본선이 최대 길이로 돌아간다(MapLayoutGenerator N1). 값은 GameConfig.rules·MapGenRules.complexity.
 - 요청받은 작업 범위 밖의 파일은 고치지 않는다. 필요하면 먼저 묻는다.
 
 ## 보고 형식 (모든 작업 끝에)

@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41af158138b595d459f1987ff035ae6d, type: 3}
+  m_Name: nano
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
+  id: nano
+  displayName: "\uB098\uB178\uBD07 \uD0C0\uC6CC"
+  description: "\uBC1C\uC0AC\uAD6C 7\uAC1C\uC5D0\uC11C \uB098\uB178 \uD0C4\uC744
+    \uC5F0\uB2EC\uC544 \uC3E9\uB2C8\uB2E4. \uD0C4\uC740 \uB9DE\uC740 \uBAAC\uC2A4\uD130\uC5D0\uAC8C\uB9CC
+    \uD53C\uD574\uB97C \uC8FC\uACE0, \uCCAB \uD0C4\uC774 \uB5A8\uC5B4\uC9C4 \uC790\uB9AC\uC5D0
+    \uB098\uB178\uD544\uB4DC\uB97C \uAE54\uC544 \uC9C0\uB098\uAC00\uB294 \uBAAC\uC2A4\uD130\uB97C
+    \uB290\uB9AC\uAC8C \uD569\uB2C8\uB2E4."
+  buildCost: 80
+  damage: 0.3
+  interval: 2.3
+  burstCount: 7
+  burstGap: 0.045
+  chargeTime: 0
+  range: 2
+  lockMode: 0
+  targetRule: 0
+  typePriority: []
+  attackType: 0
+  projectileSpeed: 9
+  upgradeTo: []
+  tier: 1
+  unlockFloor: 1
+  fieldRadius: 1
+  fieldDuration: 3
+  fieldSlow: 0.6
+  fieldFxPrefab: {fileID: 8900757359031169784, guid: b436a90d7de4b92408835e4ab267952f, type: 3}
+  fieldFxRadius: 1.6
+  coneAngle: 90
+  coneLength: 1.6
+  viewPrefab: {fileID: 243177689306974363, guid: 342cb0dd45d4a7b47aed16e4fe66be28, type: 3}
+  viewScale: 0.3
+  projectilePrefab: {fileID: 2915999268165009512, guid: 708d5157a7b91ea43b0c6c8000f95bb9, type: 3}
+  projectileScale: 1
+  projectileModelForward: {x: 0, y: 0, z: 1}
+  projectileTurnSpeed: 1080
+  muzzleFxPrefab: {fileID: 4378007306618465987, guid: 86fa2f27791908d42bf9a0a39ace8d4a, type: 3}
+  coneFxReach: 2.28
+  buildClip: {fileID: -623603649343465320, guid: ad4b1e619fbaf6d40867b1fc3dcc57e4, type: 3}
+  chargeClip: {fileID: 0}
+  fireClip: {fileID: -623603649343465320, guid: b3bfbfc607485d84a851b2e0832aa0a5, type: 3}
+  chargeFxPrefab: {fileID: 0}
+  hitFxPrefab: {fileID: 0}

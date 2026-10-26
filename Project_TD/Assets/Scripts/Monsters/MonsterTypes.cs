@@ -29,10 +29,10 @@ namespace TowerDefence
     // 타워 → 몬스터 피해 값. 투사체에 복사해 넘긴다 (DamageDesign 3-3, 7절).
     public readonly struct DamageInfo
     {
-        public readonly int Amount;
+        public readonly float Amount;   // 소수 피해 가능 (화염방사 0.5/틱)
         public readonly DamageType Type;
 
-        public DamageInfo(int amount, DamageType type)
+        public DamageInfo(float amount, DamageType type)
         {
             Amount = amount;
             Type = type;

@@ -3,36 +3,64 @@ using UnityEngine;
 
 namespace TowerDefence
 {
-    // 기존 맵 생성기(MapLayoutGenerator, 정본)를 IMapGenerator로 감싸는 어댑터.
-    // 생성 규칙·알고리즘은 건드리지 않고, 결과 MapLayout을 MapData로 옮기기만 한다.
-    // 생성기는 System.Random만 쓰고 Unity 객체를 만들지 않으므로 백그라운드 스레드에서 호출해도 된다
-    // (UnityEngine 쪽은 값 타입 Vector2Int, Mathf.Abs, 스레드 안전한 Debug.Log만 사용).
+    // 맵 생성기(MapLayoutGenerator)를 IMapGenerator로 감싸는 어댑터.
+    // MapSpec(크기·복잡성·시드)과 MapGenRules(복잡성 표·공통 규칙)를 생성기 입력으로 바꾸고, 결과 MapLayout을 MapData로 옮긴다.
+    // 생성기는 System.Random만 쓰고 Unity 객체를 만들지 않으므로 백그라운드 스레드에서 호출해도 된다.
     public sealed class LayoutMapGenerator : IMapGenerator
     {
-        // 정본 생성기의 재시도 기본값 (MapLayoutGenerator.Generate maxAttempts).
         const int DefaultMaxAttempts = 200;
 
-        // 실패 시 정본 방식 그대로: 생성기 안에서 재시도하고, 끝내 실패하면 null.
+        // 실패 시: 생성기 안에서 재시도하고, 끝내 실패하면 null.
         public MapData Generate(MapSpec spec)
         {
-            // 정본 생성기는 스폰 1개만 만든다. SpawnCount > 1은 다중 스폰 보류라 무시.
             int maxAttempts = spec.Rules != null && spec.Rules.maxRetries > 0 ? spec.Rules.maxRetries : DefaultMaxAttempts;
-            var layout = MapLayoutGenerator.Generate(spec.N, new System.Random(spec.Seed), maxAttempts);
+            var layout = MapLayoutGenerator.Generate(spec.N, ToParams(spec), new System.Random(spec.Seed), maxAttempts);
             return layout == null ? null : Convert(layout, spec.Seed);
+        }
+
+        // 복잡성 단계 → 생성기 입력 (검사기도 같은 값을 쓴다).
+        public static MapLayoutParams ToParams(MapSpec spec) => ToParams(spec.Rules, spec.Complexity);
+
+        public static MapLayoutParams ToParams(MapGenRules rules, int complexity)
+        {
+            if (rules == null)
+                return MapLayoutParams.Default;
+            var level = rules.GetLevel(complexity);
+            return new MapLayoutParams
+            {
+                MainTurnsMin = level.mainTurnsMin,
+                MainTurnsMax = level.mainTurnsMax,
+                Spawns = Mathf.Max(1, level.spawns),
+                BranchMaxTurns = level.branchMaxTurns,
+                MinRun = rules.minRunLength > 0 ? rules.minRunLength : MapLayoutGenerator.MinRunLength,
+                SpawnMinDistance = rules.spawnMinManhattan,
+            };
         }
 
         static MapData Convert(MapLayout layout, int seed)
         {
             int n = layout.Size;
+            var spawns = new Vector2Int[layout.SpawnCount];
+            var paths = new List<List<Vector2Int>>();
+            for (int k = 0; k < layout.SpawnCount; k++)
+            {
+                var path = layout.MonsterPath(k);
+                paths.Add(path);
+                spawns[k] = path[0];
+            }
+            var junctions = new List<Vector2Int>();
+            foreach (int j in layout.JunctionIndex)
+                junctions.Add(layout.Path[j]);
+
             var map = new MapData
             {
                 N = n,
                 Tiles = new TileType[n, n],
                 Sites = new SiteGrade[n, n],
-                Spawns = new[] { layout.Spawn },
+                Spawns = spawns,
                 Exit = layout.Exit,
-                Junctions = new List<Vector2Int>(),
-                MonsterPaths = new List<List<Vector2Int>> { new List<Vector2Int>(layout.Path) },
+                Junctions = junctions,
+                MonsterPaths = paths,
                 Seed = seed,
             };
 
@@ -40,7 +68,7 @@ namespace TowerDefence
             {
                 for (int y = 0; y < n; y++)
                 {
-                    // 기존 생성기의 칸 종류는 전역 TileType (이 namespace의 TileType과 다른 타입).
+                    // 생성기의 칸 종류는 전역 TileType (이 namespace의 TileType과 다른 타입).
                     switch (layout.Tiles[x, y])
                     {
                         case global::TileType.Path:      map.Tiles[x, y] = TileType.Path; break;
@@ -52,7 +80,7 @@ namespace TowerDefence
                     }
                 }
             }
-            // 정본 생성기는 T2(경로에서 2칸) 부지를 만들지 않는다 (부지 = 경로와 맞닿은 1칸).
+            // 부지 = 경로와 맞닿은 1칸 (T2 없음).
             return map;
         }
     }

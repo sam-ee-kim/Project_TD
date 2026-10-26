@@ -96,7 +96,7 @@ namespace TowerDefence.Tests
         {
             monsters.BeginWave(new[] { new WaveSpawn(id, 1, 1f, 0f) }, 1);
             monsters.TickSpawn(0f);
-            var cell = board.MonstersAt(0);
+            var cell = board.MonstersAtPath(0);
             return cell[cell.Count - 1];
         }
 
@@ -111,15 +111,16 @@ namespace TowerDefence.Tests
         {
             var a = BuildAt(SiteA, basic); // (2,0)
             // 경로 칸 3 = (4,2): dx=2, dy=2 → 대각선 모서리, 포함
-            Assert.IsTrue(a.CoversPath[3], "(dx 2, dy 2) 포함");
-            Assert.IsFalse(a.CoversPath[4], "(5,2): dx 3 제외");
-            CollectionAssert.AreEqual(new[] { 3, 2, 1, 0 }, a.Covered, "큰 칸 번호부터");
+            Assert.IsTrue(a.CoversPathIndex(board, 3), "(dx 2, dy 2) 포함");
+            Assert.IsFalse(a.CoversPathIndex(board, 4), "(5,2): dx 3 제외");
+            CollectionAssert.AreEquivalent(new[] { board.PathCellId(0), board.PathCellId(1), board.PathCellId(2), board.PathCellId(3) },
+                a.Covered, "사거리 안 경로 칸 = 칸 번호 0~3번 칸");
 
             var b = BuildAt(SiteB, basic); // (2,2)
             // 경로 칸 4 = (5,2): dx=3, dy=0 → 제외 (원형이면 거리 3이라 어차피 제외지만, 정사각형 판정 확인)
-            Assert.IsFalse(b.CoversPath[4], "(3, 0) 제외");
-            Assert.IsTrue(b.CoversPath[3], "(2, 0) 포함");
-            Assert.IsTrue(b.CoversPath[0], "(1, −2) 포함");
+            Assert.IsFalse(b.CoversPathIndex(board, 4), "(3, 0) 제외");
+            Assert.IsTrue(b.CoversPathIndex(board, 3), "(2, 0) 포함");
+            Assert.IsTrue(b.CoversPathIndex(board, 0), "(1, −2) 포함");
         }
 
         [Test]
@@ -135,7 +136,7 @@ namespace TowerDefence.Tests
             Assert.AreEqual(normal, tower.Locked, "Lock: 고정 중에는 바꾸지 않음");
 
             monsters.TickMove(4.1f); // normal 4.1칸(사거리 밖), tank 2.05칸(사거리 안)
-            Assert.IsFalse(tower.CoversPath[monsters.Get(normal).PathIndex]);
+            Assert.IsFalse(tower.CoversCell[monsters.Get(normal).CellId]);
             towers.TickCombat(1f);
             Assert.AreEqual(tank, tower.Locked, "사거리 밖으로 나가면 새 대상");
         }
@@ -211,7 +212,7 @@ namespace TowerDefence.Tests
 
             for (int i = 0; i < 20; i++)
                 towers.TickCombat(0.01f);
-            Assert.AreEqual(100, monsters.Get(fresh).Hp, "옛 핸들의 투사체는 새 몬스터를 맞히지 않음");
+            Assert.AreEqual(4f, monsters.Get(fresh).Hp, "옛 핸들의 투사체는 새 몬스터를 맞히지 않음");
         }
 
         [Test]
@@ -226,11 +227,11 @@ namespace TowerDefence.Tests
             int guard = 0;
             while (towers.ProjectileCount > 0 && guard++ < 1000)
                 towers.TickCombat(0.01f);
-            Assert.AreEqual(80, monsters.Get(target).Hp, "판매 뒤에도 명중 (피해 20)");
+            Assert.AreEqual(3f, monsters.Get(target).Hp, "판매 뒤에도 명중 (피해 1)");
         }
 
         [Test]
-        public void BasicTower_KillsInFiveHits_RewardFive()
+        public void BasicTower_KillsInTwoBursts_RewardFive()
         {
             BuildAt(SiteA, basic);
             int cash = player.Cash;
@@ -241,7 +242,7 @@ namespace TowerDefence.Tests
             Assert.AreEqual(MonsterState.Dying, monsters.Get(target).State);
             Assert.AreEqual(1, killedEvents);
             Assert.AreEqual(cash + 5, player.Cash, "처치 캐시 +5");
-            Assert.That(guard * 0.01f, Is.InRange(4f, 4.2f), "1초 간격 20 피해 × 5발 (첫 발 0초)");
+            Assert.That(guard * 0.01f, Is.InRange(1.1f, 1.4f), "1초 간격 이점사(1 피해 × 2발) × 2번 = 체력 4 (0초, 0.12초, 1초, 1.12초 + 비행)");
         }
 
         [Test]
@@ -275,13 +276,83 @@ namespace TowerDefence.Tests
         }
 
         [Test]
+        public void BasicTower_Burst_FiresTwoBullets_OneDamageEach()
+        {
+            Assert.AreEqual(2, basic.burstCount, "총 타워 = 이점사");
+            BuildAt(SiteA, basic);
+            var target = Spawn("normal");
+            towers.TickCombat(0f);
+            Assert.AreEqual(1, towers.ProjectileCount, "첫 발");
+            for (int i = 0; i < 50; i++) // 0.5초: 재장전(1초) 전, 둘째 발은 burstGap(0.12초) 뒤
+                towers.TickCombat(0.01f);
+            Assert.AreEqual(0, towers.ProjectileCount, "2발 모두 명중");
+            Assert.AreEqual(2f, monsters.Get(target).Hp, "2발 × 1 피해");
+        }
+
+        [Test]
+        public void BasicTower_Burst_TargetDiesAfterFirst_SecondNotFired()
+        {
+            BuildAt(SiteA, basic);
+            var target = Spawn("normal");
+            towers.TickCombat(0f);
+            Assert.AreEqual(1, towers.ProjectileCount);
+            monsters.ApplyDamage(target, new DamageInfo(100, DamageType.Normal)); // 다른 원인으로 사망
+            monsters.Cleanup();
+            var fresh = Spawn("normal");
+            for (int i = 0; i < 50; i++) // 0.5초: 재장전(1초) 전
+                towers.TickCombat(0.01f);
+            Assert.AreEqual(4f, monsters.Get(fresh).Hp, "대상이 죽으면 남은 발은 쏘지 않음 (다른 몬스터로 넘어가지 않음)");
+        }
+
+        // 번개 타워처럼 차지가 있는 타워: 조준이 맞으면 차지 → chargeTime 뒤에 발사, 차지 중 대상이 죽으면 다른 대상으로 이어 간다.
+        [Test]
+        public void Charge_FiresAfterChargeTime_KeepsChargeOnRetarget()
+        {
+            var charger = MakeDef("charger", TargetLock.Lock, new string[0], AttackType.Projectile, 4);
+            charger.chargeTime = 1f;
+            var d2 = new GameData();
+            d2.Init(config, AssetDatabase.LoadAssetAtPath<MapGenRules>("Assets/Data/MapGenRules.asset"),
+                new[] { TestAssets.NoIdleCopy("Assets/Data/Monsters/normal.asset") }, new[] { charger });
+            var b2 = new Board(); var m2 = new MonsterManager(); var t2 = new TowerManager(); var p2 = new PlayerState();
+            b2.Init(d2); p2.Init(d2); m2.Init(d2, b2); t2.Init(d2, b2, m2, p2);
+            t2.TowerChanged += b2.HandleTowerChanged;
+            var r2 = RunState.CreateNew(config);
+            b2.ResetForNewRun(r2); p2.ResetForNewRun(r2); m2.ResetForNewRun(r2); t2.ResetForNewRun(r2);
+            b2.Load(new FixedTestMapGenerator().Generate(default));
+            p2.Earn(1000, CashReason.Kill);
+            Assert.IsTrue(t2.Build(SiteA, charger));
+            var tower = t2.GetTowerAt(SiteA);
+
+            m2.BeginWave(new[] { new WaveSpawn("normal", 2, 0f, 0f) }, 1);
+            m2.TickSpawn(0f);
+            m2.TickSpawn(0f);
+            t2.TickCombat(0f);
+            Assert.AreEqual(TowerState.Charging, tower.State, "조준 즉시 차지 시작");
+            Assert.AreEqual(0, t2.ProjectileCount, "차지 중에는 쏘지 않음");
+
+            m2.ApplyDamage(tower.Locked, new DamageInfo(100, DamageType.Normal)); // 차지 중 대상 사망
+            m2.Cleanup();
+            t2.TickCombat(0.6f);
+            Assert.AreEqual(TowerState.Charging, tower.State, "다른 대상으로 이어서 차지");
+            Assert.IsFalse(tower.Locked.IsNone);
+            Assert.AreEqual(0, t2.ProjectileCount);
+
+            t2.TickCombat(0.39f); // 누적 0.99초: 아직
+            Assert.AreEqual(0, t2.ProjectileCount);
+            t2.TickCombat(0.02f); // 누적 1.01초 ≥ 1초 (비행은 짧게만 진행)
+            Assert.AreEqual(1, t2.ProjectileCount, "차지가 끝나면 발사");
+            Assert.AreEqual(TowerState.Reloading, tower.State);
+            UnityEngine.Object.DestroyImmediate(charger);
+        }
+
+        [Test]
         public void Hitscan_DamagesImmediately()
         {
             BuildAt(SiteA, lockSpecial); // Hitscan, 피해 1
             var target = Spawn("normal");
             towers.TickCombat(0f);
             Assert.AreEqual(0, towers.ProjectileCount);
-            Assert.AreEqual(99, monsters.Get(target).Hp);
+            Assert.AreEqual(3f, monsters.Get(target).Hp);
         }
 
         [Test]

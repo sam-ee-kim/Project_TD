@@ -66,6 +66,15 @@ namespace TowerDefence
             });
         }
 
+        // 반대로 움직이는 패널 (타워 목록): 평소에는 from 쪽 화면 밖에 숨어 있다가 SlideOut 때 지금 위치로 들어온다.
+        public void RegisterAppear(RectTransform panel, ExitDirection from)
+        {
+            var shown = panel.anchoredPosition;
+            var hidden = shown + Offscreen(panel, from);
+            panel.anchoredPosition = hidden;
+            entries.Add(new Entry { Panel = panel, Home = hidden, Away = shown, From = hidden, To = hidden });
+        }
+
         // 퇴장과 함께 나타나는 요소 (안내 문구).
         public void RegisterFadeIn(CanvasGroup group)
         {

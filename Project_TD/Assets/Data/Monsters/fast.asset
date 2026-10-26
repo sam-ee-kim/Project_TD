@@ -15,7 +15,7 @@ MonoBehaviour:
   id: fast
   displayName: "\uBE60\uB978 \uBAAC\uC2A4\uD130"
   category: 1
-  hp: 50
+  hp: 2
   speed: 2
   reward: 4
   nexusDamage: 1

@@ -8,7 +8,7 @@ namespace TowerDefence.EditorTools
     // 총구 발사 이펙트 프리팹을 만든다 (메뉴: TowerDefence/Build Muzzle FX).
     // 실제 총 발사 때 보이는 현상만: 총구 섬광(+ 순간 조명), 앞으로 뿜는 화염, 불티, 화약 연기.
     // 프리팹 원점 = 총구 끝, +Z = 포신 방향. 파티클 시스템은 엔진이 돌리므로 스크립트 Update가 없다.
-    public static class MuzzleFxBuilder
+    public static partial class MuzzleFxBuilder
     {
         const string ArtFolder = "Assets/Art/FX";
         const string PrefabFolder = "Assets/Prefabs/FX";
@@ -45,6 +45,107 @@ namespace TowerDefence.EditorTools
             }
             AssetDatabase.SaveAssets();
             Debug.Log("[MuzzleFxBuilder] " + PrefabPath + " 생성");
+        }
+
+        // --- 화염방사 타워: FX_FlameSpray90 모델 (90° 부채꼴 불길) ---
+        // 모델 구성: 불꽃 조각 3종(Chunk_Core 노랑 / Mid 주황 / Outer 빨강, 각자 재질) + 범위 안내 호(Shape_Core/Mid/Outer).
+        // 안내 호의 반지름(약 0.1 / 1.0 / 2.28)과 90° 폭대로, 노즐에서 조각을 뿜어 안쪽은 노랑·가운데는 주황·끝은 빨강이 되게 한다.
+        // 프리팹 원점 = 노즐, +Z = 뿜는 방향. 길이는 모델 단위 2.28 (TowerDef.coneFxReach) → 게임에서 coneLength에 맞춰 크기를 정한다.
+        // 한 번 발사(0.2초 간격) 동안 이어서 뿜으므로 연달아 쏘면 끊기지 않는 불길이 된다.
+
+        const string FlameSprayModelPath = "Assets/Models/FX/FX_FlameSpray90.fbx";
+        public const string FlamePrefabPath = PrefabFolder + "/FX_FlameSpray90.prefab";
+        const float FlameArc = 90f;         // 부채꼴 각도 (히트박스 coneAngle과 같게)
+        const float FlameGravity = 0.6f;    // 날아가며 바닥 쪽으로 처져 끝이 바닥 히트박스에 닿게
+
+        [MenuItem("TowerDefence/Build Flame Spray FX")]
+        public static void BuildFlameSpray()
+        {
+            EnsureFolder("Assets/Prefabs");
+            EnsureFolder(PrefabFolder);
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(FlameSprayModelPath);
+            if (model == null)
+            {
+                Debug.LogError("[MuzzleFxBuilder] " + FlameSprayModelPath + " 없음");
+                return;
+            }
+
+            var root = new GameObject("FX_FlameSpray90");
+            try
+            {
+                // 노즐 가까이: 노랑 (안쪽 호까지 ~1.0)
+                var core = AddChunkStream(root, model, "Chunk_Core", 0.16f, 0.22f, 4.5f, 5.5f, 0.7f, 1.0f, 70f);
+                SizeCurve(core, 0.6f, 1.3f, 1.1f);
+                // 가운데: 주황 (~1.75)
+                var mid = AddChunkStream(Child(root, "Mid"), model, "Chunk_Mid", 0.24f, 0.3f, 5.5f, 6.5f, 1.0f, 1.4f, 55f);
+                SizeCurve(mid, 0.7f, 1.5f, 1.0f);
+                // 끝: 빨강, 바깥 호(~2.28)에서 사그라짐
+                var outer = AddChunkStream(Child(root, "Outer"), model, "Chunk_Outer", 0.32f, 0.38f, 6.0f, 6.6f, 1.3f, 1.8f, 45f);
+                SizeCurve(outer, 0.6f, 1.4f, 0.15f);
+                PrefabUtility.SaveAsPrefabAsset(root, FlamePrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("[MuzzleFxBuilder] " + FlamePrefabPath + " 생성");
+        }
+
+        // 모델의 불꽃 조각 메시를 그 재질 그대로 파티클로 뿜는다 (90° 부채꼴, 위아래 얇게, 이리저리 굴러가며).
+        static ParticleSystem AddChunkStream(GameObject go, GameObject model, string chunk, float lifeMin, float lifeMax,
+            float speedMin, float speedMax, float sizeMin, float sizeMax, float perSecond)
+        {
+            Renderer source = null;
+            foreach (var r in model.GetComponentsInChildren<MeshRenderer>(true))
+                if (r.name.EndsWith(chunk))
+                    source = r;
+            var ps = AddSystem(go, source != null ? source.sharedMaterial : null, ParticleSystemRenderMode.Mesh, ParticleSystemSimulationSpace.World);
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            if (source != null)
+                renderer.mesh = source.GetComponent<MeshFilter>().sharedMesh;
+            renderer.alignment = ParticleSystemRenderSpace.Local;
+
+            var main = ps.main;
+            main.duration = 0.2f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(lifeMin, lifeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(speedMin, speedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(sizeMin, sizeMax);
+            main.startRotation3D = true;
+            main.startRotationX = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startRotationY = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.maxParticles = 30;
+            Stream(ps, perSecond);
+
+            // 평평한 90° 호에서 바깥으로: 각도마다 고르게 퍼진다 (원뿔은 가운데로 몰림).
+            // 원(XY 평면, +X에서 시작하는 호)을 눕히고(X 90°) 호 가운데가 +Z(뿜는 방향)에 오게 돌린다(Y −45°).
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.arc = FlameArc;
+            shape.arcMode = ParticleSystemShapeMultiModeValue.Random;
+            shape.radius = 0.03f;
+            shape.rotation = new Vector3(90f, -FlameArc * 0.5f, 0f);
+            shape.randomDirectionAmount = 0.08f;
+            main.gravityModifier = FlameGravity;
+
+            var spin = ps.rotationOverLifetime;
+            spin.enabled = true;
+            spin.separateAxes = true;
+            spin.x = new ParticleSystem.MinMaxCurve(-6f, 6f);
+            spin.y = new ParticleSystem.MinMaxCurve(-6f, 6f);
+            spin.z = new ParticleSystem.MinMaxCurve(-6f, 6f);
+            return ps;
+        }
+
+        // 크기 변화: 시작 → 중간 → 끝
+        static void SizeCurve(ParticleSystem ps, float start, float middle, float end)
+        {
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, start), new Keyframe(0.55f, middle), new Keyframe(1f, end)));
         }
 
         // 1) 총구 섬광: 아주 짧고 밝은 빛 덩어리 (루트 시스템, 자식까지 함께 재생)
@@ -163,6 +264,9 @@ namespace TowerDefence.EditorTools
             light.range = 2f;
             light.intensity = 4f;
             light.shadows = LightShadows.None;
+            // URP 조명 데이터를 미리 붙인다. 없으면 파티클이 만든 조명이 처음 그려질 때마다 URP가 AddComponent를 해서
+            // 웨이브 중 GC 할당이 생긴다 (작업 10 프로파일 측정: 이펙트 인스턴스마다 1번씩).
+            lightGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalLightData>();
             lightGo.SetActive(false); // 템플릿: 실제 조명은 파티클이 살아 있는 동안만 생긴다
 
             var lights = flash.lights;
@@ -209,6 +313,12 @@ namespace TowerDefence.EditorTools
         {
             var emission = ps.emission;
             emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)min, (short)max) });
+        }
+
+        static void Stream(ParticleSystem ps, float perSecond)
+        {
+            var emission = ps.emission;
+            emission.rateOverTime = perSecond;
         }
 
         static void Cone(ParticleSystem ps, float angle, float radius)

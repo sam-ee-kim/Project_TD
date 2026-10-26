@@ -12,17 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de06dccb0ce072740be8f41296b6f93d, type: 3}
   m_Name: MapGenRules
   m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.MapGenRules
-  maxSpawns: 1
+  complexity:
+  - mainTurnsMin: 2
+    mainTurnsMax: 2
+    spawns: 1
+    branchMaxTurns: 0
+  - mainTurnsMin: 2
+    mainTurnsMax: 4
+    spawns: 2
+    branchMaxTurns: 1
+  - mainTurnsMin: 4
+    mainTurnsMax: 4
+    spawns: 2
+    branchMaxTurns: 1
+  - mainTurnsMin: 4
+    mainTurnsMax: 6
+    spawns: 3
+    branchMaxTurns: 2
+  - mainTurnsMin: 6
+    mainTurnsMax: 8
+    spawns: 3
+    branchMaxTurns: 2
   spawnMinManhattan: 3
   forbidCornerAnchors: 1
   forbidContact: 1
   minRunLength: 2
-  mainMaxTurns: 4
-  branchMaxTurns: 1
   forbidBacktrack: 1
   forbidCornerTurns: 1
-  convergeStrategies: 0000000001000000
-  longestConvergeRange: {x: 1, y: 3}
   minAdjacentBuildSites: 1
   buildSiteMaxDistance: 1
   maxRetries: 200

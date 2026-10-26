@@ -44,7 +44,7 @@ namespace TowerDefence
                 var def = t.Def;
                 var cell = t.Cell;
                 run.RecoveryList.Add(def);
-                towerPools[def].Release(t);
+                Retire(t); // 층 전환 연출 동안 분해되어 사라진다
                 TowerChanged?.Invoke(new TowerChange(cell, def, false));
             }
             placed.Clear();
@@ -88,6 +88,8 @@ namespace TowerDefence
             // 층 전환·게임오버·클리어: 날던 투사체 반납, 고정 대상 해제 (DamageDesign 6절).
             if (change.State == GameState.FloorTransition || change.State == GameState.GameOver || change.State == GameState.GameClear)
                 ClearCombat();
+            if (change.State == GameState.FloorTransition)
+                GrantFloorItem(change.Floor); // 층 클리어 보상 (마지막 층은 GameClear라 받지 않는다)
 
             if (recoveryFloor > 0)
             {

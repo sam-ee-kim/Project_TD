@@ -32,6 +32,11 @@ namespace TowerDefence
         bool hasHover, hasSelected;
         Vector2Int hover, selected;
 
+        // 라운드 시작 전 몬스터 경로 미리보기. 타일이 다 솟아오른 뒤에 보인다.
+        readonly PathPreviewView pathPreview = new PathPreviewView();
+        bool pathPreviewWanted;
+        public PathPreviewView PathPreview => pathPreview;
+
         // 타일이 아직 솟아오르는 중인지 (이 동안 카메라는 탑다운뷰로 고정).
         public bool IsBuilding => renderer != null && renderer.IsBuilding;
         public bool OverlayVisible => overlayOn;
@@ -51,6 +56,7 @@ namespace TowerDefence
             blocked = new Color(tint.r, tint.g, tint.b, ui != null ? ui.blockedAlpha : 0.28f);
             blockedHover = new Color(tint.r, tint.g, tint.b, ui != null ? ui.blockedHoverAlpha : 0.4f);
             CreateOverlay();
+            pathPreview.Init(board, renderer != null ? renderer.PathPreviewMaterial : null);
         }
 
         // 맵 교체 시 전체 다시 그리기: 이전 타일을 지우고 새 맵이 아래에서 솟아오른다.
@@ -60,7 +66,12 @@ namespace TowerDefence
                 renderer.Show(map);
             if (overlayOn)
                 PaintAll();
+            pathPreview.SetVisible(false); // 새 타일이 다 올라온 뒤 다시 보인다
+            pathPreview.Build(map);
         }
+
+        // 라운드 시작 전(Ready·Break)에만 경로 미리보기를 켠다.
+        public void SetPathPreviewWanted(bool wanted) => pathPreviewWanted = wanted;
 
         public void Tick(float dt)
         {
@@ -68,6 +79,8 @@ namespace TowerDefence
                 renderer.Tick(dt);
             if (cameraRig != null)
                 cameraRig.Tick(dt);
+            pathPreview.SetVisible(pathPreviewWanted && board != null && board.Map != null && !IsBuilding);
+            pathPreview.Tick(dt);
         }
 
         // BuildMode 오버레이 켜기/끄기. 켤 때 1번 전체를 칠한다.

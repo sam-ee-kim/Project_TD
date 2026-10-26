@@ -16,22 +16,39 @@ MonoBehaviour:
   floorTransitionSec: 2
   startCash: 100
   nexusHp: 20
-  finalFloor: 46
+  finalFloor: 10
   upgradeEnabled: 0
   sellRefundRate: 0.7
   recoveryRefundRate: 0.7
   rules:
-    mapTierEveryFloors: 3
+    mapTierEveryFloors: 2
     mapBaseSize: 7
     mapGrowPerTier: 2
-    baseWaves: 2
-    waveIncreaseEveryFloors: 5
+    mapMaxSize: 15
+    maxComplexity: 5
+    baseWaves: 1
+    waveIncreaseEveryFloors: 2
+    maxWaves: 5
     baseMonsterCount: 10
     monsterIncreaseEveryWaves: 2
     monsterIncreaseAmount: 2
     spawnIntervalSec: 1
-    spawnCount: 1
     defaultMonsterId: normal
+    hpMapScale:
+    - 1
+    - 1.6
+    - 2.6
+    - 4
+    - 6
+    hpComplexityScale:
+    - 1
+    - 0.89
+    - 0.94
+    - 0.86
+    - 0.94
+    hpSecondFloorScale: 1.25
+    hpPerWave: 0.08
+    hpRoundStep: 0.5
   mapPool:
     mapsPerTier: 1
     prefetchNextTier: 1
@@ -62,3 +79,4 @@ MonoBehaviour:
     enabled: 0
     maxLines: 5
     lifetimeSec: 3
+  waves: []

@@ -111,8 +111,10 @@ public class MapTests
         Assert.AreEqual(TileType.Exit, board.GetTile(new Vector2Int(5, 6)));
         Assert.AreEqual(TileType.Empty, board.GetTile(new Vector2Int(-1, 0)));
         Assert.AreEqual(9, board.GetPathLength(0));
-        Assert.AreEqual(3, board.GetPathIndex(new Vector2Int(4, 2)));
-        Assert.AreEqual(-1, board.GetPathIndex(new Vector2Int(0, 0)));
+        Assert.AreEqual(new Vector2Int(4, 2), board.GetPathCell(0, 3));
+        Assert.IsTrue(board.IsPathCell(new Vector2Int(4, 2)));
+        Assert.IsFalse(board.IsPathCell(new Vector2Int(0, 0)));
+        Assert.AreEqual(4 * 7 + 2, board.CellId(new Vector2Int(4, 2)), "칸 번호 = x × N + y");
 
         var site = new Vector2Int(2, 0);
         Assert.IsTrue(board.IsBuildable(site));
@@ -149,15 +151,15 @@ public class MapTests
         for (int round = 0; round < 10; round++)
         {
             for (int i = 0; i < 290; i++)
-                board.AddToCell(i % board.GetPathLength(0), new MonsterHandle(i, round));
+                board.AddToCell(board.PathCellId(i % board.GetPathLength(0)), new MonsterHandle(i, round));
             for (int i = 0; i < 290; i++)
-                board.RemoveFromCell(i % board.GetPathLength(0), new MonsterHandle(i, round));
+                board.RemoveFromCell(board.PathCellId(i % board.GetPathLength(0)), new MonsterHandle(i, round));
         }
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.AreEqual(0, allocated, "칸별 몬스터 목록 추가·제거에서 할당 발생");
         for (int i = 0; i < board.GetPathLength(0); i++)
-            Assert.AreEqual(0, board.MonstersAt(i).Count);
+            Assert.AreEqual(0, board.MonstersAtPath(i).Count);
     }
 
     [Test]

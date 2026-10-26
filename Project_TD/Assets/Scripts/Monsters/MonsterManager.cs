@@ -46,6 +46,7 @@ namespace TowerDefence
         float spawnTimer;       // 다음 스폰까지 남은 시간
         int remainingToSpawn;   // 이번 웨이브에서 아직 내보내지 않은 몬스터 수
         bool inWave;
+        int nextSpawn;          // 다음 몬스터의 스타트 지점 (번갈아)
 
         // 이번 웨이브 스폰이 모두 끝났는지 (웨이브 클리어 판정용).
         public bool IsSpawnFinished => remainingToSpawn == 0;
@@ -65,7 +66,13 @@ namespace TowerDefence
         public int DyingViewCount => dyingViews.Count;
 
         // 테스트용(임시): 0보다 크면 스폰하는 몬스터 체력을 이 값으로 (정의 데이터는 바꾸지 않는다).
+        const float HpEpsilon = 0.0001f;
+
         public int DebugHpOverride { get; set; }
+
+        // 이번 웨이브 체력 배율 (LevelRules.GetHpScale, 웨이브 시작 때 1번 계산).
+        float hpScale = 1f;
+        public float HpScale => hpScale;
 
         public void Init(GameData data, Board board, Transform viewRoot = null)
         {
@@ -83,6 +90,8 @@ namespace TowerDefence
         public void ResetForNewRun(RunState run)
         {
             this.run = run;
+            hpScale = 1f;
+            ClearSlowFields();
             for (int i = active.Count - 1; i >= 0; i--)
             {
                 ReleaseView(active[i]);
@@ -97,6 +106,7 @@ namespace TowerDefence
             remainingToSpawn = 0;
             inWave = false;
             movementPaused = true;
+            nextSpawn = 0;
         }
 
         // 쉬는 몬스터가 count마리 이상 되도록 채운다 (앱 시작, 휴식 시간). 웨이브 중에는 부르지 않는다.
@@ -153,6 +163,7 @@ namespace TowerDefence
             switch (change.State)
             {
                 case GameState.Wave:
+                    hpScale = data.Config != null ? LevelRules.GetHpScale(data.Config, change.Floor, change.Wave) : 1f;
                     break;
                 case GameState.Break:
                     inWave = false;
@@ -162,6 +173,7 @@ namespace TowerDefence
                     // 게임오버·클리어·층 전환: 남은 스폰을 버린다. 남은 몬스터는 제자리 대기, 새 판(ResetForNewRun)에서 반납.
                     inWave = false;
                     remainingToSpawn = 0;
+                    ClearSlowFields(); // 맵이 바뀌거나 판이 끝나면 감속 영역도 사라진다
                     break;
             }
         }
@@ -192,10 +204,74 @@ namespace TowerDefence
             }
         }
 
+        // --- 감속 영역 (나노필드) ---
+        // 원 안(바닥 평면)에 있는 몬스터는 이동 속도가 (1 − slow)배. 여러 개가 겹치면 가장 센 것 하나만.
+        // 고정 크기 원형 버퍼라 할당이 없고, 다 차면 가장 오래된 것을 덮어쓴다.
+        public const int MaxSlowFields = 64;
+        readonly Vector3[] fieldCenter = new Vector3[MaxSlowFields];
+        readonly float[] fieldRadiusSq = new float[MaxSlowFields];
+        readonly float[] fieldSlow = new float[MaxSlowFields];
+        readonly float[] fieldEnd = new float[MaxSlowFields];
+        int fieldNext;
+        float fieldLatestEnd;
+        float moveTime; // TickMove 누적 시간 (영역 만료 기준)
+
+        // 감속 영역 추가 (TowerManager가 나노 탄 명중 때 요청).
+        public void AddSlowField(Vector3 center, float radius, float slow, float duration)
+        {
+            int i = fieldNext;
+            fieldNext = (i + 1) % MaxSlowFields;
+            fieldCenter[i] = center;
+            fieldRadiusSq[i] = radius * radius;
+            fieldSlow[i] = Mathf.Clamp01(slow);
+            fieldEnd[i] = moveTime + duration;
+            if (fieldEnd[i] > fieldLatestEnd)
+                fieldLatestEnd = fieldEnd[i];
+        }
+
+        public int ActiveSlowFields
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < MaxSlowFields; i++)
+                    if (fieldEnd[i] > moveTime) n++;
+                return n;
+            }
+        }
+
+        // 이 몬스터의 이동 속도 배율 (1 = 정상).
+        public float GetSpeedMultiplier(MonsterInstance m)
+        {
+            if (fieldLatestEnd <= moveTime)
+                return 1f;
+            var p = GetGroundPoint(m);
+            float slow = 0f;
+            for (int i = 0; i < MaxSlowFields; i++)
+            {
+                if (fieldEnd[i] <= moveTime || fieldSlow[i] <= slow)
+                    continue;
+                float dx = p.x - fieldCenter[i].x, dz = p.z - fieldCenter[i].z;
+                if (dx * dx + dz * dz <= fieldRadiusSq[i])
+                    slow = fieldSlow[i];
+            }
+            return 1f - slow;
+        }
+
+        void ClearSlowFields()
+        {
+            for (int i = 0; i < MaxSlowFields; i++)
+                fieldEnd[i] = 0f;
+            fieldLatestEnd = 0f;
+            moveTime = 0f;
+            fieldNext = 0;
+        }
+
         // GameLoop 3단계: 경로를 따라 speed(칸/초)로 이동. 칸이 바뀐 몬스터만 Board 칸 목록 갱신, 출구 도착 처리.
         // 스폰 직후 대기 시간(IdleTime) 동안은 움직이지 않는다.
         public void TickMove(float dt)
         {
+            moveTime += dt;
             for (int i = 0; i < active.Count; i++)
             {
                 var m = active[i];
@@ -213,15 +289,21 @@ namespace TowerDefence
                 }
 
                 int lastIndex = board.GetPathLength(m.PathId) - 1;
-                m.PathProgress += m.Def.speed * moveDt;
+                float speedMul = GetSpeedMultiplier(m); // 나노필드 안이면 느려진다
+                if (m.View != null && speedMul != m.SpeedMul)
+                    m.View.SetMoveScale(speedMul);      // 걷기 애니메이션도 같은 비율로
+                m.SpeedMul = speedMul;
+                m.PathProgress += m.Def.speed * speedMul * moveDt;
+                m.Remaining = lastIndex - m.PathProgress;
 
                 if (m.PathProgress >= lastIndex)
                 {
                     // 출구 칸 도착 (DamageDesign 4-1): Exited → Board 목록에서 제거 → 넥서스 피해. 보상 없음.
                     m.PathProgress = lastIndex;
+                    m.Remaining = 0f;
                     m.State = MonsterState.Exited;
                     aliveCount--;
-                    board.RemoveFromCell(m.PathIndex, m.Handle);
+                    board.RemoveFromCell(m.CellId, m.Handle);
                     PlaceView(m, false);
                     ReachedExit?.Invoke(new MonsterReachedExit(m.Def.nexusDamage));
                     continue;
@@ -230,9 +312,11 @@ namespace TowerDefence
                 int cellIndex = (int)m.PathProgress;
                 if (cellIndex != m.PathIndex)
                 {
-                    board.RemoveFromCell(m.PathIndex, m.Handle);
-                    board.AddToCell(cellIndex, m.Handle);
+                    int cellId = board.CellId(board.GetPathCell(m.PathId, cellIndex));
+                    board.RemoveFromCell(m.CellId, m.Handle);
+                    board.AddToCell(cellId, m.Handle);
                     m.PathIndex = cellIndex;
+                    m.CellId = cellId;
                 }
                 PlaceView(m, false);
             }
@@ -300,13 +384,13 @@ namespace TowerDefence
             var m = all[target.Index];
             if (m.State != MonsterState.Alive) return DamageResult.Ignored; // 같은 프레임에 이미 사망·도착
 
-            int dmg = DamageCalculator.Compute(info, m.Def);                 // 지금은 info.Amount 그대로
+            float dmg = DamageCalculator.Compute(info, m.Def);               // 지금은 info.Amount 그대로
             m.Hp -= dmg;
-            if (m.Hp > 0) return DamageResult.Damaged;
+            if (m.Hp > HpEpsilon) return DamageResult.Damaged;               // 소수 피해 누적 오차 (0.5 × 8 = 4) 흡수
 
             m.State = MonsterState.Dying;                                    // 사망 판정은 여기서 딱 1번
             aliveCount--;
-            board.RemoveFromCell(m.PathIndex, m.Handle);                     // 즉시 공격 대상 후보에서 제외
+            board.RemoveFromCell(m.CellId, m.Handle);                        // 즉시 공격 대상 후보에서 제외
             Killed?.Invoke(new MonsterKilled(m.Def.reward));                 // PlayerState.Earn(amount, Kill)
             return DamageResult.Killed;
         }
@@ -335,7 +419,7 @@ namespace TowerDefence
                     continue;
                 m.State = MonsterState.Dying;
                 aliveCount--;
-                board.RemoveFromCell(m.PathIndex, m.Handle);
+                board.RemoveFromCell(m.CellId, m.Handle);
             }
         }
 #endif
@@ -345,14 +429,18 @@ namespace TowerDefence
             var m = pool.Get(); // OnGet: Generation +1, State = Alive
             m.Def = def;
             m.DefIndex = def.Index;
-            m.Hp = DebugHpOverride > 0 ? DebugHpOverride : def.hp;
-            m.PathId = 0;       // 스폰 1개 (다중 스폰 보류)
+            m.Hp = DebugHpOverride > 0 ? DebugHpOverride : LevelRules.ScaleHp(data.Config, def.hp, hpScale);
+            m.PathId = ChooseSpawn(def);
             m.PathIndex = 0;
             m.PathProgress = 0f;
+            m.Remaining = board.GetPathLength(m.PathId) - 1;
+            m.CellId = board.CellId(board.GetPathCell(m.PathId, 0));
             m.IdleTime = def.spawnIdleSec;
+            m.SpeedMul = 1f;
+            m.View?.SetMoveScale(1f);
             active.Add(m);
             aliveCount++;
-            board.AddToCell(0, m.Handle);
+            board.AddToCell(m.CellId, m.Handle);
 
             if (viewRoot != null)
             {
@@ -360,6 +448,18 @@ namespace TowerDefence
                 PlaceView(m, true);
                 m.View.ChangeState(m.IdleTime > 0f ? MonsterViewState.Idle : MonsterViewState.Walk);
             }
+        }
+
+        // 스타트 지점 고르기: 지금은 순서대로 번갈아 (1 → 2 → 3 → 1 …).
+        // 나중에 몬스터 티어가 나뉘면 스타트 지점마다 랜덤 가중치를 두어 높은 티어의 배치율을 높이는 자리.
+        int ChooseSpawn(MonsterDef def)
+        {
+            int count = board.PathCount;
+            if (count <= 1)
+                return 0;
+            int k = nextSpawn % count;
+            nextSpawn++;
+            return k;
         }
 
         // 경로 칸 사이를 진행률로 보간한 바닥 위치 (타일 윗면 y = 0).
@@ -406,11 +506,25 @@ namespace TowerDefence
             if (data.Config == null || run == null)
                 return;
             int g = run.TotalWaveIndex + 1;
-            Prewarm(LevelRules.MonsterCount(data.Config, g));
             int lines = LevelRules.GetWaveComposition(data.Config, run.Floor, run.Wave + 1, g, prewarmBuffer);
+            int total = 0;
             for (int i = 0; i < lines; i++)
-                if (data.TryGetMonster(prewarmBuffer[i].MonsterId, out var def))
-                    PrewarmViews(def, prewarmBuffer[i].Count);
+            {
+                total += prewarmBuffer[i].Count; // 웨이브 테이블 구성도 반영 (공식 마리 수와 다를 수 있음)
+
+                // 같은 종류가 여러 줄에 나뉘어 있으면 그 종류의 첫 줄에서 합계만큼 표시를 채운다.
+                bool seenBefore = false;
+                for (int k = 0; k < i && !seenBefore; k++)
+                    seenBefore = prewarmBuffer[k].MonsterId == prewarmBuffer[i].MonsterId;
+                if (seenBefore || !data.TryGetMonster(prewarmBuffer[i].MonsterId, out var def))
+                    continue;
+                int sameKind = 0;
+                for (int k = i; k < lines; k++)
+                    if (prewarmBuffer[k].MonsterId == prewarmBuffer[i].MonsterId)
+                        sameKind += prewarmBuffer[k].Count;
+                PrewarmViews(def, sameKind);
+            }
+            Prewarm(total);
         }
 
         ObjectPool<MonsterView> GetViewPool(MonsterDef def)

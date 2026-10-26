@@ -88,8 +88,8 @@ namespace TowerDefence.Tests
         {
             BeginWave(1);
             monsters.TickSpawn(0f);
-            Assert.AreEqual(1, board.MonstersAt(0).Count);
-            return board.MonstersAt(0)[0];
+            Assert.AreEqual(1, board.MonstersAtPath(0).Count);
+            return board.MonstersAtPath(0)[0];
         }
 
         [Test]
@@ -109,9 +109,9 @@ namespace TowerDefence.Tests
             monsters.TickSpawn(5f);
             Assert.AreEqual(10, monsters.AliveCount, "구성표 수보다 더 나오지 않음");
 
-            var m = monsters.Get(board.MonstersAt(0)[0]);
+            var m = monsters.Get(board.MonstersAtPath(0)[0]);
             Assert.AreEqual("normal", m.Def.id);
-            Assert.AreEqual(100, m.Hp);
+            Assert.AreEqual(4f, m.Hp);
             Assert.AreEqual(MonsterState.Alive, m.State);
         }
 
@@ -123,13 +123,13 @@ namespace TowerDefence.Tests
             var m = monsters.Get(h);
             Assert.AreEqual(0, m.PathIndex);
             Assert.AreEqual(0.5f, m.PathProgress, 1e-5f);
-            Assert.AreEqual(1, board.MonstersAt(0).Count, "칸이 안 바뀌면 그대로");
+            Assert.AreEqual(1, board.MonstersAtPath(0).Count, "칸이 안 바뀌면 그대로");
 
             monsters.TickMove(0.6f);
             Assert.AreEqual(1, m.PathIndex);
-            Assert.AreEqual(0, board.MonstersAt(0).Count);
-            Assert.AreEqual(1, board.MonstersAt(1).Count);
-            Assert.AreEqual(h, board.MonstersAt(1)[0]);
+            Assert.AreEqual(0, board.MonstersAtPath(0).Count);
+            Assert.AreEqual(1, board.MonstersAtPath(1).Count);
+            Assert.AreEqual(h, board.MonstersAtPath(1)[0]);
         }
 
         [Test]
@@ -146,7 +146,7 @@ namespace TowerDefence.Tests
             Assert.AreEqual(100, player.Cash, "도착은 보상 없음");
             Assert.AreEqual(0, monsters.AliveCount);
             for (int i = 0; i < 9; i++)
-                Assert.AreEqual(0, board.MonstersAt(i).Count, "Board 목록에서 제거");
+                Assert.AreEqual(0, board.MonstersAtPath(i).Count, "Board 목록에서 제거");
 
             monsters.Cleanup();
             Assert.IsFalse(monsters.IsValid(h), "정리 후 핸들 무효");
@@ -163,10 +163,12 @@ namespace TowerDefence.Tests
             int guard = 0;
             while (flow.State == GameState.Wave && guard++ < 10000)
                 Frame(0.05f);
-            Assert.AreEqual(GameState.Break, flow.State, "10마리 도착 후 웨이브 클리어");
+            Assert.AreEqual(GameState.FloorTransition, flow.State, "10마리 도착 후 웨이브 클리어 (1층은 1웨이브)");
             Assert.AreEqual(10, player.NexusHp);
 
-            flow.StartNow(); // 1층 2웨이브: 10마리
+            flow.Tick(config.floorTransitionSec + 0.01f); // 같은 Tier → 2층 휴식
+            Assert.AreEqual(GameState.Break, flow.State);
+            flow.StartNow(); // 2층 1웨이브: 10마리
             guard = 0;
             while (flow.State == GameState.Wave && guard++ < 10000)
                 Frame(0.05f);
@@ -178,11 +180,25 @@ namespace TowerDefence.Tests
         }
 
         [Test]
+        public void Spawn_UsesFloorWaveHpScale()
+        {
+            monsters.HandleStateChanged(new StateChange(GameState.Wave, 10, 5));
+            var h = SpawnOne();
+            Assert.AreEqual(37f, monsters.Get(h).Hp, "10층 5웨이브 일반 몬스터 = 37 (HpLevelDesign)");
+
+            monsters.HandleStateChanged(new StateChange(GameState.Wave, 1, 1));
+            BeginWave(1);
+            monsters.TickSpawn(0f);
+            var fresh = board.MonstersAtPath(0)[board.MonstersAtPath(0).Count - 1];
+            Assert.AreEqual(4f, monsters.Get(fresh).Hp, "1층 1웨이브 = 기본 체력 4");
+        }
+
+        [Test]
         public void ApplyDamage_DamagedThenKilled_RewardOnce()
         {
             var h = SpawnOne();
-            Assert.AreEqual(DamageResult.Damaged, monsters.ApplyDamage(h, new DamageInfo(20, DamageType.Normal)));
-            Assert.AreEqual(80, monsters.Get(h).Hp);
+            Assert.AreEqual(DamageResult.Damaged, monsters.ApplyDamage(h, new DamageInfo(1, DamageType.Normal)));
+            Assert.AreEqual(3f, monsters.Get(h).Hp);
 
             // 같은 프레임에 두 번 맞아 죽음 (오버킬 포함)
             var r1 = monsters.ApplyDamage(h, new DamageInfo(80, DamageType.Normal));
@@ -192,7 +208,7 @@ namespace TowerDefence.Tests
             Assert.AreEqual(1, killedEvents, "Killed 1번");
             Assert.AreEqual(105, player.Cash, "처치 보상 5, 1번만");
             Assert.AreEqual(MonsterState.Dying, monsters.Get(h).State);
-            Assert.AreEqual(0, board.MonstersAt(0).Count, "사망 즉시 Board 목록에서 제거");
+            Assert.AreEqual(0, board.MonstersAtPath(0).Count, "사망 즉시 Board 목록에서 제거");
             Assert.AreEqual(0, monsters.AliveCount);
         }
 
@@ -220,7 +236,7 @@ namespace TowerDefence.Tests
             Assert.IsTrue(monsters.IsValid(fresh));
 
             Assert.AreEqual(DamageResult.Ignored, monsters.ApplyDamage(old, new DamageInfo(100, DamageType.Normal)));
-            Assert.AreEqual(100, monsters.Get(fresh).Hp, "새 몬스터는 피해 없음");
+            Assert.AreEqual(4f, monsters.Get(fresh).Hp, "새 몬스터는 피해 없음");
             Assert.AreEqual(1, killedEvents);
         }
 

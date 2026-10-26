@@ -18,6 +18,7 @@ namespace TowerDefence
         Build, // "설치하시겠습니까?" [설치] / [취소]
         Sell,  // "판매하시겠습니까? (+N 캐시)" [판매] / [취소]
         Recovery, // 회수 목록 항목: [재건축] / [철거] (GDD 5-9)
+        Upgrade,  // 테크트리: "○○ → ○○" [진화] / [판매 (+N)]
     }
 
     // BuildController.ModeChanged 인자 (GDD 8-4).
@@ -61,20 +62,52 @@ namespace TowerDefence
         }
     }
 
+    public enum DragKind
+    {
+        None,
+        NewTower,  // 타워 목록 아이콘을 끌어 맵에 놓으면 설치
+        MoveTower, // 설치된 타워를 끌어 빈 부지로 이동
+    }
+
+    // 드래그 상태가 바뀌었을 때 (시작, 가리키는 칸 변경, 끝). Kind = None이면 끝.
+    public readonly struct TowerDrag
+    {
+        public readonly DragKind Kind;
+        public readonly TowerDef Def;
+        public readonly TowerInstance Tower; // MoveTower일 때 옮기는 타워
+        public readonly bool HasCell;
+        public readonly Vector2Int Cell;
+        public readonly bool Valid;          // 여기 놓으면 설치·이동된다 (초록) / 안 된다 (빨강)
+
+        public TowerDrag(DragKind kind, TowerDef def, TowerInstance tower, bool hasCell, Vector2Int cell, bool valid)
+        {
+            Kind = kind;
+            Def = def;
+            Tower = tower;
+            HasCell = hasCell;
+            Cell = cell;
+            Valid = valid;
+        }
+    }
+
     // 확인 팝업 열기·닫기 요청 (Kind = None이면 닫기).
     public readonly struct PopupRequest
     {
         public readonly PopupKind Kind;
         public readonly Vector2Int Cell;
         public readonly TowerDef Def;
-        public readonly int Amount; // Build = 건축 비용, Sell = 반환 캐시
+        public readonly int Amount; // Build = 건축 비용, Sell = 반환 캐시, Upgrade = 진화 비용
+        public readonly TowerDef From; // Upgrade: 지금 타워 종류 (Def = 진화 대상)
+        public readonly int Refund;    // Upgrade: [판매]로 돌려받는 캐시
 
-        public PopupRequest(PopupKind kind, Vector2Int cell, TowerDef def, int amount)
+        public PopupRequest(PopupKind kind, Vector2Int cell, TowerDef def, int amount, TowerDef from = null, int refund = 0)
         {
             Kind = kind;
             Cell = cell;
             Def = def;
             Amount = amount;
+            From = from;
+            Refund = refund;
         }
     }
 
@@ -87,8 +120,13 @@ namespace TowerDefence
         public event Action<CellHover> HoverChanged;          // → GameUI (오버레이 2칸, 툴팁)
         public event Action<CellSelection> SelectionChanged;  // → GameUI (파란 칸)
         public event Action<PopupRequest> PopupRequested;     // → GameUI (확인 팝업)
+        public event Action<TowerDrag> DragChanged;           // → GameUI (미리보기 타워, 오버레이)
 
         static readonly Plane Ground = new Plane(Vector3.up, Vector3.zero);
+
+        // 드래그 중인 타워는 마우스 포인터에 잡혀 이 높이에 떠 있다. 놓일 칸 = 떠 있는 타워 바로 아래 칸.
+        public const float DragHoldHeight = 1.7f;
+        static readonly Plane HoldPlane = new Plane(Vector3.up, new Vector3(0f, DragHoldHeight, 0f));
 
         GameData data;
         GameFlow flow;
@@ -101,6 +139,14 @@ namespace TowerDefence
         TowerDef modeDef;
         TowerInstance sellTarget;
         TowerDef recoveryDef; // 회수 팝업 대상 종류
+        TowerInstance upgradeTarget; // 진화 팝업 대상
+
+        // 드래그
+        DragKind dragKind;
+        TowerDef dragDef;
+        TowerInstance dragTower;
+        TowerInstance pressedTower; // 타워를 누른 채 아직 칸을 벗어나지 않음 (떼면 클릭, 칸을 옮기면 이동 드래그)
+        Vector2Int pressCell;
 
         public BuildMode Mode { get; private set; } = BuildMode.None;
         public TowerDef ModeDef => modeDef;
@@ -109,6 +155,9 @@ namespace TowerDefence
         public bool HasSelection { get; private set; }
         public Vector2Int SelectedCell { get; private set; }
         public PopupKind Popup { get; private set; } = PopupKind.None;
+        public DragKind Drag => dragKind;
+        public bool HasDragPoint { get; private set; }
+        public Vector3 DragPoint { get; private set; } // 포인터가 잡고 있는 공중 위치 (높이 DragHoldHeight)
 
         // 건축·판매 상호작용은 휴식·웨이브 중에만 (게임은 멈추지 않는다).
         bool CanInteract => flow.State == GameState.Break || flow.State == GameState.Wave;
@@ -127,6 +176,8 @@ namespace TowerDefence
         public void ResetForNewRun(RunState run)
         {
             this.run = run;
+            CancelDrag();
+            pressedTower = null;
             ExitMode();
             ClosePopup();
         }
@@ -158,12 +209,57 @@ namespace TowerDefence
                 return;
 
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            var screen = pointer.position.ReadValue();
             Vector2Int cell = default;
-            bool hasCell = !overUi && TryGetCell(pointer.position.ReadValue(), out cell);
+            bool hasCell;
+            if (dragKind != DragKind.None)
+            {
+                UpdateDragPoint(screen);
+                hasCell = !overUi && HasDragPoint && board.Map != null && board.TryWorldToCell(DragPoint, out cell);
+            }
+            else
+            {
+                hasCell = !overUi && TryGetCell(screen, out cell);
+            }
             PointAt(hasCell, cell);
 
+            // 드래그 중: 손을 떼는 곳에 놓는다 (UI 위·맵 밖이면 취소).
+            if (dragKind != DragKind.None)
+            {
+                if (pointer.press.wasReleasedThisFrame)
+                    Drop();
+                return;
+            }
+
             if (pointer.press.wasPressedThisFrame && hasCell)
-                Click(cell);
+            {
+                // 설치된 타워를 누르면 떼기 전까지 클릭인지 이동 드래그인지 기다린다.
+                var tower = Popup == PopupKind.None && Mode != BuildMode.Rebuild ? towers.GetTowerAt(cell) : null;
+                if (tower != null)
+                {
+                    pressedTower = tower;
+                    pressCell = cell;
+                }
+                else
+                {
+                    Click(cell);
+                }
+            }
+
+            if (pressedTower != null)
+            {
+                if (!pointer.press.isPressed)
+                {
+                    pressedTower = null;
+                    Click(pressCell);                  // 칸을 벗어나지 않고 뗌 → 클릭 (일반 상태: 판매 팝업)
+                }
+                else if (hasCell && cell != pressCell)
+                {
+                    var tower = pressedTower;
+                    pressedTower = null;
+                    BeginMoveDrag(tower);              // 누른 채 다른 칸으로 → 이동 드래그
+                }
+            }
         }
 
         // 마우스가 가리키는 칸 갱신. 칸이 바뀔 때만 HoverChanged를 낸다 (GDD 8-5 #7).
@@ -173,8 +269,10 @@ namespace TowerDefence
                 return;
             HasHover = hasCell;
             HoverCell = cell;
-            if (Mode != BuildMode.None)
-                HoverChanged?.Invoke(new CellHover(hasCell, cell, hasCell && board.IsBuildable(cell)));
+            if (Mode != BuildMode.None || dragKind != DragKind.None)
+                HoverChanged?.Invoke(new CellHover(hasCell, cell, hasCell && CanDropAt(cell)));
+            if (dragKind != DragKind.None)
+                RaiseDrag();
         }
 
         // 칸 클릭. 팝업이 열려 있으면 무시한다.
@@ -185,10 +283,19 @@ namespace TowerDefence
 
             if (Mode == BuildMode.None)
             {
-                // 일반 상태: 설치된 타워 클릭 → 판매 팝업 (GDD 5-8)
+                // 일반 상태: 설치된 타워 클릭 → 판매 팝업 (GDD 5-8). 테크트리가 켜져 있고 다음 단계가 있으면 진화 팝업
                 var tower = towers.GetTowerAt(cell);
                 if (tower == null)
                     return;
+                var next = towers.GetUpgrade(tower.Def);
+                if (next != null)
+                {
+                    upgradeTarget = tower;
+                    Popup = PopupKind.Upgrade;
+                    PopupRequested?.Invoke(new PopupRequest(PopupKind.Upgrade, cell, next, towers.GetUpgradeCost(tower.Def, next),
+                        tower.Def, towers.GetSellRefund(tower.Def)));
+                    return;
+                }
                 sellTarget = tower;
                 OpenPopup(PopupKind.Sell, cell, tower.Def, towers.GetSellRefund(tower.Def));
                 return;
@@ -202,6 +309,112 @@ namespace TowerDefence
             SelectionChanged?.Invoke(new CellSelection(true, cell));
             OpenPopup(PopupKind.Build, cell, modeDef, Mode == BuildMode.Rebuild ? 0 : modeDef.buildCost);
         }
+
+        // 타워 목록 아이콘 클릭: 칸 클릭 → 확인 팝업으로 지을 타워를 바꾼다 (정보 표시는 GameUI).
+        public void SelectBuildDef(TowerDef def)
+        {
+            if (def == null || Mode != BuildMode.Build || def == modeDef)
+                return;
+            ClearSelection();
+            if (Popup == PopupKind.Build)
+                ClosePopup();
+            modeDef = def;
+        }
+
+        // 타워 목록 아이콘을 끌기 시작 (BuildMode에서만). 손을 떼는 곳에 바로 설치한다 (확인 팝업 없음).
+        public void BeginNewTowerDrag(TowerDef def)
+        {
+            if (def == null || Mode != BuildMode.Build || !CanInteract || dragKind != DragKind.None)
+                return;
+            ClearSelection();
+            ClosePopup();
+            dragDef = def;
+            dragTower = null;
+            StartDrag(DragKind.NewTower);
+        }
+
+        // 설치된 타워를 끌기 시작: 빈 부지에 놓으면 이동 (캐시 변화 없음).
+        public void BeginMoveDrag(TowerInstance tower)
+        {
+            if (tower == null || !CanInteract || dragKind != DragKind.None || Popup != PopupKind.None || Mode == BuildMode.Rebuild)
+                return;
+            ClearSelection();
+            dragDef = tower.Def;
+            dragTower = tower;
+            StartDrag(DragKind.MoveTower);
+        }
+
+        // 지금 가리키는 칸에 놓는다. 놓을 수 없는 칸·맵 밖이면 아무 일 없이 끝난다.
+        public void Drop()
+        {
+            if (dragKind == DragKind.None)
+                return;
+            if (HasHover && CanDropAt(HoverCell))
+            {
+                if (dragKind == DragKind.NewTower)
+                    towers.Build(HoverCell, dragDef);          // 캐시·부지 최종 판정은 TowerManager
+                else if (HoverCell != dragTower.Cell)
+                    towers.Move(dragTower, HoverCell);
+            }
+            EndDrag();
+        }
+
+        public void CancelDrag()
+        {
+            if (dragKind != DragKind.None)
+                EndDrag();
+        }
+
+        // 여기에 놓을 수 있는지: 새 타워 = 빈 부지 + 캐시, 이동 = 빈 부지 (제자리는 그대로 두기라 허용).
+        bool CanDropAt(Vector2Int cell)
+        {
+            switch (dragKind)
+            {
+                case DragKind.NewTower:
+                    return board.IsBuildable(cell) && player.CanAfford(dragDef.buildCost);
+                case DragKind.MoveTower:
+                    return cell == dragTower.Cell || board.IsBuildable(cell);
+                default:
+                    return board.IsBuildable(cell);
+            }
+        }
+
+        // 포인터 광선이 공중 높이(DragHoldHeight) 평면과 만나는 곳 = 들고 있는 타워 위치.
+        void UpdateDragPoint(Vector2 screen)
+        {
+            HasDragPoint = false;
+            if (camera == null)
+                return;
+            var ray = camera.ScreenPointToRay(screen);
+            if (!HoldPlane.Raycast(ray, out float distance))
+                return;
+            DragPoint = ray.GetPoint(distance);
+            HasDragPoint = true;
+        }
+
+        void StartDrag(DragKind kind)
+        {
+            dragKind = kind;
+            if (Pointer.current != null)
+                UpdateDragPoint(Pointer.current.position.ReadValue()); // 잡은 순간부터 포인터 위치에 뜨도록
+            RaiseDrag();
+            if (HasHover)
+                HoverChanged?.Invoke(new CellHover(true, HoverCell, CanDropAt(HoverCell)));
+        }
+
+        void EndDrag()
+        {
+            dragKind = DragKind.None;
+            dragDef = null;
+            dragTower = null;
+            HasDragPoint = false;
+            DragChanged?.Invoke(new TowerDrag(DragKind.None, null, null, false, default, false));
+            if (HasHover && Mode != BuildMode.None)
+                HoverChanged?.Invoke(new CellHover(true, HoverCell, board.IsBuildable(HoverCell)));
+        }
+
+        void RaiseDrag() =>
+            DragChanged?.Invoke(new TowerDrag(dragKind, dragDef, dragTower, HasHover, HoverCell, HasHover && CanDropAt(HoverCell)));
 
         // 하단 [타워 건축] → Build 모드.
         public void EnterBuildMode(TowerDef def)
@@ -242,6 +455,8 @@ namespace TowerDefence
         // ESC → 일반 상태. 열린 팝업·선택도 닫는다.
         public void ExitMode()
         {
+            if (dragKind == DragKind.NewTower)
+                CancelDrag();
             if (Mode == BuildMode.None)
                 return;
             ClearSelection();
@@ -272,6 +487,11 @@ namespace TowerDefence
                 towers.Sell(sellTarget);
                 ClosePopup();
             }
+            else if (Popup == PopupKind.Upgrade)
+            {
+                towers.Upgrade(upgradeTarget); // 해금·캐시 최종 판정은 TowerManager
+                ClosePopup();
+            }
             else if (Popup == PopupKind.Recovery)
             {
                 var def = recoveryDef;
@@ -289,6 +509,18 @@ namespace TowerDefence
                 ClosePopup();
                 return;
             }
+            if (Popup == PopupKind.Upgrade)
+            {
+                // [판매] → 판매 확인 팝업으로
+                var tower = upgradeTarget;
+                ClosePopup();
+                if (tower != null && towers.GetTowerAt(tower.Cell) == tower)
+                {
+                    sellTarget = tower;
+                    OpenPopup(PopupKind.Sell, tower.Cell, tower.Def, towers.GetSellRefund(tower.Def));
+                }
+                return;
+            }
             ClearSelection();
             ClosePopup();
         }
@@ -298,6 +530,8 @@ namespace TowerDefence
         {
             if (e.State == GameState.Break || e.State == GameState.Wave)
                 return;
+            CancelDrag();
+            pressedTower = null;
             ExitMode();
             ClosePopup();
         }
@@ -341,6 +575,7 @@ namespace TowerDefence
         {
             sellTarget = null;
             recoveryDef = null;
+            upgradeTarget = null;
             if (Popup == PopupKind.None)
                 return;
             Popup = PopupKind.None;

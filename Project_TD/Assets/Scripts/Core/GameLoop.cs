@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -30,6 +31,21 @@ namespace TowerDefence
         [Tooltip("테스트용(임시): 0보다 크면 모든 몬스터 체력을 이 값으로. 데이터 에셋은 바꾸지 않는다.")]
         [SerializeField] int debugMonsterHp;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [Header("스트레스 테스트 (에디터·개발 빌드 전용)")]
+        [Tooltip("지정하면 마지막 층 조건 스트레스 테스트를 자동 진행하고 측정 보고서를 남긴다 (StressTest 씬 전용).")]
+        [SerializeField] StressTestSettings stressTest;
+        StressTestDriver stress;
+#endif
+
+        // 프로파일러 구간 (Unity Profiler·스트레스 측정용). Auto()는 구조체 스코프라 할당이 없다.
+        static readonly ProfilerMarker UpdateMarker = new ProfilerMarker("TD.GameLoop");
+        static readonly ProfilerMarker SpawnMarker = new ProfilerMarker("TD.TickSpawn");
+        static readonly ProfilerMarker MoveMarker = new ProfilerMarker("TD.TickMove");
+        static readonly ProfilerMarker CombatMarker = new ProfilerMarker("TD.TickCombat");
+        static readonly ProfilerMarker CleanupMarker = new ProfilerMarker("TD.Cleanup");
+        static readonly ProfilerMarker ViewsMarker = new ProfilerMarker("TD.TickViews");
+
         GameData data;
         GameFlow flow;
         MapProvider maps;
@@ -44,6 +60,10 @@ namespace TowerDefence
 
         void Awake()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (stressTest != null)
+                stressTest.ApplyTo(ref config, ref monsterDefs, ref towerDefs, ref debugStartCash, ref debugMonsterHp, ref useFixedTestMap);
+#endif
             // 1) 생성 (1번)
             data = new GameData();
             flow = new GameFlow();
@@ -93,10 +113,17 @@ namespace TowerDefence
             towers.RecoveryExpired += ui.HandleRecoveryExpired;
             towers.RecoveryExpired += player.HandleRecoveryExpired;
             towers.RecoveryExpired += build.HandleRecoveryExpired;
+            towers.ItemGranted += ui.HandleItemGranted;
             build.ModeChanged += ui.HandleModeChanged;
             build.HoverChanged += ui.HandleHoverChanged;
             build.SelectionChanged += ui.HandleSelectionChanged;
             build.PopupRequested += ui.HandlePopupRequested;
+            build.DragChanged += ui.HandleDragChanged;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (stressTest != null)
+                stress = new StressTestDriver(stressTest, data, flow, maps, board, monsters, towers);
+#endif
 
             StartNewRun();
         }
@@ -107,6 +134,9 @@ namespace TowerDefence
             run = RunState.CreateNew(config);
             if (debugStartCash > 0)
                 run.Cash = debugStartCash; // 테스트용 임시 값 (에셋은 그대로)
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            stress?.PrepareRun(run);   // 시작 층을 마지막 층 직전으로 (flow가 층 계획을 계산하기 전)
+#endif
             maps.ResetForNewRun(run);
             board.ResetForNewRun(run);
             player.ResetForNewRun(run);
@@ -115,14 +145,19 @@ namespace TowerDefence
             build.ResetForNewRun(run);
             ui.ResetForNewRun(run);
             flow.ResetForNewRun(run); // 마지막: Ready 상태 알림이 다른 모듈 초기화 뒤에 나가도록
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            stress?.AfterRunReset();   // 시작 층 Tier 맵 생성 요청
+#endif
         }
 
         void Update()
         {
             float dt = Time.deltaTime;
+            using var frame = UpdateMarker.Auto();
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             DebugKeys();
+            stress?.BeginFrame();
 #endif
 
             build.Tick(dt);                    // 0 입력 (Ready 클릭 → 게임 시작, BuildMode)
@@ -130,30 +165,47 @@ namespace TowerDefence
 
             if (flow.State == GameState.Wave)
             {
-                monsters.TickSpawn(dt);        // 2 스폰
-                monsters.TickMove(dt);         // 3 이동, 출구 도착 → 넥서스 피해
+                using (SpawnMarker.Auto())
+                    monsters.TickSpawn(dt);    // 2 스폰
+                using (MoveMarker.Auto())
+                    monsters.TickMove(dt);     // 3 이동, 출구 도착 → 넥서스 피해
 
                 // 3단계에서 체력 0 → GameOver가 되면 전투·클리어 판정은 건너뛴다 (DamageDesign 4-2).
                 bool stillWave = flow.State == GameState.Wave;
                 if (stillWave)
-                    towers.TickCombat(dt);     // 4 전투
-                monsters.Cleanup();            // 5 Dying·Exited 풀 반납
+                {
+                    using (CombatMarker.Auto())
+                        towers.TickCombat(dt); // 4 전투
+                }
+                using (CleanupMarker.Auto())
+                    monsters.Cleanup();        // 5 Dying·Exited 풀 반납
                 if (stillWave)
                     flow.CheckWaveClear();     // 6 웨이브 클리어 판정
             }
 
             // 7 표현 (모든 상태에서): 몬스터·타워 상태머신 애니메이션, 패널 슬라이드·맵·카메라
-            monsters.TickViews(dt);
-            towers.TickViews(dt);
+            using (ViewsMarker.Auto())
+            {
+                monsters.TickViews(dt);
+                towers.TickViews(dt);
+            }
             ui.Tick(dt);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            stress?.EndFrame();                // 측정 기록·자동 진행 (스트레스 테스트일 때만)
+#endif
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        void OnDestroy() => stress?.Dispose(); // 프로파일러 기록기 해제
+#endif
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // --- 디버그 ---
         // F1 디버그 패널 / F3 웨이브 클리어 / F4 즉시 시작 / F5 넥서스 체력 0 / F6 다시 시작 / F7 자동 진행
         // F8 타워 설치(임의 부지) / F9 마지막 타워 판매
         bool debugAutoAdvance;
-        bool debugPanelVisible; // 기본은 숨김 (HUD를 가리지 않게)
+        DebugPanel debugPanel; // F1로 켤 때만 붙는다 (OnGUI는 있기만 해도 매 프레임 IMGUI 처리·할당이 생기므로 GameLoop에 두지 않음)
 
         void DebugKeys()
         {
@@ -162,7 +214,7 @@ namespace TowerDefence
                 return;
 
             if (keyboard.f1Key.wasPressedThisFrame)
-                debugPanelVisible = !debugPanelVisible;
+                ToggleDebugPanel();
             if (keyboard.f3Key.wasPressedThisFrame)
                 DebugClearWave();
             if (keyboard.f4Key.wasPressedThisFrame)
@@ -214,9 +266,22 @@ namespace TowerDefence
                 monsters.DebugFinishWave();
         }
 
-        void OnGUI()
+        void ToggleDebugPanel()
         {
-            if (flow == null || !debugPanelVisible)
+            if (debugPanel != null)
+            {
+                Destroy(debugPanel);
+                debugPanel = null;
+                return;
+            }
+            debugPanel = gameObject.AddComponent<DebugPanel>();
+            debugPanel.Draw = DrawDebugPanel;
+        }
+
+        // DebugPanel.OnGUI가 부른다 (패널이 켜져 있을 때만).
+        void DrawDebugPanel()
+        {
+            if (flow == null)
                 return;
             GUILayout.BeginArea(new Rect(10, 110, 460, 260), GUI.skin.box);
             GUILayout.Label($"상태 {flow.State}  |  층 {flow.Floor}/{config.finalFloor} (Tier {flow.CurrentPlan.Tier}, {flow.CurrentPlan.N}×{flow.CurrentPlan.N})");

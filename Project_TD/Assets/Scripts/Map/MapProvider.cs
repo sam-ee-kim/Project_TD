@@ -87,7 +87,7 @@ namespace TowerDefence
             if (jobs.ContainsKey(tier) || data.Config == null || generator == null)
                 return;
 
-            var spec = new MapSpec(LevelRules.GetMapSize(data.Config, tier), data.Config.rules.spawnCount, SeedFor(tier), data.MapGenRules);
+            var spec = new MapSpec(LevelRules.GetMapSize(data.Config, tier), LevelRules.GetComplexity(data.Config, tier), SeedFor(tier), data.MapGenRules);
             var job = new Job { Tier = tier, Spec = spec };
             jobs.Add(tier, job);
             waiting.Add(job);

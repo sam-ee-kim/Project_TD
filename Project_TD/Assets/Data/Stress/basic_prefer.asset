@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41af158138b595d459f1987ff035ae6d, type: 3}
+  m_Name: basic_prefer
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
+  id: basic_prefer
+  displayName: "\uAE30\uBCF8 \uD0C0\uC6CC (\uD2B9\uC218 \uC6B0\uC120)"
+  description: 
+  buildCost: 50
+  damage: 20
+  interval: 1
+  range: 2
+  lockMode: 1
+  targetRule: 0
+  typePriority:
+  - Special
+  attackType: 0
+  projectileSpeed: 8
+  upgradeTo: []
+  coneAngle: 90
+  coneLength: 1.6
+  viewPrefab: {fileID: 4684078478952574139, guid: 5b84f128a9b50e04d95b6e6a2e813740, type: 3}
+  viewScale: 0.3
+  projectilePrefab: {fileID: 919132149155446097, guid: 9da38cda5daa9724a8b9fde20c2d2f06, type: 3}
+  projectileScale: 0.6
+  projectileModelForward: {x: 0, y: 1, z: 0}
+  projectileTurnSpeed: 720
+  muzzleFxPrefab: {fileID: 3752508689999814891, guid: f95e4997c2de9bd43b6ea99e5e9ea696, type: 3}
+  coneFxReach: 2.28
+  buildClip: {fileID: -623603649343465320, guid: 1f8171cd17f6f5442a14c7d3f892e8cf, type: 3}

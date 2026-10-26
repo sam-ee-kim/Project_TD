@@ -4,7 +4,7 @@ namespace TowerDefence
 {
     // 층 → 맵 크기·웨이브 수·몬스터 수 계산을 하는 유일한 곳 (GDD 3장, 8-1). 상태 없는 함수.
     // 규칙 숫자는 모두 GameConfig.rules / finalFloor에서 읽는다. 레벨디자인 테이블이 생기면 여기서 교체한다.
-    // 층 보정 배율(층마다 HP 증가)은 보류라 적용하지 않는다.
+    // 몬스터 체력 배율(층·웨이브별)도 여기서 계산한다 (Docs/HpLevelDesign.md).
     public static class LevelRules
     {
         // 층 하나의 계획. 층당 1번 호출.
@@ -16,6 +16,7 @@ namespace TowerDefence
                 floor,
                 tier,
                 GetMapSize(config, tier),
+                GetComplexity(config, tier),
                 GetWaveCount(config, floor),
                 IsFinalFloor(config, floor));
         }
@@ -28,19 +29,32 @@ namespace TowerDefence
             return (floor + every - 1) / every;
         }
 
-        // N = mapBaseSize + mapGrowPerTier × (tier − 1)
+        // N = min(mapBaseSize + mapGrowPerTier × (tier − 1), mapMaxSize)
         public static int GetMapSize(GameConfig config, int tier)
         {
             if (tier < 1)
                 throw new ArgumentOutOfRangeException(nameof(tier), tier, "tier는 1 이상");
-            return config.rules.mapBaseSize + config.rules.mapGrowPerTier * (tier - 1);
+            var r = config.rules;
+            int n = r.mapBaseSize + r.mapGrowPerTier * (tier - 1);
+            return r.mapMaxSize > 0 ? Math.Min(n, r.mapMaxSize) : n;
         }
 
-        // waves = baseWaves + floor((floor − 1) / waveIncreaseEveryFloors)
+        // 복잡성 = min(tier, maxComplexity). 꺾임 수·스폰 수는 MapGenRules.complexity 표가 정한다.
+        public static int GetComplexity(GameConfig config, int tier)
+        {
+            if (tier < 1)
+                throw new ArgumentOutOfRangeException(nameof(tier), tier, "tier는 1 이상");
+            int max = config.rules.maxComplexity;
+            return max > 0 ? Math.Min(tier, max) : tier;
+        }
+
+        // waves = min(baseWaves + floor((floor − 1) / waveIncreaseEveryFloors), maxWaves)
         public static int GetWaveCount(GameConfig config, int floor)
         {
             RequireFloor(floor);
-            return config.rules.baseWaves + (floor - 1) / config.rules.waveIncreaseEveryFloors;
+            var r = config.rules;
+            int waves = r.baseWaves + (floor - 1) / r.waveIncreaseEveryFloors;
+            return r.maxWaves > 0 ? Math.Min(waves, r.maxWaves) : waves;
         }
 
         // count = baseMonsterCount + monsterIncreaseAmount × floor((g − 1) / monsterIncreaseEveryWaves)
@@ -51,6 +65,40 @@ namespace TowerDefence
                 throw new ArgumentOutOfRangeException(nameof(g), g, "누적 웨이브 g는 1 이상");
             var r = config.rules;
             return r.baseMonsterCount + r.monsterIncreaseAmount * ((g - 1) / r.monsterIncreaseEveryWaves);
+        }
+
+        // 몬스터 체력 배율 = M(맵 단계) × C(복잡성) × F(단계 안 층) × W(층 안 웨이브). 웨이브 시작 때 1번.
+        // waveIndex = 층 안 웨이브 번호(1부터). 표가 비었거나 짧으면 그 항목은 1 / 마지막 값을 쓴다.
+        public static float GetHpScale(GameConfig config, int floor, int waveIndex)
+        {
+            RequireFloor(floor);
+            var r = config.rules;
+            int tier = GetTier(config, floor);
+            float m = TableValue(r.hpMapScale, tier);
+            float c = TableValue(r.hpComplexityScale, GetComplexity(config, tier));
+            int every = Math.Max(1, r.mapTierEveryFloors);
+            int floorInTier = (floor - 1) % every; // 0 = 새 맵의 첫 층
+            float f = 1f + (r.hpSecondFloorScale - 1f) * floorInTier;
+            float w = 1f + r.hpPerWave * (Math.Max(1, waveIndex) - 1);
+            return m * c * f * w;
+        }
+
+        // 기본 체력 × 배율 → hpRoundStep 단위 반올림 (최소 1단위).
+        public static float ScaleHp(GameConfig config, float baseHp, float scale)
+        {
+            float hp = baseHp * scale;
+            float step = config != null ? config.rules.hpRoundStep : 0f;
+            if (step <= 0f)
+                return hp;
+            float rounded = (float)Math.Round(hp / step, MidpointRounding.AwayFromZero) * step;
+            return Math.Max(step, rounded);
+        }
+
+        static float TableValue(float[] table, int level)
+        {
+            if (table == null || table.Length == 0)
+                return 1f;
+            return table[Math.Min(Math.Max(level, 1), table.Length) - 1];
         }
 
         public static bool IsFinalFloor(GameConfig config, int floor)
@@ -78,11 +126,28 @@ namespace TowerDefence
             return 1;
         }
 
-        // 레벨디자인 waves 테이블 자리 (GDD 9장 "Waves", 지금은 비워둠).
+        // 레벨디자인 waves 테이블 (GDD 9장 "Waves", GameConfig.waves). 층·웨이브 항목을 찾아 buffer에 채운다.
+        // 줄 수가 buffer보다 많으면 앞에서부터 buffer 크기만큼만 쓴다.
         static bool TryGetDesignedWave(GameConfig config, int floor, int waveIndex, WaveSpawn[] buffer, out int count)
         {
-            // TODO(레벨디자인): waves 테이블 데이터가 생기면 floor·waveIndex 항목을 찾아 buffer에 채운다.
             count = 0;
+            var waves = config.waves;
+            if (waves == null)
+                return false;
+            for (int i = 0; i < waves.Length; i++)
+            {
+                var w = waves[i];
+                if (w == null || w.floor != floor || w.wave != waveIndex || w.lines == null)
+                    continue;
+                int n = Math.Min(w.lines.Length, buffer.Length);
+                for (int l = 0; l < n; l++)
+                {
+                    var line = w.lines[l];
+                    buffer[l] = new WaveSpawn(line.monsterId, line.count, line.intervalSec, line.delaySec);
+                }
+                count = n;
+                return true;
+            }
             return false;
         }
 

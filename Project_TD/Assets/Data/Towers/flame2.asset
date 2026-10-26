@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41af158138b595d459f1987ff035ae6d, type: 3}
+  m_Name: flame2
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
+  id: flame2
+  displayName: "\uD654\uC5FC\uD3EC"
+  description: "\uD654\uC5FC\uBC29\uC0AC 2\uB2E8\uACC4. \uBD88\uAE38\uC774 \uB354
+    \uBA40\uB9AC, \uB354 \uB728\uAC81\uAC8C \uB2FF\uC2B5\uB2C8\uB2E4."
+  buildCost: 170
+  damage: 1.4
+  interval: 0.2
+  burstCount: 1
+  burstGap: 0.12
+  chargeTime: 0
+  range: 2
+  lockMode: 0
+  targetRule: 0
+  typePriority: []
+  attackType: 2
+  projectileSpeed: 8
+  upgradeTo:
+  - flame3
+  tier: 2
+  unlockFloor: 3
+  fieldRadius: 0
+  fieldDuration: 3
+  fieldSlow: 0.6
+  fieldFxPrefab: {fileID: 0}
+  fieldFxRadius: 1.6
+  coneAngle: 90
+  coneLength: 2
+  viewPrefab: {fileID: 3792057416515438653, guid: 2af333fc5ad34fb48b4b788c49862d97, type: 3}
+  viewScale: 0.33600003
+  projectilePrefab: {fileID: 0}
+  projectileScale: 0.6
+  projectileModelForward: {x: 0, y: 1, z: 0}
+  projectileTurnSpeed: 720
+  muzzleFxPrefab: {fileID: 1243852053964361004, guid: b3074bd052901aa40b9913db834b2b01, type: 3}
+  coneFxReach: 2.28
+  buildClip: {fileID: -623603649343465320, guid: 31303fc8b9238fc45b2e83b7ecc0bd35, type: 3}
+  chargeClip: {fileID: 0}
+  fireClip: {fileID: 0}
+  chargeFxPrefab: {fileID: 0}
+  hitFxPrefab: {fileID: 0}

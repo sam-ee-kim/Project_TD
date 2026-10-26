@@ -8,6 +8,7 @@ namespace TowerDefence
     public partial class TowerManager
     {
         const float HitDistance = 0.1f; // 명중 판정 거리 (칸)
+        public const float ConeHitRadius = 0.25f; // 부채꼴 히트박스: 몬스터 몸통 반지름만큼 여유 (가장자리에 걸치면 맞음)
 
         readonly Dictionary<TowerDef, ObjectPool<Projectile>> projectilePools = new Dictionary<TowerDef, ObjectPool<Projectile>>();
         readonly List<Projectile> flying = new List<Projectile>();
@@ -19,13 +20,23 @@ namespace TowerDefence
         //   Idle      : 대상 없음. 매 프레임 사거리 안 경로 칸에서 대상을 찾는다
         //   Aiming    : 대상을 잡았고 포탑이 그쪽으로 도는 중. 조준이 맞으면 발사 → Reloading
         //   Reloading : 발사 후 재장전(cooldown). 끝나면 lockMode 규칙으로 대상을 다시 확인 → Aiming / Idle
+        //   Charging  : (chargeTime > 0인 타워) 조준이 맞으면 차지 → 끝나면 발사. 차지 중 대상이 사라지면 사거리 안 다른 대상, 없으면 Idle
         // 대상 선택 규칙(DamageDesign 3-0)은 그대로이고, 조준을 기다리는 동안 발사 시점만 늦춘다.
         public void TickCombat(float dt)
         {
             for (int i = 0; i < placed.Count; i++)
             {
                 var t = placed[i];
+                if (t.State == TowerState.Building)
+                    continue;                     // 건축 연출이 끝나야 공격 (TickViews가 끝낸다)
                 t.Cooldown -= dt;
+                if (t.BurstLeft > 0)
+                    TickBurst(t, dt);
+                if (t.State == TowerState.Charging)
+                {
+                    TickCharge(t, dt);
+                    continue;
+                }
                 if (t.State == TowerState.Reloading)
                 {
                     if (t.Cooldown > 0f)
@@ -47,26 +58,218 @@ namespace TowerDefence
                     t.Cooldown = 0f;
                     continue;
                 }
+                if (t.Def.chargeTime > 0f)
+                {
+                    // 차지 시작: 발사점에서 전기가 모인다. 발사는 TickCharge가 한다
+                    t.State = TowerState.Charging;
+                    t.ChargeTime = 0f;
+                    if (t.Aim != null && t.Aim.firePoints != null && t.Aim.firePoints.Length > 0)
+                        PlayFx(chargeFx, t.Def, t.Aim.firePoints[0].position, Vector3.up);
+                    continue;
+                }
                 Fire(t, target);
-                t.Cooldown = t.Def.interval;
+                t.Cooldown = GetInterval(t.Def); // 연사 아이템 반영
                 t.State = TowerState.Reloading;
+                t.BurstLeft = t.Def.burstCount - 1; // 이점사: 남은 1발은 burstGap 뒤
+                t.BurstTimer = t.Def.burstGap;
             }
 
             MoveProjectiles(dt);
+        }
+
+        // 차지 진행: 대상이 사라지면 사거리 안 다른 대상으로 이어 가고(차지 유지), 없으면 Idle. 다 차면 발사.
+        void TickCharge(TowerInstance t, float dt)
+        {
+            t.ChargeTime += dt;
+            var target = IsLockValid(t) ? t.Locked : (t.Locked = SelectTarget(t));
+            if (target.IsNone)
+            {
+                t.State = TowerState.Idle;
+                t.ChargeTime = 0f;
+                t.Cooldown = 0f;
+                return;
+            }
+            if (t.ChargeTime < t.Def.chargeTime)
+                return;
+            Fire(t, target);
+            t.Cooldown = GetInterval(t.Def);
+            t.State = TowerState.Reloading;
+            t.ChargeTime = 0f;
+            t.BurstLeft = t.Def.burstCount - 1;
+            t.BurstTimer = t.Def.burstGap;
+        }
+
+        // 연발 (이점사): 같은 대상에게 burstGap마다 1발씩 (발마다 피해 damage, 따로 명중).
+        // 대상이 죽었거나 사거리를 벗어났으면 남은 발은 쏘지 않는다.
+        void TickBurst(TowerInstance t, float dt)
+        {
+            t.BurstTimer -= dt;
+            while (t.BurstLeft > 0 && t.BurstTimer <= 0f)
+            {
+                if (!IsLockValid(t))
+                {
+                    t.BurstLeft = 0;
+                    return;
+                }
+                Fire(t, t.Locked);
+                t.BurstLeft--;
+                t.BurstTimer += t.Def.burstGap;
+            }
         }
 
         // 표현 단계 (GameLoop 7단계, 모든 상태에서): 포탑 회전과 반동.
         //   Idle이면 제자리, Aiming·Reloading이면 고정 대상 쪽으로 돌린다.
         public void TickViews(float dt)
         {
+            TickDemolish(dt);
+            TickFieldViews(dt);
             for (int i = 0; i < placed.Count; i++)
             {
                 var t = placed[i];
+                if (t.State == TowerState.Building)
+                {
+                    TickBuild(t, dt);
+                    continue;
+                }
+                if (t.ChargeAnim != null)
+                {
+                    // 차지 연출: 차지 중이면 진행 시점의 자세, 끝나면 차지 부품만 기본 자세로
+                    if (t.State == TowerState.Charging)
+                    {
+                        t.ChargeAnim.Sample(t.ChargeTime);
+                        t.ChargePosed = true;
+                    }
+                    else if (t.ChargePosed)
+                    {
+                        t.ChargeAnim.Restore();
+                        t.ChargePosed = false;
+                    }
+                }
+                if (t.FireAnim != null && t.FireAnimTime >= 0f)
+                {
+                    // 발사 연출 (나노: 발사구 셀이 차례로 열리고 발사대가 밀린다)
+                    t.FireAnimTime += dt;
+                    if (t.FireAnimTime < t.FireAnim.Length)
+                        t.FireAnim.Sample(t.FireAnimTime);
+                    else
+                    {
+                        t.FireAnim.Restore();
+                        t.FireAnimTime = -1f;
+                    }
+                }
                 if (t.Aim == null)
                     continue;
                 t.Aim.TickRecoil(dt);
                 if (t.State != TowerState.Idle && monsters.IsValid(t.Locked))
                     t.Aim.Aim(monsters.GetAimPoint(monsters.Get(t.Locked)), dt);
+            }
+        }
+
+        // --- 나노필드 표시 (감속 판정은 MonsterManager) ---
+        // 종류별로 effectPoolPrewarm개를 미리 만들어 원형 버퍼로 돌려 쓴다. 유지 시간이 지나면 끈다.
+        sealed class FieldViewRing
+        {
+            public Transform[] Roots;
+            public float[] End;
+            public int Next;
+        }
+
+        readonly Dictionary<TowerDef, FieldViewRing> fieldViews = new Dictionary<TowerDef, FieldViewRing>();
+        float viewTime;
+
+        void InitFieldViews(int count)
+        {
+            foreach (var def in data.Towers)
+            {
+                if (def.fieldFxPrefab == null || def.fieldRadius <= 0f)
+                    continue;
+                var ring = new FieldViewRing { Roots = new Transform[count], End = new float[count] };
+                float scale = def.fieldFxRadius > 0f ? def.fieldRadius / def.fieldFxRadius : 1f;
+                for (int i = 0; i < count; i++)
+                {
+                    var go = Object.Instantiate(def.fieldFxPrefab, viewRoot, false);
+                    go.name = def.id + "_Field";
+                    go.transform.localScale = Vector3.one * scale;
+                    go.SetActive(false);
+                    ring.Roots[i] = go.transform;
+                    EffectViewsCreated++;
+                }
+                fieldViews.Add(def, ring);
+            }
+        }
+
+        // 첫 발이 명중한 자리: 감속 영역(MonsterManager) + 표시.
+        void SpawnField(TowerDef def, Vector3 ground)
+        {
+            ground.y = 0f;
+            monsters.AddSlowField(ground, def.fieldRadius, def.fieldSlow, def.fieldDuration);
+            if (!fieldViews.TryGetValue(def, out var ring))
+                return;
+            int i = ring.Next;
+            ring.Next = (i + 1) % ring.Roots.Length;
+            var root = ring.Roots[i];
+            root.position = ground;
+            root.gameObject.SetActive(false); // 다시 켜서 애니메이션을 처음부터
+            root.gameObject.SetActive(true);
+            ring.End[i] = viewTime + def.fieldDuration;
+        }
+
+        void TickFieldViews(float dt)
+        {
+            viewTime += dt;
+            foreach (var ring in fieldViews.Values)
+                for (int i = 0; i < ring.Roots.Length; i++)
+                    if (ring.End[i] > 0f && ring.End[i] <= viewTime)
+                    {
+                        ring.End[i] = 0f;
+                        ring.Roots[i].gameObject.SetActive(false);
+                    }
+        }
+
+        // 층 전환·새 판: 깔린 필드 표시를 모두 끈다.
+        void ClearFieldViews()
+        {
+            foreach (var ring in fieldViews.Values)
+                for (int i = 0; i < ring.Roots.Length; i++)
+                {
+                    ring.End[i] = 0f;
+                    ring.Roots[i].gameObject.SetActive(false);
+                }
+        }
+
+        // 건축 연출 진행. 끝나면 기본 자세·합친 메시로 돌아가 대기(Idle) → 다음 프레임부터 대상을 찾는다.
+        void TickBuild(TowerInstance t, float dt)
+        {
+            t.BuildTime += dt;
+            if (t.BuildTime < t.BuildAnim.Length)
+            {
+                t.BuildAnim.Sample(t.BuildTime);
+                return;
+            }
+            t.BuildAnim.Restore();
+            t.Parts?.SetMerged(true);
+            if (t.Aim != null)
+                t.Aim.ResetPose();
+            t.Cooldown = 0f;
+            t.State = TowerState.Idle;
+        }
+
+        // 철거 연출 (건축을 거꾸로). 끝나면 풀에 반납.
+        void TickDemolish(float dt)
+        {
+            for (int i = demolishing.Count - 1; i >= 0; i--)
+            {
+                var t = demolishing[i];
+                t.BuildTime -= dt;
+                if (t.BuildTime > 0f)
+                {
+                    t.BuildAnim.Sample(t.BuildTime);
+                    continue;
+                }
+                int last = demolishing.Count - 1;
+                demolishing[i] = demolishing[last];
+                demolishing.RemoveAt(last);
+                towerPools[t.Def].Release(t);
             }
         }
 
@@ -76,10 +279,13 @@ namespace TowerDefence
             for (int i = flying.Count - 1; i >= 0; i--)
                 projectilePools[flying[i].Kind].Release(flying[i]);
             flying.Clear();
+            ClearFieldViews();
             for (int i = 0; i < placed.Count; i++)
             {
                 placed[i].Locked = MonsterHandle.None;
-                placed[i].State = TowerState.Idle;
+                placed[i].BurstLeft = 0;
+                if (placed[i].State != TowerState.Building) // 조립 중인 타워는 연출을 이어 간다
+                    placed[i].State = TowerState.Idle;
             }
         }
 
@@ -107,7 +313,7 @@ namespace TowerDefence
             if (!monsters.IsValid(t.Locked)) return false;    // 죽어서 풀에 반납됐거나 재사용됨
             var m = monsters.Get(t.Locked);
             if (m.State != MonsterState.Alive) return false;  // 같은 프레임에 사망·출구 도착
-            return t.CoversPath[m.PathIndex];                 // 사거리(정사각형) 밖으로 나갔으면 해제
+            return t.CoversCell[m.CellId];                    // 사거리 밖으로 나갔으면 해제
         }
 
         bool HasHigherRankInRange(TowerInstance t, int lockedRank)
@@ -122,11 +328,11 @@ namespace TowerDefence
         }
 
         // 새 대상: 후보를 한 번 훑으며 최고 점수를 고름 (정렬·할당 없음).
-        // 종류 우선도 → 사거리 우선도(targetRule) → 경로를 더 진행한 쪽.
+        // 종류 우선도 → 사거리 우선도(targetRule) → 출구에 더 가까운 쪽.
         MonsterHandle SelectTarget(TowerInstance t)
         {
             MonsterHandle best = MonsterHandle.None;
-            int bestRank = int.MaxValue; float bestScore = float.MinValue; float bestProgress = -1f;
+            int bestRank = int.MaxValue; float bestScore = float.MinValue; float bestProgress = float.MinValue;
             foreach (int pathIdx in t.Covered)
                 foreach (var h in board.MonstersAt(pathIdx))
                 {
@@ -136,8 +342,8 @@ namespace TowerDefence
                     float score = Score(t.Def.targetRule, m);
                     bool better = rank < bestRank
                         || (rank == bestRank && score > bestScore)
-                        || (rank == bestRank && score == bestScore && m.PathProgress > bestProgress);
-                    if (better) { best = h; bestRank = rank; bestScore = score; bestProgress = m.PathProgress; }
+                        || (rank == bestRank && score == bestScore && -m.Remaining > bestProgress);
+                    if (better) { best = h; bestRank = rank; bestScore = score; bestProgress = -m.Remaining; }
                 }
             return best;
         }
@@ -146,8 +352,8 @@ namespace TowerDefence
         {
             switch (rule)
             {
-                case TargetRule.First: return m.PathProgress;      // 경로 칸 번호 + 칸 안 진행률
-                case TargetRule.Last: return -m.PathProgress;
+                case TargetRule.First: return -m.Remaining;        // 출구까지 가장 적게 남은 몬스터 (경로가 달라도 비교)
+                case TargetRule.Last: return m.Remaining;
                 case TargetRule.LowestHp: return -m.Hp;
                 case TargetRule.HighestHp: return m.Hp;
                 default: return 0f;
@@ -157,14 +363,38 @@ namespace TowerDefence
         // 발사: Projectile이면 투사체에 {핸들, 피해 값 복사본, 속도}, Hitscan이면 즉시 피해.
         void Fire(TowerInstance t, MonsterHandle target)
         {
-            var info = new DamageInfo(t.Def.damage, DamageType.Normal);
+            var info = new DamageInfo(GetDamage(t.Def), DamageType.Normal); // 화력 아이템 반영
+            if (t.Def.attackType == AttackType.Cone)
+            {
+                // 부채꼴 범위: 타워 중심에서 대상 쪽(바닥 평면)으로 히트박스. 이펙트는 노즐에서 같은 방향으로 뿜는다
+                var center = board.CellToWorld(t.Cell);
+                var toTarget = monsters.GetGroundPoint(monsters.Get(target)) - center;
+                toTarget.y = 0f;
+                var forward = toTarget.sqrMagnitude > 1e-6f ? toTarget.normalized : Vector3.forward;
+                if (t.Aim != null)
+                {
+                    t.Aim.Fire(out var origin, out var direction);
+                    PlayMuzzleFx(t.Def, origin, direction);
+                }
+                ApplyCone(t, center, forward, info);
+                return;
+            }
             if (t.Def.attackType == AttackType.Hitscan)
             {
+                // 즉시 명중 (화염방사 등): 피해는 바로, 표현은 노즐에서 대상 쪽으로 뿜는 이펙트
+                if (t.Aim != null)
+                {
+                    t.Aim.Fire(out var origin, out var direction);
+                    PlayMuzzleFx(t.Def, origin, direction);
+                }
                 monsters.ApplyDamage(target, info);
                 return;
             }
 
+            if (t.FireAnim != null && t.BurstLeft == 0)
+                t.FireAnimTime = 0f; // 공격 시작: 발사 연출 (연발 둘째 발부터는 이어서)
             var p = projectilePools[t.Def].Get();
+            p.SpawnsField = t.Def.fieldRadius > 0f && t.BurstLeft == 0; // 연발의 첫 발만 필드를 깐다
             p.Target = target;
             p.Info = info;
             p.Speed = t.Def.projectileSpeed;
@@ -185,8 +415,51 @@ namespace TowerDefence
             {
                 p.View.SetPositionAndRotation(p.Position, ModelRotation(t.Def, p.Direction));
                 p.View.gameObject.SetActive(true);
+                if (p.Fx != null)
+                {
+                    p.Fx.Clear(true); // 지난 비행의 꼬리를 지우고 발사점에서 새로
+                    p.Fx.Play(true);
+                }
             }
             flying.Add(p);
+        }
+
+        // 부채꼴 히트박스 안의 살아 있는 몬스터 모두에게 피해. 후보는 설치 때 계산한 범위 칸의 몬스터만 본다.
+        // 죽은 몬스터는 그 칸 목록에서 바로 빠지므로(맨 뒤와 자리 바꿈) 칸 목록은 뒤에서부터 돈다.
+        void ApplyCone(TowerInstance t, Vector3 center, Vector3 forward, in DamageInfo info)
+        {
+            float length = t.Def.coneLength;
+            float halfAngle = t.Def.coneAngle * 0.5f;
+            var covered = t.Covered;
+            for (int c = 0; c < covered.Length; c++)
+            {
+                var bucket = board.MonstersAt(covered[c]);
+                for (int k = bucket.Count - 1; k >= 0; k--)
+                {
+                    if (k >= bucket.Count)
+                        continue;
+                    var h = bucket[k];
+                    var m = monsters.Get(h);
+                    if (m == null || m.State != MonsterState.Alive)
+                        continue;
+                    if (InCone(monsters.GetGroundPoint(m) - center, forward, length, halfAngle, ConeHitRadius))
+                        monsters.ApplyDamage(h, info);
+                }
+            }
+        }
+
+        // 바닥 평면 부채꼴 판정: 거리 ≤ length + radius, 방향과의 각도 ≤ halfAngle + (몸통이 걸치는 각도).
+        public static bool InCone(Vector3 offset, Vector3 forward, float length, float halfAngleDeg, float radius)
+        {
+            offset.y = 0f;
+            float dist = offset.magnitude;
+            if (dist > length + radius)
+                return false;
+            if (dist <= radius)
+                return true; // 타워 바로 앞에 겹쳐 있음
+            float cos = Vector3.Dot(offset / dist, forward);
+            float allowed = halfAngleDeg + Mathf.Asin(Mathf.Min(1f, radius / dist)) * Mathf.Rad2Deg;
+            return cos >= Mathf.Cos(Mathf.Min(180f, allowed) * Mathf.Deg2Rad);
         }
 
         // 유도 이동. 거리 ≤ 0.1칸이면 명중(ApplyDamage) 후 반납, 대상이 사라졌으면 피해 없이 반납 (DamageDesign 3-1).
@@ -210,6 +483,9 @@ namespace TowerDefence
                 float step = p.Speed * dt;
                 if (dist <= HitDistance + step)
                 {
+                    PlayFx(hitFx, p.Kind, aim, delta / Mathf.Max(dist, 1e-4f)); // 명중 이펙트 (있을 때)
+                    if (p.SpawnsField)
+                        SpawnField(p.Kind, monsters.GetGroundPoint(m)); // 피해는 맞은 몬스터만, 필드는 감속만
                     monsters.ApplyDamage(p.Target, p.Info);
                     RemoveProjectile(i);
                     continue;
@@ -250,12 +526,16 @@ namespace TowerDefence
         }
 
         readonly Dictionary<TowerDef, MuzzleFxRing> muzzleFx = new Dictionary<TowerDef, MuzzleFxRing>();
+        readonly Dictionary<TowerDef, MuzzleFxRing> chargeFx = new Dictionary<TowerDef, MuzzleFxRing>(); // 차지 (TowerDef.chargeFxPrefab)
+        readonly Dictionary<TowerDef, MuzzleFxRing> hitFx = new Dictionary<TowerDef, MuzzleFxRing>();    // 명중 (TowerDef.hitFxPrefab)
 
         public int EffectViewsCreated { get; private set; }
 
-        void PlayMuzzleFx(TowerDef def, Vector3 position, Vector3 direction)
+        void PlayMuzzleFx(TowerDef def, Vector3 position, Vector3 direction) => PlayFx(muzzleFx, def, position, direction);
+
+        void PlayFx(Dictionary<TowerDef, MuzzleFxRing> rings, TowerDef def, Vector3 position, Vector3 direction)
         {
-            if (!muzzleFx.TryGetValue(def, out var ring))
+            if (!rings.TryGetValue(def, out var ring))
                 return;
             int i = ring.Next;
             ring.Next = (i + 1) % ring.Roots.Length;
@@ -272,24 +552,39 @@ namespace TowerDefence
             int count = data.Config != null ? Mathf.Max(1, data.Config.performance.effectPoolPrewarm) : 16;
             foreach (var def in data.Towers)
             {
-                if (def.muzzleFxPrefab == null)
-                    continue;
-                var ring = new MuzzleFxRing { Roots = new Transform[count], Systems = new ParticleSystem[count] };
-                for (int i = 0; i < count; i++)
+                if (def.muzzleFxPrefab != null)
                 {
-                    var go = Object.Instantiate(def.muzzleFxPrefab, viewRoot, false);
-                    go.name = def.id + "_MuzzleFx";
-                    ring.Roots[i] = go.transform;
-                    ring.Systems[i] = go.GetComponent<ParticleSystem>(); // 생성 때 1번만
-                    EffectViewsCreated++;
+                    // 불길 끝 = 히트박스 끝
+                    float scale = def.attackType == AttackType.Cone && def.coneFxReach > 0f ? def.coneLength / def.coneFxReach : 1f;
+                    muzzleFx.Add(def, CreateFxRing(def.muzzleFxPrefab, def.id + "_MuzzleFx", count, scale));
                 }
-                muzzleFx.Add(def, ring);
+                if (def.chargeFxPrefab != null)
+                    chargeFx.Add(def, CreateFxRing(def.chargeFxPrefab, def.id + "_ChargeFx", count, 1f));
+                if (def.hitFxPrefab != null)
+                    hitFx.Add(def, CreateFxRing(def.hitFxPrefab, def.id + "_HitFx", count, 1f));
             }
+        }
+
+        MuzzleFxRing CreateFxRing(GameObject prefab, string name, int count, float scale)
+        {
+            var ring = new MuzzleFxRing { Roots = new Transform[count], Systems = new ParticleSystem[count] };
+            for (int i = 0; i < count; i++)
+            {
+                var go = Object.Instantiate(prefab, viewRoot, false);
+                go.name = name;
+                go.transform.localScale = Vector3.one * scale;
+                ring.Roots[i] = go.transform;
+                ring.Systems[i] = go.GetComponent<ParticleSystem>(); // 생성 때 1번만
+                EffectViewsCreated++;
+            }
+            return ring;
         }
 
         void InitProjectilePools()
         {
             InitMuzzleFx();
+            if (viewRoot != null)
+                InitFieldViews(data.Config != null ? Mathf.Max(1, data.Config.performance.effectPoolPrewarm) : 16);
             int prewarm = data.Config != null ? data.Config.performance.projectilePoolPrewarm : 0;
             foreach (var def in data.Towers)
             {
@@ -314,6 +609,7 @@ namespace TowerDefence
                 go.transform.localScale = Vector3.one * def.projectileScale;
                 go.SetActive(false);
                 p.View = go.transform;
+                p.Fx = go.GetComponent<ParticleSystem>(); // 생성 때 1번만 (없으면 null)
                 ProjectileViewsCreated++;
             }
             return p;

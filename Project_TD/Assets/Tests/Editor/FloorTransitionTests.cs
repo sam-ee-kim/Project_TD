@@ -130,14 +130,15 @@ namespace TowerDefence.Tests
             return default;
         }
 
-        void GoToFloor4WithTowers(int towerCount)
+        // 타워를 세우고 Tier가 바뀌기 직전 층(2층)을 끝내 층 전환 상태로 (2층 → 3층 = 7×7 → 9×9).
+        void GoToTierChangeWithTowers(int towerCount)
         {
             for (int i = 0; i < towerCount; i++)
                 Assert.IsTrue(towers.Build(BuildableCell(), basic));
-            for (int f = 1; f <= 3; f++)
+            for (int f = 1; f <= 2; f++)
             {
                 FinishFloor();
-                if (f < 3)
+                if (f < 2)
                     FinishTransition();
             }
         }
@@ -161,12 +162,12 @@ namespace TowerDefence.Tests
         }
 
         [Test]
-        public void TierChange_3to4_Swaps7x7To9x9_TowersToRecovery_NoWait()
+        public void TierChange_2to3_Swaps7x7To9x9_TowersToRecovery_NoWait()
         {
             Assert.AreEqual(7, board.N);
-            GoToFloor4WithTowers(3);
+            GoToTierChangeWithTowers(3);
 
-            // 3층 마지막 웨이브 클리어 → 연출 시작: 타워 전부 회수 목록으로
+            // 2층 마지막 웨이브 클리어 → 연출 시작: 타워 전부 회수 목록으로
             Assert.AreEqual(GameState.FloorTransition, flow.State);
             Assert.AreEqual(0, towers.Towers.Count, "맵 위 타워 없음");
             Assert.AreEqual(3, towers.RecoveryTotalCount);
@@ -178,7 +179,7 @@ namespace TowerDefence.Tests
             flow.Tick(config.floorTransitionSec + 0.01f);
             Assert.AreEqual(GameState.Break, flow.State, "생성 대기 없이 바로 Break");
             Assert.AreEqual(0, mapWaits, "로딩 대기 없음");
-            Assert.AreEqual(4, flow.Floor);
+            Assert.AreEqual(3, flow.Floor);
             Assert.AreEqual(9, board.N, "9×9 맵으로 교체");
             Assert.AreEqual(9, board.Map.N);
         }
@@ -186,7 +187,7 @@ namespace TowerDefence.Tests
         [Test]
         public void Rebuild_IsFree_DecrementsList_AutoExitsWhenUsedUp()
         {
-            GoToFloor4WithTowers(2);
+            GoToTierChangeWithTowers(2);
             FinishTransition();
             int cash = player.Cash;
 
@@ -213,7 +214,7 @@ namespace TowerDefence.Tests
         [Test]
         public void Rebuild_EscExitsAnytime()
         {
-            GoToFloor4WithTowers(2);
+            GoToTierChangeWithTowers(2);
             FinishTransition();
             build.EnterRebuildMode(basic);
             build.ExitMode(); // ESC
@@ -224,7 +225,7 @@ namespace TowerDefence.Tests
         [Test]
         public void Scrap_RefundsExactly70Percent()
         {
-            GoToFloor4WithTowers(2);
+            GoToTierChangeWithTowers(2);
             FinishTransition();
             int cash = player.Cash;
 
@@ -239,11 +240,11 @@ namespace TowerDefence.Tests
         [Test]
         public void Expire_AfterFirstWaveOfNewMap_Refunds70Percent_ListGone()
         {
-            GoToFloor4WithTowers(3);
+            GoToTierChangeWithTowers(3);
             FinishTransition();
             int cash = player.Cash;
 
-            ClearWave(); // 4층 첫 웨이브 끝나는 순간
+            ClearWave(); // 3층 첫 웨이브 끝나는 순간
             Assert.AreEqual(1, recoveryExpires.Count);
             Assert.AreEqual((3, 105), (recoveryExpires[0].TowerCount, recoveryExpires[0].Refund), "3 × 35");
             Assert.AreEqual(cash + 105, player.Cash, "만료 = 정확히 70%");
@@ -256,7 +257,7 @@ namespace TowerDefence.Tests
         [Test]
         public void GameOverDuringFirstWave_DiscardsWithoutRefund()
         {
-            GoToFloor4WithTowers(2);
+            GoToTierChangeWithTowers(2);
             FinishTransition();
             int cash = player.Cash;
 

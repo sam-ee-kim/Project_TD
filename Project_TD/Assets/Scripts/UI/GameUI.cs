@@ -20,16 +20,24 @@ namespace TowerDefence
 
         RectTransform tooltip;
         readonly ConfirmPopup popup = new ConfirmPopup();
+        readonly TowerPaletteView palette = new TowerPaletteView();
+        readonly TowerInfoView info = new TowerInfoView();
+        readonly TowerDragView dragView = new TowerDragView();
+        bool dragOverlay; // 일반 상태에서 타워를 옮기는 동안만 켠 오버레이
 
         GameState state = GameState.Ready;
         PopupKind popupKind;
         int popupCost;
+        int popupUnlockFloor; // 진화 팝업: 이 층부터 진화 가능
         int cash;
         int hp;
 
         public HudView Hud { get; } = new HudView();
         public MapView Map { get; } = new MapView();
         public PanelSlider Panels { get; } = new PanelSlider();
+        public PanelSlider PaletteSlider { get; } = new PanelSlider(); // 건축 BuildMode에서만 올라오는 타워 목록
+        public TowerPaletteView Palette => palette;
+        public TowerInfoView Info => info;
 
         public void Init(GameData data, Canvas canvas, Board board, BuildController build, GameFlow flow, Camera camera,
             MapGenerator mapRenderer, CameraController cameraRig)
@@ -43,6 +51,7 @@ namespace TowerDefence
 
             Map.Init(mapRenderer, cameraRig, board, config != null ? config.ui : null);
             Panels.Init(config != null ? config.ui.panelSlideSec : 0.25f);
+            PaletteSlider.Init(config != null ? config.ui.panelSlideSec : 0.25f);
 
             if (canvas == null)
                 return;
@@ -59,6 +68,11 @@ namespace TowerDefence
             Panels.Register(Hud.CashLogPanel, ExitDirection.Right); // 보류 기능: 자리만 (cashLog.enabled = false면 숨김)
             Panels.Register(Hud.CashTimer, ExitDirection.None, HudView.CashTimerBuildPosition);
             Panels.RegisterFadeIn(Hud.Guide);
+
+            // 타워 목록 (하단 바가 내려간 자리로 올라옴) + 타워 정보 패널
+            palette.Init(canvas.transform, BuildableTowers(), HandleSlotClicked, build.BeginNewTowerDrag);
+            PaletteSlider.RegisterAppear(palette.Root, ExitDirection.Down);
+            info.Init(canvas.transform, HideInfo);
 
             // 툴팁·확인 팝업은 HUD 위에 그린다 (나중에 만든 것이 위)
             tooltip = BasicUi.Rect("BlockedTooltip", canvas.transform, Vector2.zero, new Vector2(0.5f, 0f), Vector2.zero, new Vector2(300, 46));
@@ -79,6 +93,10 @@ namespace TowerDefence
             popup.Hide();
             SetTooltip(false, default);
             Panels.SnapIn();
+            PaletteSlider.SnapIn();
+            HideInfo();
+            palette.RefreshAfford(cash);
+            dragOverlay = false;
             Hud.HideResult();
             Hud.HideBanner();
             Hud.ClearRecovery();
@@ -91,7 +109,9 @@ namespace TowerDefence
         public void Tick(float dt)
         {
             Panels.Tick(dt);
+            PaletteSlider.Tick(dt);
             Map.Tick(dt);
+            dragView.Tick(dt, build.HasDragPoint, build.DragPoint); // 끌고 있는 타워가 포인터를 따라 공중에 떠 있다
         }
 
         // --- 이벤트 구독 (GDD 8-4) ---
@@ -108,6 +128,7 @@ namespace TowerDefence
             Hud.SetStartPromptVisible(e.State == GameState.Ready);
             Hud.SetBottomBarVisible(playing);
             Hud.SetButtonInteractable("build", e.State == GameState.Break || e.State == GameState.Wave);
+            Map.SetPathPreviewWanted(e.State == GameState.Ready || e.State == GameState.Break); // 라운드 시작 전 몬스터 경로 미리보기
             Hud.SetButtonInteractable("upgrade", data.Config != null && data.Config.upgradeEnabled); // GDD 5-5: 지금은 비활성
             Hud.SetStartNowVisible(e.State == GameState.Break);
 
@@ -149,6 +170,7 @@ namespace TowerDefence
         {
             cash = e.Cash;
             Hud.SetCash(cash);
+            palette.RefreshAfford(cash);
             if (popupKind == PopupKind.Build)
                 RefreshAfford(); // 웨이브 중 처치 캐시로 [설치]가 다시 켜질 수 있다
         }
@@ -187,6 +209,7 @@ namespace TowerDefence
             bool on = e.Mode != BuildMode.None;
             Hud.SetGuideText(e.Mode == BuildMode.Rebuild ? HudView.RebuildGuideText : HudView.BuildGuideText);
             Map.ShowBuildOverlay(on);
+            dragOverlay = false;
             if (on)
                 Panels.SlideOut();
             else
@@ -194,6 +217,48 @@ namespace TowerDefence
                 Panels.SlideIn();
                 SetTooltip(false, default);
             }
+            // 타워 목록은 건축 모드에서만 (회수 타워 재건축은 놓을 타워가 정해져 있다)
+            if (e.Mode == BuildMode.Build)
+                PaletteSlider.SlideOut();
+            else
+            {
+                PaletteSlider.SlideIn();
+                HideInfo();
+            }
+        }
+
+        // 드래그 시작·끝: 들고 있는 타워 표시. 일반 상태에서 타워를 옮기는 동안에도 설치 가능 칸 오버레이를 보여 준다
+        // (놓일 칸 = 떠 있는 타워 바로 아래 타일이 하이라이트된다).
+        public void HandleDragChanged(TowerDrag e)
+        {
+            dragView.Handle(e);
+            bool dragging = e.Kind != DragKind.None;
+            if (dragging && build.Mode == BuildMode.None && !dragOverlay)
+            {
+                dragOverlay = true;
+                Map.ShowBuildOverlay(true);
+            }
+            else if (!dragging && dragOverlay)
+            {
+                dragOverlay = false;
+                Map.SetHover(false, default);
+                Map.ShowBuildOverlay(false);
+                SetTooltip(false, default);
+            }
+        }
+
+        // 타워 목록 아이콘 클릭: 정보 패널 + 그 타워를 칸 클릭 건축 대상으로.
+        void HandleSlotClicked(TowerDef def)
+        {
+            info.Show(def, palette.GetIcon(def));
+            palette.SetSelected(def);
+            build.SelectBuildDef(def);
+        }
+
+        void HideInfo()
+        {
+            info.Hide();
+            palette.SetSelected(null);
         }
 
         public void HandleHoverChanged(CellHover e)
@@ -220,6 +285,13 @@ namespace TowerDefence
                 case PopupKind.Recovery:
                     popup.Show($"회수한 {e.Def.displayName}", "재건축", $"철거 (+{e.Amount})");
                     break;
+                case PopupKind.Upgrade:
+                    popupCost = e.Amount;
+                    popupUnlockFloor = e.Def.unlockFloor;
+                    popup.Show($"{e.From.displayName} → {e.Def.displayName}\n진화 비용 {e.Amount} 캐시 · 초당 피해 {Dps(e.From):0.#} → {Dps(e.Def):0.#}",
+                        "진화", $"판매 (+{e.Refund})");
+                    RefreshAfford();
+                    break;
                 default:
                     popup.Hide();
                     break;
@@ -236,16 +308,42 @@ namespace TowerDefence
                         build.EnterBuildMode(data.Towers[0]); // 타워 종류가 2개 이상이 되면 종류 선택 단계 추가 (GDD 5-7)
                     break;
                 case "upgrade":
-                    break; // upgradeEnabled = false: 반응 없음 (GDD 5-5)
+                    if (data.Config != null && data.Config.upgradeEnabled)
+                        Hud.ShowBanner("진화할 타워를 클릭하세요");
+                    break;
             }
         }
 
-        // 캐시 부족: [설치] 비활성 + "캐시가 부족합니다".
+        // 캐시 부족: [설치]·[진화] 비활성 + "캐시가 부족합니다". 진화는 해금 층 전이면 "N층부터 진화 가능".
         void RefreshAfford()
         {
+            if (popupKind == PopupKind.Upgrade && flow.Floor < popupUnlockFloor)
+            {
+                popup.SetLeftEnabled(false, $"{popupUnlockFloor}층부터 진화 가능");
+                return;
+            }
             bool afford = cash >= popupCost;
             popup.SetLeftEnabled(afford, afford ? "" : NotEnoughCashText);
         }
+
+        // 층 클리어 아이템 안내.
+        public void HandleItemGranted(FloorItemGrant e)
+        {
+            string what = e.Damage ? $"화력 +{e.Bonus * 100f:0}%" : $"연사 +{e.Bonus * 100f:0}%";
+            Hud.ShowBanner($"{e.Floor}층 클리어 보상: {what}  (공격력 ×{e.DamageMul:0.##} · 공격 속도 ×{e.SpeedMul:0.##})");
+        }
+
+        // 타워 목록에는 1단계 타워만 (진화 단계는 설치된 타워에서 진화로만).
+        System.Collections.Generic.List<TowerDef> BuildableTowers()
+        {
+            var list = new System.Collections.Generic.List<TowerDef>();
+            foreach (var def in data.Towers)
+                if (def.tier <= 1)
+                    list.Add(def);
+            return list;
+        }
+
+        static float Dps(TowerDef d) => d.damage * Mathf.Max(1, d.burstCount) / Mathf.Max(0.01f, d.interval);
 
         // 설치 불가 칸 툴팁: 그 칸 위에 띄운다 (마우스 아래 칸이 바뀔 때만 위치 갱신).
         void SetTooltip(bool show, Vector2Int cell)

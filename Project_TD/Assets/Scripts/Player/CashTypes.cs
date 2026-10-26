@@ -8,6 +8,7 @@ namespace TowerDefence
         Sell,
         RecoveryScrap,
         RecoveryExpire,
+        Upgrade,   // 테크트리 진화 비용
     }
 
     // PlayerState.CashChanged 인자. 화면 문자열은 UI가 그릴 때만 만든다.

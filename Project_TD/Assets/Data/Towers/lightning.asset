@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41af158138b595d459f1987ff035ae6d, type: 3}
+  m_Name: lightning
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
+  id: lightning
+  displayName: "\uBC88\uAC1C \uD0C0\uC6CC"
+  description: "\uAD6C\uC2AC\uC5D0 \uC804\uAE30\uB97C \uBAA8\uC558\uB2E4\uAC00 \uBAAC\uC2A4\uD130\uC5D0\uAC8C
+    \uBC88\uAC1C\uB97C \uB0A0\uB9BD\uB2C8\uB2E4. \uD55C \uBC29\uC774 \uAC15\uD558\uACE0
+    \uC0AC\uAC70\uB9AC\uAC00 \uAE41\uB2C8\uB2E4."
+  buildCost: 90
+  damage: 4
+  interval: 1
+  burstCount: 1
+  burstGap: 0.12
+  chargeTime: 0.9583333
+  range: 3
+  lockMode: 0
+  targetRule: 0
+  typePriority: []
+  attackType: 0
+  projectileSpeed: 7
+  upgradeTo: []
+  tier: 1
+  unlockFloor: 1
+  fieldRadius: 0
+  fieldDuration: 3
+  fieldSlow: 0.6
+  fieldFxPrefab: {fileID: 0}
+  fieldFxRadius: 1.6
+  coneAngle: 90
+  coneLength: 1.6
+  viewPrefab: {fileID: 5459871571045728388, guid: 568f3aaf7e66a4243a2bdbf9c29933d3, type: 3}
+  viewScale: 0.3
+  projectilePrefab: {fileID: 2140473771142676390, guid: 6bb39029e28cec94f8c837dea19720b8, type: 3}
+  projectileScale: 1
+  projectileModelForward: {x: 0, y: 0, z: 1}
+  projectileTurnSpeed: 1440
+  muzzleFxPrefab: {fileID: 5660160977127128534, guid: ff85f2025da8acd43976a698889ea4db, type: 3}
+  coneFxReach: 2.28
+  buildClip: {fileID: -623603649343465320, guid: 56fcf4cef46c6e34691d2275faf0e4b7, type: 3}
+  chargeClip: {fileID: -623603649343465320, guid: 6809be08e8da39f4cb22825b4d725aaf, type: 3}
+  fireClip: {fileID: 0}
+  chargeFxPrefab: {fileID: 9026185446062852273, guid: 9d36b3e793333704783743c831732d5c, type: 3}
+  hitFxPrefab: {fileID: 5660160977127128534, guid: ff85f2025da8acd43976a698889ea4db, type: 3}

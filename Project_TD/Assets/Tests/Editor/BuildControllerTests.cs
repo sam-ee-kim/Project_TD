@@ -251,5 +251,151 @@ namespace TowerDefence.Tests
             Assert.AreEqual(BuildMode.None, build.Mode);
             Assert.AreEqual(PopupKind.None, build.Popup);
         }
+
+        // ---------- 타워 목록 · 드래그 설치 · 이동 ----------
+
+        [Test]
+        public void DragNewTower_DropOnSite_BuildsWithoutPopup()
+        {
+            build.EnterBuildMode(basic);
+            int drags = 0;
+            build.DragChanged += e => drags++;
+
+            build.BeginNewTowerDrag(basic);
+            Assert.AreEqual(DragKind.NewTower, build.Drag);
+            build.PointAt(true, SiteA);
+            build.Drop();
+
+            Assert.AreEqual(DragKind.None, build.Drag);
+            Assert.IsNotNull(towers.GetTowerAt(SiteA), "놓은 칸에 설치");
+            Assert.AreEqual(config.startCash - basic.buildCost, player.Cash);
+            Assert.AreEqual(PopupKind.None, build.Popup, "드래그 설치는 확인 팝업 없음");
+            Assert.AreEqual(BuildMode.Build, build.Mode, "연속 건축 가능");
+            Assert.GreaterOrEqual(drags, 3, "시작·칸 변경·끝");
+        }
+
+        [Test]
+        public void DragNewTower_DropOnPathOrOffMap_Cancels()
+        {
+            build.EnterBuildMode(basic);
+            build.BeginNewTowerDrag(basic);
+            build.PointAt(true, PathCell);
+            build.Drop();
+            Assert.IsNull(towers.GetTowerAt(PathCell));
+
+            build.BeginNewTowerDrag(basic);
+            build.PointAt(false, default); // UI 위·맵 밖에서 놓음
+            build.Drop();
+
+            Assert.AreEqual(0, towers.Towers.Count);
+            Assert.AreEqual(config.startCash, player.Cash, "캐시 그대로");
+        }
+
+        [Test]
+        public void DragNewTower_NotEnoughCash_ShowsInvalid()
+        {
+            player.Spend(player.Cash - (basic.buildCost - 1), CashReason.Build);
+            build.EnterBuildMode(basic);
+            TowerDrag last = default;
+            build.DragChanged += e => last = e;
+
+            build.BeginNewTowerDrag(basic);
+            build.PointAt(true, SiteA);
+            Assert.IsFalse(last.Valid, "캐시 부족 → 빨강");
+            build.Drop();
+            Assert.IsNull(towers.GetTowerAt(SiteA));
+        }
+
+        [Test]
+        public void DragNewTower_OnlyInBuildMode()
+        {
+            build.BeginNewTowerDrag(basic); // 일반 상태 (타워 목록이 없음)
+            Assert.AreEqual(DragKind.None, build.Drag);
+        }
+
+        [Test]
+        public void MoveDrag_ToEmptySite_MovesTowerForFree()
+        {
+            towers.Build(SiteA, basic);
+            var tower = towers.GetTowerAt(SiteA);
+            int cash = player.Cash;
+
+            build.BeginMoveDrag(tower);
+            Assert.AreEqual(DragKind.MoveTower, build.Drag);
+            build.PointAt(true, SiteB);
+            build.Drop();
+
+            Assert.AreEqual(SiteB, tower.Cell);
+            Assert.AreSame(tower, towers.GetTowerAt(SiteB));
+            Assert.IsNull(towers.GetTowerAt(SiteA));
+            Assert.IsTrue(board.IsOccupied(SiteB));
+            Assert.IsFalse(board.IsOccupied(SiteA), "옛 칸 비움");
+            Assert.AreEqual(cash, player.Cash, "이동은 무료");
+
+            // 사거리 칸을 새 위치 기준으로 다시 계산
+            for (int i = 0; i < board.GetPathLength(0); i++)
+            {
+                var c = board.GetPathCell(0, i);
+                bool inRange = Mathf.Max(Mathf.Abs(c.x - SiteB.x), Mathf.Abs(c.y - SiteB.y)) <= basic.range;
+                Assert.AreEqual(inRange, tower.CoversCell[board.CellId(c)], $"경로 칸 {i}");
+            }
+        }
+
+        [Test]
+        public void MoveDrag_ToBlockedCellOrSameCell_KeepsPosition()
+        {
+            towers.Build(SiteA, basic);
+            towers.Build(SiteB, basic);
+            var tower = towers.GetTowerAt(SiteA);
+            TowerDrag last = default;
+            build.DragChanged += e => last = e;
+
+            build.BeginMoveDrag(tower);
+            build.PointAt(true, SiteB);  // 다른 타워가 있는 칸
+            Assert.IsFalse(last.Valid);
+            build.PointAt(true, PathCell);
+            Assert.IsFalse(last.Valid);
+            build.PointAt(true, SiteA);  // 제자리
+            Assert.IsTrue(last.Valid, "제자리는 그대로 두기");
+            build.PointAt(true, PathCell);
+            build.Drop();
+
+            Assert.AreEqual(SiteA, tower.Cell);
+            Assert.IsTrue(board.IsOccupied(SiteA));
+        }
+
+        [Test]
+        public void MoveDrag_CancelledWhenLeavingBreakOrWave()
+        {
+            towers.Build(SiteA, basic);
+            build.BeginMoveDrag(towers.GetTowerAt(SiteA));
+            build.HandleStateChanged(new StateChange(GameState.FloorTransition, 1, 1));
+            Assert.AreEqual(DragKind.None, build.Drag);
+        }
+
+        [Test]
+        public void Palette_SlidesInOnlyInBuildMode_InfoShowsDef()
+        {
+            var palette = ui.Palette.Root;
+            var hidden = palette.anchoredPosition;
+            Assert.AreEqual(1, ui.Palette.SlotCount);
+            Assert.IsNotNull(palette.Find("Slot_basic/Name"), "아이콘 아래 이름");
+            Assert.AreEqual($"{basic.buildCost} 캐시", palette.Find("Slot_basic/Cost").GetComponentInChildren<Text>().text);
+
+            build.EnterBuildMode(basic);
+            ui.Tick(1f);
+            Assert.Greater(palette.anchoredPosition.y, hidden.y, "건축 모드: 타워 목록이 올라옴");
+
+            palette.Find("Slot_basic").GetComponent<TowerSlot>().Clicked(basic);
+            Assert.IsTrue(ui.Info.Visible);
+            Assert.AreSame(basic, ui.Info.Shown);
+            string title = canvasGo.transform.Find("TowerInfo/Title").GetComponentInChildren<Text>().text;
+            Assert.AreEqual(basic.displayName, title);
+
+            build.ExitMode();
+            ui.Tick(1f);
+            Assert.AreEqual(hidden, palette.anchoredPosition, "나가면 다시 숨음");
+            Assert.IsFalse(ui.Info.Visible, "정보 패널도 닫힘");
+        }
     }
 }

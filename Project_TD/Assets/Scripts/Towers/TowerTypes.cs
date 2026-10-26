@@ -22,7 +22,8 @@ namespace TowerDefence
     public enum AttackType
     {
         Projectile,
-        Hitscan, // 나중
+        Hitscan, // 즉시 명중 (대상 1마리)
+        Cone,    // 부채꼴 범위: 조준 방향 부채꼴(히트박스) 안의 몬스터 모두에게 즉시 피해 (화염방사)
     }
 
     // TowerManager.TowerChanged 인자 (GDD 8-4).
@@ -37,6 +38,25 @@ namespace TowerDefence
             Cell = cell;
             Def = def;
             Built = built;
+        }
+    }
+
+    // TowerManager.ItemGranted 인자: 층 클리어 아이템 1개를 받았을 때.
+    public readonly struct FloorItemGrant
+    {
+        public readonly int Floor;        // 클리어한 층
+        public readonly bool Damage;      // true = 화력(공격력), false = 연사(공격 속도)
+        public readonly float Bonus;      // 이번 아이템 증가량 (0.10 = +10%)
+        public readonly float DamageMul;  // 받은 뒤 누적 공격력 배율
+        public readonly float SpeedMul;   // 받은 뒤 누적 공격 속도 배율
+
+        public FloorItemGrant(int floor, bool damage, float bonus, float damageMul, float speedMul)
+        {
+            Floor = floor;
+            Damage = damage;
+            Bonus = bonus;
+            DamageMul = damageMul;
+            SpeedMul = speedMul;
         }
     }
 

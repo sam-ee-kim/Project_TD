@@ -5,15 +5,17 @@ namespace TowerDefence
     {
         public readonly int Floor;
         public readonly int Tier;
-        public readonly int N;       // 맵 한 변 칸 수
-        public readonly int Waves;   // 이 층의 웨이브 수
-        public readonly bool IsFinal; // 마지막 층(46층)
+        public readonly int N;          // 맵 한 변 칸 수 (최대 15)
+        public readonly int Complexity; // 맵 복잡성 1~5 (꺾임 수·스폰 수)
+        public readonly int Waves;      // 이 층의 웨이브 수 (최대 5)
+        public readonly bool IsFinal;   // 마지막 층 (GameConfig.finalFloor)
 
-        public FloorPlan(int floor, int tier, int n, int waves, bool isFinal)
+        public FloorPlan(int floor, int tier, int n, int complexity, int waves, bool isFinal)
         {
             Floor = floor;
             Tier = tier;
             N = n;
+            Complexity = complexity;
             Waves = waves;
             IsFinal = isFinal;
         }

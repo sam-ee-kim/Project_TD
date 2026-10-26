@@ -9,7 +9,7 @@ namespace TowerDefence
         public string id = "normal";
         public string displayName = "일반 몬스터";
         public MonsterCategory category = MonsterCategory.Normal;
-        public int hp = 100;
+        public float hp = 4f;          // 기본 체력 (레벨디자인: Docs/HpLevelDesign.md)
         public float speed = 1f;       // 칸/초
         public int reward = 5;         // 처치 캐시
         public int nexusDamage = 1;

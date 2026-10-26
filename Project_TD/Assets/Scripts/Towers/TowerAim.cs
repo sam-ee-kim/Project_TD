@@ -21,6 +21,12 @@ namespace TowerDefence
         public float recoilDistance = 0.18f;    // 반동 거리 (부품 부모 로컬 단위)
         public float recoilReturnTime = 0.15f;  // 제자리로 돌아오는 시간
         public float fireAlignAngle = 8f;       // 수평 조준 오차가 이 각도 안이면 발사
+        public Transform[] animatedParts;       // 차지 연출로 움직이는 부품 (번개 타워: 코일 링·구슬). 메시 합치기에서 따로 둔다
+
+        [Header("Kick (발마다 포탑이 튀는 반동)")]
+        public float kickPitch = 6f;        // 위로 튀는 각도(도)
+        public float kickYaw = 2.5f;        // 쏜 포신 쪽으로 비틀리는 각도(도), 좌·우 번갈아
+        public float kickReturnTime = 0.14f; // 제자리로 돌아오는 시간
 
         [Header("Limits / Speed")]
         public float minPitch = -25f; // 화염방사는 -30
@@ -32,6 +38,8 @@ namespace TowerDefence
         Vector3 restForwardInYawParent;
         float yaw, pitch;
         int nextFirePoint;
+        float kick;      // 1 = 막 쏨, 0 = 제자리
+        float kickSide;  // +1 / −1 (쏜 포신 쪽)
 
         Vector3[] recoilRest;      // 반동 부품의 원래 localPosition
         Vector3[] recoilBackLocal; // 포신 반대 방향 (부품 부모 로컬)
@@ -64,6 +72,7 @@ namespace TowerDefence
             yaw = 0f;
             pitch = 0f;
             nextFirePoint = 0;
+            kick = 0f;
             yawPivot.localRotation = yawRestLocal;
             pitchPivot.localRotation = pitchRestLocal;
             for (int i = 0; i < recoilAmount.Length; i++)
@@ -104,11 +113,19 @@ namespace TowerDefence
             position = fp.position + fp.TransformVector(barrelAxis * muzzleTipOffset);
             if (i < recoilAmount.Length)
                 recoilAmount[i] = 1f;
+            kick = 1f;
+            kickSide = i % 2 == 0 ? 1f : -1f;
+            ApplyPose();
         }
 
         // 반동 복귀만 진행 (대상이 없어도 매 프레임).
         public void TickRecoil(float dt)
         {
+            if (kick > 0f)
+            {
+                kick = Mathf.Max(0f, kick - dt / kickReturnTime);
+                ApplyPose();
+            }
             for (int i = 0; i < recoilAmount.Length; i++)
             {
                 if (recoilAmount[i] <= 0f)
@@ -133,17 +150,28 @@ namespace TowerDefence
                 float wantYaw = Vector3.SignedAngle(restFwd, flat, Vector3.up);
                 yaw = Mathf.MoveTowardsAngle(yaw, wantYaw, yawSpeed * dt);
             }
-            yawPivot.rotation = Quaternion.AngleAxis(yaw, Vector3.up) * (parentRot * yawRestLocal);
+            yawPivot.rotation = Quaternion.AngleAxis(yaw, Vector3.up) * (parentRot * yawRestLocal); // 목 관절 위치를 새 yaw로 (반동은 ApplyPose)
 
             // 2) 상하: 관절 높이 기준 (높이 차 / 수평 거리), 위가 +
             Vector3 d = aim - pitchPivot.position;
             float horiz = new Vector2(d.x, d.z).magnitude;
             float wantPitch = Mathf.Clamp(Mathf.Atan2(d.y, horiz) * Mathf.Rad2Deg, minPitch, maxPitch);
             pitch = Mathf.MoveTowards(pitch, wantPitch, pitchSpeed * dt);
+            ApplyPose();
+        }
 
-            Vector3 facing = Quaternion.AngleAxis(yaw, Vector3.up) * restFwd;
+        // 조준 각도 + 발사 반동(위로 튐·좌우 비틀림)을 회전판·목 관절에 적용.
+        void ApplyPose()
+        {
+            Quaternion parentRot = yawPivot.parent.rotation;
+            Vector3 restFwd = parentRot * restForwardInYawParent;
+            float k = kick * kick; // 쏜 순간 크게, 끝에서 부드럽게
+            float y = yaw + kickSide * kickYaw * k;
+            yawPivot.rotation = Quaternion.AngleAxis(y, Vector3.up) * (parentRot * yawRestLocal);
+
+            Vector3 facing = Quaternion.AngleAxis(y, Vector3.up) * restFwd;
             Vector3 right = Vector3.Cross(Vector3.up, facing).normalized;
-            pitchPivot.rotation = Quaternion.AngleAxis(-pitch, right) * (yawPivot.rotation * pitchRestLocal);
+            pitchPivot.rotation = Quaternion.AngleAxis(-(pitch + kickPitch * k), right) * (yawPivot.rotation * pitchRestLocal);
         }
     }
 }

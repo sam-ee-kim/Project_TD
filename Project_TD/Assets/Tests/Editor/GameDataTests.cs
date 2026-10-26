@@ -45,13 +45,13 @@ public class GameDataTests
         var normal = Load<MonsterDef>("Assets/Data/Monsters/normal.asset");
         var fast = Load<MonsterDef>("Assets/Data/Monsters/fast.asset");
         var tank = Load<MonsterDef>("Assets/Data/Monsters/tank.asset");
-        Assert.AreEqual((MonsterCategory.Normal, 100, 1f, 5, 1), (normal.category, normal.hp, normal.speed, normal.reward, normal.nexusDamage));
-        Assert.AreEqual((MonsterCategory.Special, 50, 2f, 4, 1), (fast.category, fast.hp, fast.speed, fast.reward, fast.nexusDamage));
-        Assert.AreEqual((MonsterCategory.Special, 300, 0.5f, 10, 2), (tank.category, tank.hp, tank.speed, tank.reward, tank.nexusDamage));
+        Assert.AreEqual((MonsterCategory.Normal, 4f, 1f, 5, 1), (normal.category, normal.hp, normal.speed, normal.reward, normal.nexusDamage));
+        Assert.AreEqual((MonsterCategory.Special, 2f, 2f, 4, 1), (fast.category, fast.hp, fast.speed, fast.reward, fast.nexusDamage));
+        Assert.AreEqual((MonsterCategory.Special, 12f, 0.5f, 10, 2), (tank.category, tank.hp, tank.speed, tank.reward, tank.nexusDamage));
 
         var basic = Load<TowerDef>("Assets/Data/Towers/basic.asset");
         Assert.AreEqual(50, basic.buildCost);
-        Assert.AreEqual(20, basic.damage);
+        Assert.AreEqual(1f, basic.damage);
         Assert.AreEqual(1f, basic.interval);
         Assert.AreEqual(2, basic.range);
         Assert.AreEqual(TargetLock.Lock, basic.lockMode);

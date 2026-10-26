@@ -18,7 +18,7 @@ namespace TowerDefence
     // 기본 모양 UI이며 색·글꼴 등 아트는 이후 교체한다.
     public class HudView
     {
-        public const string BuildGuideText = "원하는 타워 건축 위치를 선택하세요 (ESC: 나가기)";
+        public const string BuildGuideText = "타워를 끌어다 원하는 위치에 놓으세요 (ESC: 나가기)";
         public const string RebuildGuideText = "회수한 타워를 놓을 위치를 선택하세요 (ESC: 나가기)";
 
         Text guideText;
@@ -42,6 +42,7 @@ namespace TowerDefence
         int finalFloor;
 
         Text floorText, waveText, hpText, cashText, timerText, bannerText, resultText;
+        NumberText hpNumber, cashNumber, timerNumber; // 웨이브 중에도 바뀌는 숫자: 할당 없이 갱신 (GDD 8-5)
         Button startNowButton;
         GameObject startPrompt, banner, result;
         readonly System.Collections.Generic.Dictionary<string, Button> bottomButtons = new System.Collections.Generic.Dictionary<string, Button>();
@@ -79,6 +80,7 @@ namespace TowerDefence
             floorText = Field(TopBar, "Floor", -420f, 200f, Accent);
             waveText = Field(TopBar, "Wave", -190f, 220f, Color.white);
             hpText = Field(TopBar, "NexusHp", 60f, 240f, new Color(1f, 0.55f, 0.55f));
+            hpNumber = new NumberText(hpText, "넥서스 체력 ");
             startNowButton = BasicUi.Button(TopBar, "StartNow", "즉시 시작", new Vector2(0.5f, 0.5f), new Vector2(390f, 0f), new Vector2(200f, 54f), onStartNow, out _);
 
             // --- 캐시·타이머 (BuildMode에도 남음) ---
@@ -87,6 +89,8 @@ namespace TowerDefence
             BasicUi.Panel(CashTimer, PanelColor);
             cashText = Field(CashTimer, "Cash", -105f, 210f, Accent);
             timerText = Field(CashTimer, "Timer", 110f, 210f, Color.white);
+            cashNumber = new NumberText(cashText, "캐시 ");
+            timerNumber = new NumberText(timerText, "휴식 ", "초");
 
             // --- 좌측 타워 회수 목록 (작업 9에서 항목을 채운다, 지금은 숨김) ---
             RecoveryPanel = SidePanel(root, "RecoveryPanel", "타워 회수 목록", 0f, 16f);
@@ -185,7 +189,7 @@ namespace TowerDefence
             if (hpText == null || hp == shownHp)
                 return;
             shownHp = hp;
-            hpText.text = $"넥서스 체력 {hp}";
+            hpNumber.Set(hp);
             TextWrites++;
         }
 
@@ -194,7 +198,7 @@ namespace TowerDefence
             if (cashText == null || cash == shownCash)
                 return;
             shownCash = cash;
-            cashText.text = $"캐시 {cash}";
+            cashNumber.Set(cash);
             TextWrites++;
         }
 
@@ -205,7 +209,7 @@ namespace TowerDefence
                 return;
             shownSeconds = seconds;
             timerShowsWave = false;
-            timerText.text = $"휴식 {seconds}초";
+            timerNumber.Set(seconds);
             TextWrites++;
         }
 

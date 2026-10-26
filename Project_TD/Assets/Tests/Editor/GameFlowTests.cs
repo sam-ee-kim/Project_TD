@@ -109,7 +109,7 @@ namespace TowerDefence.Tests
         }
 
         [Test]
-        public void Floor1To46_ReachesGameClear_WithAllowedTransitions()
+        public void Floor1To10_ReachesGameClear_WithAllowedTransitions()
         {
             Assert.AreEqual(GameState.Ready, flow.State);
             flow.RequestStartGame();
@@ -127,18 +127,18 @@ namespace TowerDefence.Tests
             }
 
             Assert.AreEqual(GameState.GameClear, flow.State);
-            Assert.AreEqual(46, flow.Floor);
-            Assert.AreEqual(11, flow.Wave);
-            Assert.AreEqual(281, flow.TotalWaveIndex, "누적 웨이브 g");
+            Assert.AreEqual(10, flow.Floor);
+            Assert.AreEqual(5, flow.Wave);
+            Assert.AreEqual(30, flow.TotalWaveIndex, "누적 웨이브 g");
 
             // 전환이 모두 GDD 2-1 표에 있는지
             for (int i = 1; i < states.Count; i++)
                 Assert.IsTrue(Allowed.Contains((states[i - 1].State, states[i].State)),
                     $"허용되지 않은 전환 {states[i - 1].State} → {states[i].State} ({states[i].Floor}층)");
 
-            Assert.AreEqual(1 + 281 + 45 + 281 + 1, states.Count, "Ready 1 + Break 281 + FloorTransition 45 + Wave 281 + GameClear 1");
-            Assert.AreEqual(45, states.FindAll(s => s.State == GameState.FloorTransition).Count);
-            Assert.AreEqual(281, states.FindAll(s => s.State == GameState.Wave).Count);
+            Assert.AreEqual(1 + 30 + 9 + 30 + 1, states.Count, "Ready 1 + Break 30 + FloorTransition 9 + Wave 30 + GameClear 1");
+            Assert.AreEqual(9, states.FindAll(s => s.State == GameState.FloorTransition).Count);
+            Assert.AreEqual(30, states.FindAll(s => s.State == GameState.Wave).Count);
 
             // 층 전환은 각 층의 마지막 웨이브 뒤에서만
             foreach (var s in states)

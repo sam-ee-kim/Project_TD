@@ -3,7 +3,7 @@ using NUnit.Framework;
 using UnityEditor;
 using TowerDefence;
 
-// GDD 3-2 검수표와 LevelRules 결과를 비교한다. 실제 에셋(Assets/Data/GameConfig.asset)의 값으로 계산.
+// 진행 표(10층, 2층마다 복잡성·맵 단계, 웨이브 최대 5)와 LevelRules 결과를 비교한다. 실제 에셋(Assets/Data/GameConfig.asset)의 값으로 계산.
 public class LevelRulesTests
 {
     const string ConfigPath = "Assets/Data/GameConfig.asset";
@@ -11,40 +11,29 @@ public class LevelRulesTests
     // 검수표 한 행. Counts가 null이면 문서가 범위만 적은 행이라 첫·마지막 웨이브만 비교한다.
     public class Row
     {
-        public int Floor, Tier, N, Waves, GFirst, GLast;
+        public int Floor, Tier, N, Complexity, Waves, GFirst, GLast;
         public int[] Counts;
         public int FirstCount, LastCount;
 
         public override string ToString() => $"{Floor}층";
     }
 
-    static Row R(int floor, int tier, int n, int waves, int gFirst, int gLast, params int[] counts) =>
-        new Row { Floor = floor, Tier = tier, N = n, Waves = waves, GFirst = gFirst, GLast = gLast, Counts = counts };
+    static Row R(int floor, int tier, int n, int complexity, int waves, int gFirst, int gLast, params int[] counts) =>
+        new Row { Floor = floor, Tier = tier, N = n, Complexity = complexity, Waves = waves, GFirst = gFirst, GLast = gLast, Counts = counts };
 
-    static Row Range(int floor, int tier, int n, int waves, int gFirst, int gLast, int firstCount, int lastCount) =>
-        new Row { Floor = floor, Tier = tier, N = n, Waves = waves, GFirst = gFirst, GLast = gLast, FirstCount = firstCount, LastCount = lastCount };
-
-    // GDD 3-2 검수표 그대로 옮김.
+    // 진행 표: 층, Tier, 맵 N, 복잡성, 웨이브 수, 누적 g 시작·끝, 웨이브별 몬스터 수
     public static IEnumerable<Row> Table()
     {
-        yield return R(1, 1, 7, 2, 1, 2, 10, 10);
-        yield return R(2, 1, 7, 2, 3, 4, 12, 12);
-        yield return R(3, 1, 7, 2, 5, 6, 14, 14);
-        yield return R(4, 2, 9, 2, 7, 8, 16, 16);
-        yield return R(5, 2, 9, 2, 9, 10, 18, 18);
-        yield return R(6, 2, 9, 3, 11, 13, 20, 20, 22);
-        yield return R(7, 3, 11, 3, 14, 16, 22, 24, 24);
-        yield return R(8, 3, 11, 3, 17, 19, 26, 26, 28);
-        yield return R(9, 3, 11, 3, 20, 22, 28, 30, 30);
-        yield return R(10, 4, 13, 3, 23, 25, 32, 32, 34);
-        yield return R(11, 4, 13, 4, 26, 29, 34, 36, 36, 38);
-        yield return R(12, 4, 13, 4, 30, 33, 38, 40, 40, 42);
-        yield return R(13, 5, 15, 4, 34, 37, 42, 44, 44, 46);
-        yield return R(14, 5, 15, 4, 38, 41, 46, 48, 48, 50);
-        yield return R(15, 5, 15, 4, 42, 45, 50, 52, 52, 54);
-        yield return R(16, 6, 17, 5, 46, 50, 54, 56, 56, 58, 58);
-        yield return Range(31, 11, 27, 8, 136, 143, 144, 152);
-        yield return Range(46, 16, 37, 11, 271, 281, 280, 290);
+        yield return R(1, 1, 7, 1, 1, 1, 1, 10);
+        yield return R(2, 1, 7, 1, 1, 2, 2, 10);
+        yield return R(3, 2, 9, 2, 2, 3, 4, 12, 12);
+        yield return R(4, 2, 9, 2, 2, 5, 6, 14, 14);
+        yield return R(5, 3, 11, 3, 3, 7, 9, 16, 16, 18);
+        yield return R(6, 3, 11, 3, 3, 10, 12, 18, 20, 20);
+        yield return R(7, 4, 13, 4, 4, 13, 16, 22, 22, 24, 24);
+        yield return R(8, 4, 13, 4, 4, 17, 20, 26, 26, 28, 28);
+        yield return R(9, 5, 15, 5, 5, 21, 25, 30, 30, 32, 32, 34);
+        yield return R(10, 5, 15, 5, 5, 26, 30, 34, 36, 36, 38, 38);
     }
 
     GameConfig config;
@@ -73,8 +62,9 @@ public class LevelRulesTests
         Assert.AreEqual(row.Floor, plan.Floor, "floor");
         Assert.AreEqual(row.Tier, plan.Tier, "Tier");
         Assert.AreEqual(row.N, plan.N, "맵 크기 N");
+        Assert.AreEqual(row.Complexity, plan.Complexity, "복잡성");
         Assert.AreEqual(row.Waves, plan.Waves, "웨이브 수");
-        Assert.AreEqual(row.Floor == 46, plan.IsFinal, "마지막 층 여부");
+        Assert.AreEqual(row.Floor == 10, plan.IsFinal, "마지막 층 여부");
 
         int gFirst = FirstG(row.Floor);
         int gLast = gFirst + plan.Waves - 1;
@@ -96,19 +86,29 @@ public class LevelRulesTests
     }
 
     [Test]
-    public void TotalWaves_ThroughFinalFloor_Is281()
+    public void TotalWaves_ThroughFinalFloor_Is30()
     {
+        Assert.AreEqual(10, config.finalFloor, "진행은 10층까지");
         int total = 0;
         for (int f = 1; f <= config.finalFloor; f++)
             total += LevelRules.GetWaveCount(config, f);
-        Assert.AreEqual(281, total);
+        Assert.AreEqual(30, total);
     }
 
     [Test]
     public void OnlyFinalFloor_IsFinal()
     {
         for (int f = 1; f <= config.finalFloor; f++)
-            Assert.AreEqual(f == 46, LevelRules.IsFinalFloor(config, f), $"{f}층");
+            Assert.AreEqual(f == 10, LevelRules.IsFinalFloor(config, f), $"{f}층");
+    }
+
+    [Test]
+    public void Caps_MapSize15_Waves5_Complexity5()
+    {
+        // 표 밖 층·Tier로 가도 최대값을 넘지 않는다 (레벨디자인으로 층을 늘릴 때 대비)
+        Assert.AreEqual(15, LevelRules.GetMapSize(config, 9));
+        Assert.AreEqual(5, LevelRules.GetWaveCount(config, 30));
+        Assert.AreEqual(5, LevelRules.GetComplexity(config, 9));
     }
 
     [Test]
@@ -122,5 +122,32 @@ public class LevelRulesTests
         Assert.AreEqual(22, buffer[0].Count);
         Assert.AreEqual(1f, buffer[0].IntervalSec);
         Assert.AreEqual(0f, buffer[0].DelaySec);
+    }
+
+    [Test]
+    public void HpScale_MatchesLevelDesignTable()
+    {
+        // Docs/HpLevelDesign.md 3장: 층별 웨이브마다 일반 몬스터(기본 체력 4) 체력
+        float[][] expected =
+        {
+            new[] { 4f }, new[] { 5f }, new[] { 5.5f, 6f }, new[] { 7f, 7.5f },
+            new[] { 10f, 10.5f, 11.5f }, new[] { 12f, 13f, 14f },
+            new[] { 14f, 15f, 16f, 17f }, new[] { 17f, 18.5f, 20f, 21.5f },
+            new[] { 22.5f, 24.5f, 26f, 28f, 30f }, new[] { 28f, 30.5f, 32.5f, 35f, 37f },
+        };
+        for (int floor = 1; floor <= 10; floor++)
+        {
+            Assert.AreEqual(expected[floor - 1].Length, LevelRules.GetWaveCount(config, floor), $"{floor}층 웨이브 수");
+            for (int w = 1; w <= expected[floor - 1].Length; w++)
+                Assert.AreEqual(expected[floor - 1][w - 1], LevelRules.ScaleHp(config, 4f, LevelRules.GetHpScale(config, floor, w)), $"{floor}층 {w}웨이브");
+        }
+    }
+
+    [Test]
+    public void HpScale_FirstWaveIsOne_RoundsToHalf()
+    {
+        Assert.AreEqual(1f, LevelRules.GetHpScale(config, 1, 1), 1e-6f);
+        Assert.AreEqual(2.5f, LevelRules.ScaleHp(config, 2f, 1.25f), "빠른 몬스터 2층: 2 × 1.25 = 2.5");
+        Assert.AreEqual(0.5f, LevelRules.ScaleHp(config, 0.1f, 1f), "최소 0.5");
     }
 }

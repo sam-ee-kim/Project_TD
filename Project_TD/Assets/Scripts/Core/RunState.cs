@@ -15,6 +15,9 @@ namespace TowerDefence
         public MapData Map;        // 소유: Board
         public readonly List<TowerInstance> Towers = new List<TowerInstance>(); // 소유: TowerManager
         public readonly List<TowerDef> RecoveryList = new List<TowerDef>();     // 소유: TowerManager (타워 회수 목록)
+        public float ItemDamageMul = 1f; // 소유: TowerManager (층 클리어 아이템: 모든 타워 공격력 배율)
+        public float ItemSpeedMul = 1f;  // 소유: TowerManager (층 클리어 아이템: 모든 타워 공격 속도 배율)
+        public int ItemCount;            // 소유: TowerManager (받은 아이템 수)
 
         public static RunState CreateNew(GameConfig config)
         {

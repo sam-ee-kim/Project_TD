@@ -3,25 +3,25 @@ using UnityEngine;
 
 namespace TowerDefence
 {
-    // 현재 맵(MapData)과 칸 상태, 좌표 변환, 설치 가능 여부, 경로 칸 번호별 몬스터 목록 (GDD 8-1).
+    // 현재 맵(MapData)과 칸 상태, 좌표 변환, 설치 가능 여부, 칸별 몬스터 목록 (GDD 8-1).
     // 2차원 배열, 할당 없는 조회. 그리기는 하지 않는다(GameUI.MapView 몫).
     //
     // 좌표: 3D 바닥(X, Z). 칸 한 변 1, 맵 중앙이 월드 원점, 타일 윗면이 y = 0.
     //       칸 (x, y)의 중심 = 월드 (x − (N−1)/2, 0, y − (N−1)/2). 3D 맵 표시(MapGenerator.GridToWorld)와 같다.
-    // 경로 칸 번호: MonsterPaths[0](스폰 → 출구)의 순번. 다중 스폰은 보류라 경로 0만 칸 번호를 매긴다.
+    // 칸 번호(cellId) = x × N + y. 몬스터 목록은 칸 번호별이라, 스타트 지점이 여러 개여도
+    // 서로 다른 경로의 몬스터가 같은 칸(합류 뒤 본선)에 있으면 한 목록에 함께 담긴다.
+    // 경로(MonsterPaths[k])는 스폰마다 "스폰 → 출구" 칸 목록. 몬스터는 자기 경로의 칸 번호(PathIndex)로 움직인다.
     public class Board
     {
         public event System.Action<MapData> MapLoaded; // → GameUI (MapView 재구성)
 
         static readonly List<MonsterHandle> EmptyCell = new List<MonsterHandle>(0);
-        const int MainPath = 0;
 
         GameData data;
         RunState run;
         MapData map;
         bool[,] occupied;
-        int[,] pathIndexAt;                                         // 칸 → 경로 칸 번호, 경로가 아니면 -1
-        List<MonsterHandle>[] buckets = new List<MonsterHandle>[0]; // 경로 칸 번호 → 그 칸의 몬스터
+        List<MonsterHandle>[] buckets = new List<MonsterHandle>[0]; // 칸 번호 → 그 칸의 몬스터
         int bucketCapacity;
 
         public MapData Map => map;
@@ -40,12 +40,11 @@ namespace TowerDefence
             this.run = run;
             map = null;
             occupied = null;
-            pathIndexAt = null;
             foreach (var bucket in buckets)
                 bucket.Clear();
         }
 
-        // Tier 교체 시 새 맵 적용. 경로 칸 번호별 몬스터 목록을 경로 길이만큼 준비한다 (버킷은 재사용).
+        // Tier 교체 시 새 맵 적용. 칸별 몬스터 목록을 준비한다 (재사용, 경로 칸은 용량을 미리 잡아 웨이브 중 할당 없음).
         public void Load(MapData newMap)
         {
             map = newMap;
@@ -54,24 +53,23 @@ namespace TowerDefence
 
             int n = newMap.N;
             occupied = new bool[n, n];
-            pathIndexAt = new int[n, n];
-            for (int x = 0; x < n; x++)
-                for (int y = 0; y < n; y++)
-                    pathIndexAt[x, y] = -1;
 
-            var path = newMap.MonsterPaths[MainPath];
-            for (int i = 0; i < path.Count; i++)
-                pathIndexAt[path[i].x, path[i].y] = i;
-
-            if (buckets.Length < path.Count)
+            if (buckets.Length < n * n)
             {
                 int old = buckets.Length;
-                System.Array.Resize(ref buckets, path.Count);
+                System.Array.Resize(ref buckets, n * n);
                 for (int i = old; i < buckets.Length; i++)
-                    buckets[i] = new List<MonsterHandle>(bucketCapacity);
+                    buckets[i] = new List<MonsterHandle>(0);
             }
             foreach (var bucket in buckets)
                 bucket.Clear();
+            foreach (var path in newMap.MonsterPaths)
+                foreach (var cell in path)
+                {
+                    var bucket = buckets[cell.x * n + cell.y];
+                    if (bucket.Capacity < bucketCapacity)
+                        bucket.Capacity = bucketCapacity;
+                }
             MapLoaded?.Invoke(newMap);
         }
 
@@ -116,6 +114,21 @@ namespace TowerDefence
             return InBounds(cell);
         }
 
+        // 칸 번호 (몬스터 목록·타워 사거리 기준).
+        public int CellId(Vector2Int cell) => cell.x * N + cell.y;
+
+        // 스타트 지점(= 경로) 수.
+        public int PathCount => map != null ? map.MonsterPaths.Count : 0;
+
+        // 몬스터가 지나가는 칸인지 (경로·스폰·출구).
+        public bool IsPathCell(Vector2Int cell)
+        {
+            if (!InBounds(cell))
+                return false;
+            var t = map.Tiles[cell.x, cell.y];
+            return t == TileType.Path || t == TileType.Spawn || t == TileType.Exit;
+        }
+
         // 경로(스폰별) 칸 수.
         public int GetPathLength(int pathId) =>
             map != null && pathId >= 0 && pathId < map.MonsterPaths.Count ? map.MonsterPaths[pathId].Count : 0;
@@ -123,19 +136,16 @@ namespace TowerDefence
         // 경로 칸 번호 → 칸 좌표.
         public Vector2Int GetPathCell(int pathId, int pathIndex) => map.MonsterPaths[pathId][pathIndex];
 
-        // 칸 → 본선 경로 칸 번호. 경로가 아니면 -1.
-        public int GetPathIndex(Vector2Int cell) => InBounds(cell) ? pathIndexAt[cell.x, cell.y] : -1;
-
-        // 몬스터가 경로 칸 번호에 들어올 때 (칸이 바뀔 때만 호출).
-        public void AddToCell(int pathIndex, MonsterHandle handle)
+        // 몬스터가 칸에 들어올 때 (칸이 바뀔 때만 호출).
+        public void AddToCell(int cellId, MonsterHandle handle)
         {
-            buckets[pathIndex].Add(handle); // 용량을 미리 잡아 두어 할당 없음
+            buckets[cellId].Add(handle); // 용량을 미리 잡아 두어 할당 없음
         }
 
         // 몬스터가 칸을 떠나거나 사망·출구 도착할 때. 순서는 의미 없으므로 마지막 항목과 바꿔 지운다.
-        public void RemoveFromCell(int pathIndex, MonsterHandle handle)
+        public void RemoveFromCell(int cellId, MonsterHandle handle)
         {
-            var bucket = buckets[pathIndex];
+            var bucket = buckets[cellId];
             int last = bucket.Count - 1;
             for (int i = 0; i <= last; i++)
             {
@@ -148,9 +158,9 @@ namespace TowerDefence
             }
         }
 
-        // 경로 칸 번호의 몬스터 목록. List 그대로 반환해 foreach가 할당하지 않게 한다. 읽기 전용으로 쓴다.
-        public List<MonsterHandle> MonstersAt(int pathIndex) =>
-            pathIndex >= 0 && pathIndex < buckets.Length ? buckets[pathIndex] : EmptyCell;
+        // 칸 번호의 몬스터 목록. List 그대로 반환해 foreach가 할당하지 않게 한다. 읽기 전용으로 쓴다.
+        public List<MonsterHandle> MonstersAt(int cellId) =>
+            cellId >= 0 && cellId < buckets.Length ? buckets[cellId] : EmptyCell;
 
         // TowerManager.TowerChanged 구독: 칸 점유 갱신.
         public void HandleTowerChanged(TowerChange change)

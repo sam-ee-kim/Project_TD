@@ -54,7 +54,7 @@ namespace TowerDefence.Tests
         {
             monsters.BeginWave(new[] { new WaveSpawn("normal", 1, 1f, 0f) }, 1);
             monsters.TickSpawn(0f);
-            var cell = board.MonstersAt(0);
+            var cell = board.MonstersAtPath(0);
             return monsters.Get(cell[cell.Count - 1]);
         }
 

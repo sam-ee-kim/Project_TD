@@ -11,8 +11,8 @@ namespace TowerDefence
         public float floorTransitionSec = 2f; // 층 전환 연출 시간 (임시, GDD 9장에 없는 값)
         public int startCash = 100;
         public int nexusHp = 20;
-        public int finalFloor = 46;
-        public bool upgradeEnabled = false; // 보류(GDD 5-5): 플래그만
+        public int finalFloor = 10;
+        public bool upgradeEnabled = false; // 테크트리: 설치된 타워 클릭 → 다음 단계로 진화 (TowerDef.upgradeTo)
         public float sellRefundRate = 0.7f;
         public float recoveryRefundRate = 0.7f;
 
@@ -21,21 +21,62 @@ namespace TowerDefence
         public PerformanceSettings performance = new PerformanceSettings();
         public UiSettings ui = new UiSettings();
         public CashLogSettings cashLog = new CashLogSettings();
+        public FloorItemSettings floorItems = new FloorItemSettings(); // 층 클리어 아이템 (영구 스탯)
+
+        // 레벨디자인 웨이브 테이블 (GDD 9장 "Waves"). 층·웨이브 항목이 있으면 공식 규칙 대신 이 구성을 쓴다.
+        // 특수 몬스터를 섞는 것도 여기 데이터만으로 한다 (코드 수정 없음). 비어 있으면 공식 규칙.
+        public DesignedWave[] waves = new DesignedWave[0];
+
+        [Serializable]
+        public class DesignedWave
+        {
+            public int floor = 1;
+            public int wave = 1;            // 층 안 웨이브 번호 (1부터)
+            public SpawnLine[] lines = new SpawnLine[0];
+        }
+
+        [Serializable]
+        public class SpawnLine
+        {
+            public string monsterId = "normal";
+            public int count = 10;
+            public float intervalSec = 1f;
+            public float delaySec = 0f;     // 이 줄을 시작하기 전 대기
+        }
+
+        // 층 클리어 보상 아이템 (Docs/LevelDesign_Balance.md 4-2). 마지막 층 전까지 층마다 1개:
+        // 홀수 층 = 화력(공격력 +damagePerItem), 짝수 층 = 연사(공격 속도 +speedPerItem). 각각 합산, 둘은 곱한다.
+        [Serializable]
+        public class FloorItemSettings
+        {
+            public bool enabled = false;
+            public float damagePerItem = 0.10f;
+            public float speedPerItem = 0.08f;
+        }
 
         [Serializable]
         public class LevelRuleParams
         {
-            public int mapTierEveryFloors = 3;
+            public int mapTierEveryFloors = 2;  // 2층마다 맵 단계(Tier)가 오른다: 복잡성 +1, 맵 +2칸
             public int mapBaseSize = 7;
             public int mapGrowPerTier = 2;
-            public int baseWaves = 2;
-            public int waveIncreaseEveryFloors = 5;
+            public int mapMaxSize = 15;         // 맵 최대 15×15
+            public int maxComplexity = 5;       // 복잡성 = Tier (최대 5). 복잡성별 꺾임·스폰 수는 MapGenRules.complexity
+            public int baseWaves = 1;
+            public int waveIncreaseEveryFloors = 2;
+            public int maxWaves = 5;            // 층당 웨이브 최대 5
             public int baseMonsterCount = 10;
             public int monsterIncreaseEveryWaves = 2;
             public int monsterIncreaseAmount = 2;
             public float spawnIntervalSec = 1f;
-            public int spawnCount = 1; // 다중 스폰은 보류
             public string defaultMonsterId = "normal"; // 웨이브 테이블이 없을 때 공식 웨이브에 나오는 몬스터 (GDD 4장)
+
+            // 몬스터 체력 배율 (Docs/HpLevelDesign.md): 체력 = 기본 체력 × M × C × F × W, hpRoundStep 단위 반올림
+            public float[] hpMapScale = { 1f, 1.6f, 2.6f, 4f, 6f };               // M: 맵 단계(Tier) 1~5 (맵 확장)
+            public float[] hpComplexityScale = { 1f, 0.89f, 0.94f, 0.86f, 0.94f }; // C: 복잡성 1~5 (꺾임 보너스 × 스타트 지점 분산)
+            public float hpSecondFloorScale = 1.25f; // F: 같은 맵 단계의 두 번째 층
+            public float hpPerWave = 0.08f;          // W: 층 안 웨이브마다 +8% (1웨이브 1.0)
+            public float hpRoundStep = 0.5f;         // 반올림 단위 (화염방사 1틱 = 0.5)
         }
 
         [Serializable]

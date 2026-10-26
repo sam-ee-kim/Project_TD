@@ -22,6 +22,16 @@ public class MapGenerator : MonoBehaviour
     [SerializeField] Color spawnColor = new Color(1f, 0.6f, 0.6f);
     [SerializeField] Color exitColor = new Color(1f, 0.6f, 0.6f);
 
+    [Header("행성 (맵 아래, 자전)")]
+    [SerializeField] Transform planet;                    // 행성 루트: 행성·대기·달이 함께 돈다 (달은 공전처럼 보인다)
+    [SerializeField] Transform planetClouds;              // 구름 층: 행성 자전에 더해 조금 더 돌아 흘러가 보이게
+    [SerializeField] Vector3 planetAxis = Vector3.up; // 자전축 = 행성 자체의 극축 (로컬). 행성을 45° 기울여 두었으니 축도 함께 45° 기울어 있다
+    [SerializeField] float planetSpinDegPerSec = 1.2f;    // 자전 속도 (도/초)
+    [SerializeField] float cloudSpinDegPerSec = 0.9f;     // 구름 추가 회전 (도/초, 구름 자체 축)
+
+    [Header("경로 미리보기 (라운드 시작 전, 셰이더 TowerDefence/PathPreview)")]
+    [SerializeField] Material pathPreviewMaterial;
+
     [Header("생성 연출 (타일이 아래에서 솟아오름)")]
     [SerializeField] float startDepth = 10f;       // 시작 높이: 최종 위치보다 이만큼 아래
     [SerializeField] float riseSpeed = 30f;        // 모든 타일 공통 상승 속도
@@ -48,6 +58,7 @@ public class MapGenerator : MonoBehaviour
 
     public MapData Map => map;
     public int GridSize => map != null ? map.N : 0;
+    public Material PathPreviewMaterial => pathPreviewMaterial;
 
     // 타일이 아직 올라오는 중이면 true. 이 동안 카메라는 탑다운뷰로 고정된다.
     public bool IsBuilding => risingTiles.Count > 0;
@@ -60,13 +71,40 @@ public class MapGenerator : MonoBehaviour
     readonly List<RisingTile> risingTiles = new List<RisingTile>();
     System.Random visualRng; // 나무 종류·회전·등장 시간 선택용 (같은 맵 seed면 같은 모습)
 
+    // 성능 (GDD 8-5, 작업 10 측정):
+    //  - 착지한 타일은 CombineChunk개씩 모아 정적 배칭한다 (37×37 = 1369타일 × 서브메시 3~4개 드로우 → 수십 개).
+    //    다 내려앉은 타일만 합치므로 연출은 그대로다. 메시가 Read/Write 가능해야 한다 (ProjectSetup이 켠다).
+    //  - 맵 교체 때 이전 타일을 한 프레임에 Destroy하면 Tier 전환 프레임이 길어지므로,
+    //    이전 맵 루트를 숨기기만 하고 프레임당 RetirePerFrame개씩 나눠 지운다 (합친 메시도 함께 해제).
+    const int CombineChunk = 128;
+    const int RetirePerFrame = 64;
+
+    Transform mapRoot;                                                  // 지금 맵의 타일 부모
+    readonly List<GameObject> retiring = new List<GameObject>();        // 숨긴 이전 맵 루트 (나눠 지우는 중)
+    readonly List<Mesh> combinedMeshes = new List<Mesh>();              // 지금 맵의 정적 배칭 합친 메시
+    readonly List<Mesh> retiringMeshes = new List<Mesh>();              // 이전 맵의 합친 메시 (루트를 다 지운 뒤 해제)
+    readonly GameObject[] combineBuffer = new GameObject[CombineChunk];
+    int combineCount;
+    bool combineEnabled;
+
     // 최적화 규칙(GDD 8-5 #1): Update는 GameLoop 하나만. GameUI.MapView가 매 프레임 Tick(dt)을 부른다.
     public void Tick(float dt)
     {
         AnimateRise(dt);
+        RetireStep();
+        SpinPlanet(dt);
     }
 
-    // 맵 교체: 이전 타일을 지우고 새 맵의 타일을 모두 땅속에 예약한 뒤 차례로 솟아오르게 한다.
+    // 행성 자전 (MapView.Tick → 매 프레임). 행성 자체의 극축(로컬)으로 돈다. 행성이 기울어 있으니 극도 기운 채로 돈다.
+    void SpinPlanet(float dt)
+    {
+        if (planet != null && planetSpinDegPerSec != 0f)
+            planet.Rotate(planetAxis.normalized, planetSpinDegPerSec * dt, Space.Self);
+        if (planetClouds != null && cloudSpinDegPerSec != 0f)
+            planetClouds.Rotate(Vector3.up, cloudSpinDegPerSec * dt, Space.Self);
+    }
+
+    // 맵 교체: 이전 타일을 숨기고(나눠 지움) 새 맵의 타일을 모두 땅속에 예약한 뒤 차례로 솟아오르게 한다.
     public void Show(MapData newMap)
     {
         Clear();
@@ -79,6 +117,11 @@ public class MapGenerator : MonoBehaviour
             Debug.LogError("[MapGenerator] 타일 모델이 지정되지 않았습니다. Inspector에서 타일 프리팹을 넣어 주세요.");
             return;
         }
+
+        mapRoot = new GameObject("Tiles").transform;
+        mapRoot.SetParent(transform, false);
+        combineCount = 0;
+        combineEnabled = AllMeshesReadable();
 
         visualRng = new System.Random(map.Seed);
         for (int x = 0; x < map.N; x++)
@@ -125,7 +168,95 @@ public class MapGenerator : MonoBehaviour
             {
                 tile.transform.localScale = tile.baseScale;
                 risingTiles.RemoveAt(i);
+                if (!tile.tint.HasValue) // 색을 덮어쓴 스폰·넥서스 타일은 따로 둔다
+                    AddToCombine(tile.transform.gameObject);
             }
+        }
+        if (risingTiles.Count == 0)
+            FlushCombine();
+    }
+
+    void AddToCombine(GameObject go)
+    {
+        if (!combineEnabled)
+            return;
+        combineBuffer[combineCount++] = go;
+        if (combineCount == CombineChunk)
+        {
+            StaticBatchingUtility.Combine(combineBuffer, mapRoot.gameObject);
+            RememberCombined(combineBuffer, CombineChunk);
+            combineCount = 0;
+        }
+    }
+
+    // 합친 메시는 맵을 지울 때 해제해야 하므로 기록해 둔다 (원본 에셋 메시는 제외).
+    void RememberCombined(GameObject[] gos, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            var mf = gos[i].GetComponentInChildren<MeshFilter>();
+            var mesh = mf != null ? mf.sharedMesh : null;
+            if (mesh != null && mesh.name.StartsWith("Combined Mesh") && !combinedMeshes.Contains(mesh))
+                combinedMeshes.Add(mesh);
+        }
+    }
+
+    void FlushCombine()
+    {
+        if (combineCount == 0)
+            return;
+        var rest = new GameObject[combineCount];
+        System.Array.Copy(combineBuffer, rest, combineCount);
+        StaticBatchingUtility.Combine(rest, mapRoot.gameObject);
+        RememberCombined(rest, rest.Length);
+        combineCount = 0;
+    }
+
+    bool AllMeshesReadable()
+    {
+        if (!IsReadable(pathTilePrefab) || !IsReadable(buildableTilePrefab))
+            return false;
+        foreach (var prefab in blockedTilePrefabs)
+            if (!IsReadable(prefab))
+                return false;
+        return true;
+    }
+
+    static bool IsReadable(GameObject prefab)
+    {
+        foreach (var mf in prefab.GetComponentsInChildren<MeshFilter>(true))
+            if (mf.sharedMesh == null || !mf.sharedMesh.isReadable)
+            {
+                Debug.LogWarning($"[MapGenerator] '{prefab.name}' 메시가 Read/Write 꺼짐: 정적 배칭 없이 그린다 (TowerDefence/Setup Project로 켤 수 있음).");
+                return false;
+            }
+        return true;
+    }
+
+    // 숨긴 이전 맵 타일을 프레임당 RetirePerFrame개씩 지운다. 루트가 비면 합친 메시까지 해제.
+    void RetireStep()
+    {
+        if (retiring.Count == 0)
+            return;
+        var root = retiring[0].transform;
+        int n = root.childCount;
+        if (n == 0)
+        {
+            Destroy(root.gameObject);
+            retiring.RemoveAt(0);
+            if (retiring.Count == 0)
+            {
+                foreach (var mesh in retiringMeshes)
+                    Destroy(mesh);
+                retiringMeshes.Clear();
+            }
+            return;
+        }
+        for (int i = n - 1; i >= 0 && i >= n - RetirePerFrame; i--)
+        {
+            var child = root.GetChild(i);
+            child.SetParent(null, false); // childCount가 바로 줄도록 떼어 낸 뒤 지운다
+            Destroy(child.gameObject);
         }
     }
 
@@ -169,7 +300,7 @@ public class MapGenerator : MonoBehaviour
     // 물리 엔진(Collider) 사용 금지 규칙에 따라 콜라이더는 두지 않는다 (칸 판정은 Board 좌표 계산).
     void Appear(RisingTile tile)
     {
-        var go = Instantiate(tile.prefab, transform, false);
+        var go = Instantiate(tile.prefab, mapRoot, false);
         go.name = tile.name;
         var t = go.transform;
         t.localRotation = tile.localRotation;
@@ -177,6 +308,14 @@ public class MapGenerator : MonoBehaviour
         var pos = tile.localPosition;
         pos.y -= startDepth;
         t.localPosition = pos;
+
+        // 평평한 바닥 타일(흙길·잔디)은 그림자를 드리우지 않는다 (받기만 함). 나무·장식 타일만 그림자를 만든다.
+        if (tile.prefab == pathTilePrefab || tile.prefab == buildableTilePrefab)
+        {
+            var flat = go.GetComponentInChildren<Renderer>();
+            if (flat != null)
+                flat.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
 
         if (tile.tint.HasValue)
         {
@@ -206,7 +345,13 @@ public class MapGenerator : MonoBehaviour
     void Clear()
     {
         risingTiles.Clear();
-        for (int i = transform.childCount - 1; i >= 0; i--)
-            Destroy(transform.GetChild(i).gameObject);
+        combineCount = 0;
+        if (mapRoot == null)
+            return;
+        retiringMeshes.AddRange(combinedMeshes);
+        combinedMeshes.Clear();
+        mapRoot.gameObject.SetActive(false); // 한 번에 숨기고 지우기는 RetireStep이 나눠서
+        retiring.Add(mapRoot.gameObject);
+        mapRoot = null;
     }
 }

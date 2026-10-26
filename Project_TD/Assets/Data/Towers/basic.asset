@@ -14,16 +14,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
   id: basic
   displayName: "\uAE30\uBCF8 \uD0C0\uC6CC"
+  description: 
   buildCost: 50
-  damage: 20
+  damage: 1
   interval: 1
+  burstCount: 2
+  burstGap: 0.12
+  chargeTime: 0
   range: 2
   lockMode: 0
   targetRule: 0
   typePriority: []
   attackType: 0
   projectileSpeed: 8
-  upgradeTo: []
+  upgradeTo:
+  - gun2
+  tier: 1
+  unlockFloor: 1
+  fieldRadius: 0
+  fieldDuration: 3
+  fieldSlow: 0.6
+  fieldFxPrefab: {fileID: 0}
+  fieldFxRadius: 1.6
+  coneAngle: 90
+  coneLength: 1.6
   viewPrefab: {fileID: 4684078478952574139, guid: 5b84f128a9b50e04d95b6e6a2e813740, type: 3}
   viewScale: 0.3
   projectilePrefab: {fileID: 919132149155446097, guid: 9da38cda5daa9724a8b9fde20c2d2f06, type: 3}
@@ -31,3 +45,9 @@ MonoBehaviour:
   projectileModelForward: {x: 0, y: 1, z: 0}
   projectileTurnSpeed: 720
   muzzleFxPrefab: {fileID: 3752508689999814891, guid: f95e4997c2de9bd43b6ea99e5e9ea696, type: 3}
+  coneFxReach: 2.28
+  buildClip: {fileID: -623603649343465320, guid: 1f8171cd17f6f5442a14c7d3f892e8cf, type: 3}
+  chargeClip: {fileID: 0}
+  fireClip: {fileID: 0}
+  chargeFxPrefab: {fileID: 0}
+  hitFxPrefab: {fileID: 0}

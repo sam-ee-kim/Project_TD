@@ -59,7 +59,7 @@ namespace TowerDefence
                     break;
                 case MonsterViewState.Walk:
                     Show();
-                    Play(WalkHash, Def.walkAnimSpeed);
+                    Play(WalkHash, Def.walkAnimSpeed * moveScale);
                     break;
                 case MonsterViewState.Die:
                     Show();
@@ -88,6 +88,16 @@ namespace TowerDefence
                 facing = Quaternion.LookRotation(direction);
             if (snap)
                 Root.rotation = facing;
+        }
+
+        float moveScale = 1f;
+
+        // 이동 속도 배율 (나노필드 감속). 걷는 중이면 걷기 애니메이션 속도도 같이 바꾼다.
+        public void SetMoveScale(float scale)
+        {
+            moveScale = scale;
+            if (State == MonsterViewState.Walk && animator != null)
+                animator.speed = Def.walkAnimSpeed * scale;
         }
 
         void Show()
