@@ -13,7 +13,18 @@ namespace TowerDefence
         public float speed = 1f;       // 칸/초
         public int reward = 5;         // 처치 캐시
         public int nexusDamage = 1;
-        public string[] traits = new string[0]; // 예: "flying". 종류별 클래스를 따로 만들지 않는다.
+        public string[] traits = new string[0]; // 예: "flying", "mechanical"(기계: EMP 2배). 종류별 클래스를 따로 만들지 않는다.
+
+        // 속성을 가졌는지 (할당 없음).
+        public bool HasTrait(string trait)
+        {
+            if (traits == null)
+                return false;
+            for (int i = 0; i < traits.Length; i++)
+                if (traits[i] == trait)
+                    return true;
+            return false;
+        }
 
         [Header("행동")]
         public float spawnIdleSec = 0f;  // 스폰 직후 제자리 대기(Idle) 시간. 이 동안 움직이지 않는다

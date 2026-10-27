@@ -13,6 +13,8 @@ namespace TowerDefence
         public int buildCost = 50;
         public float damage = 20f;   // 1발(화염방사는 1틱) 피해, 소수 가능
         public float interval = 1f; // 공격 간격(초)
+        public string bonusTrait = "";  // 이 속성(MonsterDef.traits)의 몬스터에게 bonusMultiplier배 피해 (EMP: "mechanical")
+        public float bonusMultiplier = 1f;
         public int burstCount = 1;     // 한 번 공격에 쏘는 발 수 (총 타워: 2 = 이점사, 발마다 damage)
         public float burstGap = 0.12f; // 연발 사이 간격(초)
         public float chargeTime = 0f;  // 쏘기 전 차지 시간(초). 0이면 조준이 맞는 즉시 쏜다 (번개 타워: 차지 클립 길이)
@@ -36,6 +38,10 @@ namespace TowerDefence
         [Range(0f, 1f)] public float fieldSlow = 0.6f; // 이동 속도 감소율 (0.6 = 60% 느려짐 → 원래 속도의 40%)
         public GameObject fieldFxPrefab;    // 필드 표시 (원점 = 바닥 중앙)
         public float fieldFxRadius = 1.6f;  // 표시 모델의 반지름(모델 단위). fieldRadius에 맞춰 크기를 정한다
+
+        [Header("전자파 (attackType = Pulse)")]
+        public float pulseRadius = 2f;   // 파동이 퍼지는 최대 반지름(칸). 대상 탐색 범위도 이 원
+        public float pulseSpeed = 6f;    // 퍼지는 속도(칸/초). 파면이 몬스터에 닿는 순간 피해
 
         [Header("부채꼴 범위 공격 (attackType = Cone)")]
         public float coneAngle = 90f;    // 부채꼴 전체 각도(도)

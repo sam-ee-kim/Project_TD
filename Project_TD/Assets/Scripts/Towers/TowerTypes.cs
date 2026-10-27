@@ -24,6 +24,7 @@ namespace TowerDefence
         Projectile,
         Hitscan, // 즉시 명중 (대상 1마리)
         Cone,    // 부채꼴 범위: 조준 방향 부채꼴(히트박스) 안의 몬스터 모두에게 즉시 피해 (화염방사)
+        Pulse,   // 전자파: 타워 중심에서 원형으로 퍼지며, 파면이 지나가는 몬스터마다 1번씩 피해 (EMP)
     }
 
     // TowerManager.TowerChanged 인자 (GDD 8-4).

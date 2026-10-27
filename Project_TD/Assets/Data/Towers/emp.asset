@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41af158138b595d459f1987ff035ae6d, type: 3}
+  m_Name: emp
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
+  id: emp
+  displayName: "EMP \uD0C0\uC6CC"
+  description: "\uC804\uAE30\uB97C \uBAA8\uC558\uB2E4\uAC00 \uD0C0\uC6CC \uB458\uB808\uB85C
+    \uC6D0\uD615 \uC804\uC790\uD30C\uB97C \uB0B4\uBCF4\uB0C5\uB2C8\uB2E4. \uD37C\uC9C0\uB294
+    \uD30C\uB3D9\uC5D0 \uB2FF\uC740 \uBAAC\uC2A4\uD130 \uBAA8\uB450\uAC00 \uD53C\uD574\uB97C
+    \uC785\uACE0, \uAE30\uACC4 \uBAAC\uC2A4\uD130\uB294 2\uBC30 \uD53C\uD574\uB97C
+    \uC785\uC2B5\uB2C8\uB2E4."
+  buildCost: 100
+  damage: 1
+  interval: 1.6
+  bonusTrait: mechanical
+  bonusMultiplier: 2
+  burstCount: 1
+  burstGap: 0.12
+  chargeTime: 0.42
+  range: 2
+  lockMode: 0
+  targetRule: 0
+  typePriority: []
+  attackType: 3
+  projectileSpeed: 8
+  upgradeTo: []
+  tier: 1
+  unlockFloor: 1
+  fieldRadius: 0
+  fieldDuration: 3
+  fieldSlow: 0.6
+  fieldFxPrefab: {fileID: 0}
+  fieldFxRadius: 1.6
+  pulseRadius: 2
+  pulseSpeed: 6
+  coneAngle: 90
+  coneLength: 1.6
+  viewPrefab: {fileID: 5071178882086577812, guid: c247350d9dc50fe4e84bacf7601b8074, type: 3}
+  viewScale: 0.3
+  projectilePrefab: {fileID: 0}
+  projectileScale: 0.6
+  projectileModelForward: {x: 0, y: 1, z: 0}
+  projectileTurnSpeed: 720
+  muzzleFxPrefab: {fileID: 4622416355787264908, guid: 247c2707fb311ec4dbf8201b55aed381, type: 3}
+  coneFxReach: 2.28
+  buildClip: {fileID: -623603649343465320, guid: 832e1e1fffea367418329be5fa6c87c4, type: 3}
+  chargeClip: {fileID: 0}
+  fireClip: {fileID: -623603649343465320, guid: 60cea182e1fdc84428a05641aa35d8e5, type: 3}
+  chargeFxPrefab: {fileID: 0}
+  hitFxPrefab: {fileID: 7495411187246817966, guid: 813657c84322162439cb9f1ff0f30ddb, type: 3}

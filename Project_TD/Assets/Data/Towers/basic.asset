@@ -36,6 +36,8 @@ MonoBehaviour:
   fieldSlow: 0.6
   fieldFxPrefab: {fileID: 0}
   fieldFxRadius: 1.6
+  pulseRadius: 2
+  pulseSpeed: 6
   coneAngle: 90
   coneLength: 1.6
   viewPrefab: {fileID: 4684078478952574139, guid: 5b84f128a9b50e04d95b6e6a2e813740, type: 3}

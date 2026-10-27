@@ -63,6 +63,8 @@ namespace TowerDefence
                     // 차지 시작: 발사점에서 전기가 모인다. 발사는 TickCharge가 한다
                     t.State = TowerState.Charging;
                     t.ChargeTime = 0f;
+                    if (t.FireAnim != null)
+                        t.FireAnimTime = 0f; // 발사 연출이 차지부터 시작하는 타워 (EMP: 모았다가 0.42초에 방출)
                     if (t.Aim != null && t.Aim.firePoints != null && t.Aim.firePoints.Length > 0)
                         PlayFx(chargeFx, t.Def, t.Aim.firePoints[0].position, Vector3.up);
                     continue;
@@ -75,6 +77,83 @@ namespace TowerDefence
             }
 
             MoveProjectiles(dt);
+            TickPulses(dt);
+        }
+
+        // --- 전자파 (Pulse) ---
+        // 퍼지는 파동 하나 = 중심·현재 반지름. 매 틱 (이전 반지름, 지금 반지름] 사이에 몸이 걸친 몬스터에게 피해 → 파면이 지나갈 때 1번.
+        // 대상 후보는 쏜 타워가 설치 때 계산한 범위 칸만 본다 (타워가 팔려도 배열은 그대로 남는다). 고정 크기 배열이라 할당 없음.
+        const int MaxPulses = 64;
+        readonly Vector3[] pulseCenter = new Vector3[MaxPulses];
+        readonly float[] pulseRadius = new float[MaxPulses];
+        readonly float[] pulseMax = new float[MaxPulses];
+        readonly float[] pulseSpeed = new float[MaxPulses];
+        readonly DamageInfo[] pulseDamage = new DamageInfo[MaxPulses];
+        readonly int[][] pulseCovered = new int[MaxPulses][];
+        readonly TowerDef[] pulseDef = new TowerDef[MaxPulses];
+        int pulseCount;
+
+        public int PulseCount => pulseCount;
+
+        void StartPulse(TowerInstance t, in DamageInfo info)
+        {
+            if (pulseCount >= MaxPulses)
+                return;
+            int i = pulseCount++;
+            pulseCenter[i] = board.CellToWorld(t.Cell);
+            pulseRadius[i] = -1f; // 첫 틱에 타워 바로 옆 몬스터도 맞게
+            pulseMax[i] = t.Def.pulseRadius;
+            pulseSpeed[i] = Mathf.Max(0.1f, t.Def.pulseSpeed);
+            pulseDamage[i] = info;
+            pulseCovered[i] = t.Covered;
+            pulseDef[i] = t.Def;
+        }
+
+        void TickPulses(float dt)
+        {
+            for (int i = pulseCount - 1; i >= 0; i--)
+            {
+                float from = pulseRadius[i];
+                float to = Mathf.Max(0f, from) + pulseSpeed[i] * dt;
+                if (to > pulseMax[i]) to = pulseMax[i];
+                pulseRadius[i] = to;
+                var center = pulseCenter[i];
+                var covered = pulseCovered[i];
+                for (int c = 0; c < covered.Length; c++)
+                {
+                    var bucket = board.MonstersAt(covered[c]);
+                    for (int k = bucket.Count - 1; k >= 0; k--)
+                    {
+                        if (k >= bucket.Count)
+                            continue;
+                        var h = bucket[k];
+                        var m = monsters.Get(h);
+                        if (m == null || m.State != MonsterState.Alive)
+                            continue;
+                        var p = monsters.GetGroundPoint(m);
+                        float dx = p.x - center.x, dz = p.z - center.z;
+                        float d = Mathf.Max(0f, Mathf.Sqrt(dx * dx + dz * dz) - ConeHitRadius); // 몸 가장자리에 닿으면
+                        if (d > from && d <= to)
+                        {
+                            PlayFx(hitFx, pulseDef[i], monsters.GetAimPoint(m), Vector3.up);
+                            monsters.ApplyDamage(h, pulseDamage[i]);
+                        }
+                    }
+                }
+                if (to >= pulseMax[i])
+                {
+                    int last = --pulseCount; // 다 퍼진 파동은 맨 뒤와 자리를 바꿔 뺀다
+                    pulseCenter[i] = pulseCenter[last];
+                    pulseRadius[i] = pulseRadius[last];
+                    pulseMax[i] = pulseMax[last];
+                    pulseSpeed[i] = pulseSpeed[last];
+                    pulseDamage[i] = pulseDamage[last];
+                    pulseCovered[i] = pulseCovered[last];
+                    pulseDef[i] = pulseDef[last];
+                    pulseCovered[last] = null;
+                    pulseDef[last] = null;
+                }
+            }
         }
 
         // 차지 진행: 대상이 사라지면 사거리 안 다른 대상으로 이어 가고(차지 유지), 없으면 Idle. 다 차면 발사.
@@ -280,6 +359,12 @@ namespace TowerDefence
                 projectilePools[flying[i].Kind].Release(flying[i]);
             flying.Clear();
             ClearFieldViews();
+            for (int i = 0; i < pulseCount; i++)
+            {
+                pulseCovered[i] = null;
+                pulseDef[i] = null;
+            }
+            pulseCount = 0;
             for (int i = 0; i < placed.Count; i++)
             {
                 placed[i].Locked = MonsterHandle.None;
@@ -363,7 +448,16 @@ namespace TowerDefence
         // 발사: Projectile이면 투사체에 {핸들, 피해 값 복사본, 속도}, Hitscan이면 즉시 피해.
         void Fire(TowerInstance t, MonsterHandle target)
         {
-            var info = new DamageInfo(GetDamage(t.Def), DamageType.Normal); // 화력 아이템 반영
+            var info = new DamageInfo(GetDamage(t.Def), DamageType.Normal, t.Def.bonusTrait, t.Def.bonusMultiplier); // 화력 아이템 반영, 속성 상성
+            if (t.Def.attackType == AttackType.Pulse)
+            {
+                // 전자파 방출: 타워 발밑에서 원형으로 퍼진다 (이펙트도 바닥 가까이)
+                if (t.FireAnim != null && t.FireAnimTime < 0f)
+                    t.FireAnimTime = 0f;
+                StartPulse(t, info);
+                PlayMuzzleFx(t.Def, board.CellToWorld(t.Cell) + Vector3.up * 0.4f, Vector3.forward); // 풀·흙 위로 살짝 띄워 가려지지 않게
+                return;
+            }
             if (t.Def.attackType == AttackType.Cone)
             {
                 // 부채꼴 범위: 타워 중심에서 대상 쪽(바닥 평면)으로 히트박스. 이펙트는 노즐에서 같은 방향으로 뿜는다
@@ -391,8 +485,8 @@ namespace TowerDefence
                 return;
             }
 
-            if (t.FireAnim != null && t.BurstLeft == 0)
-                t.FireAnimTime = 0f; // 공격 시작: 발사 연출 (연발 둘째 발부터는 이어서)
+            if (t.FireAnim != null && t.BurstLeft == 0 && t.FireAnimTime < 0f)
+                t.FireAnimTime = 0f; // 공격 시작: 발사 연출 (연발 둘째 발부터는 이어서, 차지 때 이미 시작했으면 그대로)
             var p = projectilePools[t.Def].Get();
             p.SpawnsField = t.Def.fieldRadius > 0f && t.BurstLeft == 0; // 연발의 첫 발만 필드를 깐다
             p.Target = target;

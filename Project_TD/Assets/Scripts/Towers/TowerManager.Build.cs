@@ -226,8 +226,10 @@ namespace TowerDefence
             int range = t.Def.range;
             int n = board.N;
             // 부채꼴 타워: 불길이 닿을 수 있는 원 (칸 중심 거리 ≤ 길이 + 반 칸). 실제 피해는 발사 때 부채꼴로 다시 판정
-            bool cone = t.Def.attackType == AttackType.Cone;
-            float coneReachSq = (t.Def.coneLength + 0.5f) * (t.Def.coneLength + 0.5f);
+            // 전자파 타워: 파동이 닿는 원 (칸 중심 거리 ≤ 반지름 + 반 칸)
+            bool cone = t.Def.attackType == AttackType.Cone || t.Def.attackType == AttackType.Pulse;
+            float reach = t.Def.attackType == AttackType.Pulse ? t.Def.pulseRadius : t.Def.coneLength;
+            float coneReachSq = (reach + 0.5f) * (reach + 0.5f);
 
             var covered = new List<int>();
             t.CoversCell = new bool[n * n];

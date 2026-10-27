@@ -31,11 +31,15 @@ namespace TowerDefence
     {
         public readonly float Amount;   // 소수 피해 가능 (화염방사 0.5/틱)
         public readonly DamageType Type;
+        public readonly string BonusTrait;  // 이 속성(MonsterDef.traits)을 가진 몬스터에게는 BonusMul배 (예: EMP → "mechanical" 2배)
+        public readonly float BonusMul;
 
-        public DamageInfo(float amount, DamageType type)
+        public DamageInfo(float amount, DamageType type, string bonusTrait = null, float bonusMul = 1f)
         {
             Amount = amount;
             Type = type;
+            BonusTrait = bonusTrait;
+            BonusMul = bonusMul;
         }
     }
 

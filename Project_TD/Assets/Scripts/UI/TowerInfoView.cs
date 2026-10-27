@@ -74,8 +74,12 @@ namespace TowerDefence
             int shots = Mathf.Max(1, def.burstCount);
             sb.AppendLine($"공격력      {def.damage:0.##}" + (def.attackType == AttackType.Cone ? " (틱 피해)" : shots > 1 ? $" × {shots}연발" : ""));
             sb.AppendLine($"공격 간격   {def.interval:0.##}초 (초당 {def.damage * shots / Mathf.Max(0.01f, def.interval):0.##} 피해)");
+            if (!string.IsNullOrEmpty(def.bonusTrait) && def.bonusMultiplier != 1f)
+                sb.AppendLine($"상성        {TraitName(def.bonusTrait)} 몬스터 {def.bonusMultiplier:0.##}배 피해");
             if (def.attackType == AttackType.Cone)
                 sb.AppendLine($"사거리      {def.coneLength:0.#}칸 부채꼴 {def.coneAngle:0}°");
+            else if (def.attackType == AttackType.Pulse)
+                sb.AppendLine($"사거리      반지름 {def.pulseRadius:0.#}칸 원형 (닿는 적 모두)");
             else
                 sb.AppendLine($"사거리      {def.range}칸 ({side}×{side})");
             sb.AppendLine($"공격 방식   {AttackName(def)}");
@@ -92,7 +96,19 @@ namespace TowerDefence
             {
                 case AttackType.Hitscan: return "즉시 명중";
                 case AttackType.Cone: return "범위 공격 (부채꼴 안 모두)";
+                case AttackType.Pulse: return "전자파 (원형으로 퍼지며 닿는 적 모두)";
                 default: return $"투사체 (속도 {def.projectileSpeed:0.#}칸/초)";
+            }
+        }
+
+        // 몬스터 속성 이름 (MonsterDef.traits)
+        static string TraitName(string trait)
+        {
+            switch (trait)
+            {
+                case "mechanical": return "기계";
+                case "flying": return "비행";
+                default: return trait;
             }
         }
 

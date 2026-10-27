@@ -29,6 +29,8 @@ namespace TowerDefence.EditorTools
                 MuzzleFxBuilder.BuildLightning();
             if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.NanoFieldPath) == null)
                 MuzzleFxBuilder.BuildNano();
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.EmpWavePath) == null)
+                MuzzleFxBuilder.BuildEmp();
             if (AssetDatabase.IsValidFolder("Assets/Models/Monsters"))
                 MonsterPrefabBuilder.BuildAll();
             LinkViewPrefabs();
@@ -81,6 +83,8 @@ namespace TowerDefence.EditorTools
             GetOrCreate<TowerDef>(DataFolder + "/Towers/lightning.asset", ApplyLightningStats);
             // 나노봇: 발사구 7개에서 나노 탄을 연달아 쏘고, 첫 발이 맞은 자리에 감속 나노필드를 깐다 (값은 임시)
             GetOrCreate<TowerDef>(DataFolder + "/Towers/nano.asset", ApplyNanoStats);
+            // EMP: 전기를 모았다가(0.42초) 타워 둘레로 원형 전자파를 방출, 파면이 닿는 몬스터 모두에게 피해 (값은 임시)
+            GetOrCreate<TowerDef>(DataFolder + "/Towers/emp.asset", ApplyEmpStats);
             AssetDatabase.SaveAssets();
         }
 
@@ -121,6 +125,20 @@ namespace TowerDefence.EditorTools
             d.viewScale = 0.3f;
         }
 
+        // EMP 타워 값. 차지 0.42초(발사 연출의 방출 시점) + 재장전 1.6초 ≈ 2초마다 반지름 2칸 안 모두에게 1 피해 (기계 몬스터 2)
+        static void ApplyEmpStats(TowerDef d)
+        {
+            d.id = "emp"; d.displayName = "EMP 타워";
+            d.description = "전기를 모았다가 타워 둘레로 원형 전자파를 내보냅니다. 퍼지는 파동에 닿은 몬스터 모두가 피해를 입고, 기계 몬스터는 2배 피해를 입습니다.";
+            d.buildCost = 100; d.damage = 1f; d.interval = 1.6f; d.range = 2;
+            d.bonusTrait = "mechanical"; d.bonusMultiplier = 2f; // 기계 속성 2배
+            d.chargeTime = 0.42f; d.burstCount = 1;
+            d.attackType = AttackType.Pulse;
+            d.pulseRadius = MuzzleFxBuilder.EmpWaveRadius; d.pulseSpeed = MuzzleFxBuilder.EmpWaveSpeed; // 이펙트와 같은 값
+            d.lockMode = TargetLock.Lock; d.targetRule = TargetRule.First;
+            d.viewScale = 0.3f;
+        }
+
         [MenuItem("TowerDefence/Setup/Flamethrower Stats (Reset)")]
         public static void ResetFlamethrower()
         {
@@ -150,6 +168,33 @@ namespace TowerDefence.EditorTools
             if (MakeTower("Tower_Nano", "NT", "NT_Head_Eye", new[]
                 { "NT_Shot_Point_0", "NT_Shot_Point_1", "NT_Shot_Point_2", "NT_Shot_Point_3", "NT_Shot_Point_4", "NT_Shot_Point_5", "NT_Shot_Point_6" }, null, -25f))
                 ConfigureNanoAim();
+            // EMP: 머리 위 원반(발사 연출이 돌리고 키움) 중심 ET_Pulse_Emitter. 파동은 원형이라 조준은 머리만 돌린다
+            if (MakeTower("Tower_EMP", "ET", "ET_Head_Eye", new[] { "ET_Pulse_Emitter" }, null, -15f))
+                ConfigureEmpAim();
+        }
+
+        static void ConfigureEmpAim()
+        {
+            const string path = "Assets/Prefabs/Towers/Tower_EMP.prefab";
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var aim = root.GetComponent<TowerAim>();
+                aim.animatedParts = FindAll(root.transform, new[]
+                {
+                    "ET_Emitter_Spin", "ET_Disc_Upper", "ET_Emitter_Core", "ET_Disc_Coil_Inner", "ET_Disc_Coil_Outer",
+                    "ET_Node_0", "ET_Node_1", "ET_Node_2", "ET_Node_3", "ET_Node_4", "ET_Node_5", "ET_Node_6", "ET_Node_7",
+                    "ET_Head_Eye",
+                });
+                aim.muzzleTipOffset = 0f;
+                aim.kickPitch = 0f;
+                aim.kickYaw = 0f;
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         // 나노 타워: 발사 연출로 움직이는 부품(발사대·발사구 셀·나노 베이·눈·측면 빛)을 따로 둔다. 반동은 발사 연출이 하므로 머리 튐은 작게.
@@ -300,6 +345,25 @@ namespace TowerDefence.EditorTools
                             break;
                         }
                 EditorUtility.SetDirty(nano);
+            }
+
+            var emp = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/emp.asset");
+            if (emp != null)
+            {
+                if (emp.viewPrefab == null)
+                    emp.viewPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Towers/Tower_EMP.prefab");
+                if (emp.muzzleFxPrefab == null)
+                    emp.muzzleFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.EmpWavePath);
+                if (emp.hitFxPrefab == null)
+                    emp.hitFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.EmpHitPath);
+                if (emp.fireClip == null)
+                    foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(TowerModelFolder + "/Tower_EMP@Fire.fbx"))
+                        if (asset is AnimationClip clip && !clip.name.StartsWith("__preview"))
+                        {
+                            emp.fireClip = clip;
+                            break;
+                        }
+                EditorUtility.SetDirty(emp);
             }
 
             // 건축 연출: 모델 이름@Build.fbx의 Build 클립 (모든 타워 데이터, 비어 있을 때만)
@@ -564,7 +628,7 @@ namespace TowerDefence.EditorTools
             for (int i = 0; i < ids.Length; i++)
                 mons.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<MonsterDef>(DataFolder + "/Monsters/" + ids[i] + ".asset");
             // 건축 목록 순서 = 이 배열 순서
-            var towerIds = new[] { "basic", "flamethrower", "lightning", "nano" };
+            var towerIds = new[] { "basic", "flamethrower", "lightning", "nano", "emp" };
             var tows = so.FindProperty("towerDefs");
             tows.arraySize = 0;
             foreach (var id in towerIds)
