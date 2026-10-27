@@ -1,0 +1,57 @@
+# main에 푸시하면 GitHub 서버에서 Unity WebGL 빌드 → GitHub Pages 배포.
+# 필요한 저장소 Secrets: UNITY_LICENSE (Unity_lic.ulf 파일 내용), UNITY_EMAIL, UNITY_PASSWORD
+# 저장소 Settings → Pages → Source를 "GitHub Actions"로 지정해야 한다.
+name: WebGL Build & Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/cache@v4
+        with:
+          path: Project_TD/Library
+          key: Library-WebGL-${{ hashFiles('Project_TD/Assets/**', 'Project_TD/Packages/**', 'Project_TD/ProjectSettings/**') }}
+          restore-keys: Library-WebGL-
+
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: Project_TD
+          unityVersion: 6000.3.11f1
+          targetPlatform: WebGL
+          buildName: WebGL
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/WebGL/WebGL
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
