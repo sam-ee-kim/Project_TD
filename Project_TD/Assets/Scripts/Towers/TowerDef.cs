@@ -31,6 +31,13 @@ namespace TowerDefence
         public string[] upgradeTo = new string[0];          // 진화 대상 타워 id ([0]만 사용). buildCost는 누적 비용, 진화 비용 = 차액
         public int tier = 1;                                // 진화 단계. 타워 목록(건축)에는 1단계만 나온다
         public int unlockFloor = 1;                         // 이 타워로 진화할 수 있는 첫 층
+        public bool showInPalette;                          // 테스트용: 2단계 이상이어도 건축 목록에 표시 (나중에 진화 전용으로 돌릴 때 끈다)
+
+        [Header("예열 (미니건): 계속 쏠수록 빨라져 interval까지 줄어든다")]
+        public float spinUpTime = 0f;            // 0이면 예열 없음. 이 시간 동안 쏘면 최고 연사(interval)
+        public float spinUpStartInterval = 0.6f; // 예열 시작 때 공격 간격(초)
+        public AnimationClip spinUpClip;         // 예열 연출 (모델@Fire_Warmup). 예열 정도에 맞춰 재생
+        public AnimationClip spinLoopClip;       // 최고 연사 연출 (모델@Fire_Loop). 반복 재생
 
         [Header("나노필드 (첫 발이 명중한 자리에 감속 영역, 피해는 맞은 몬스터만)")]
         public float fieldRadius = 0f;      // 반지름(칸). 0이면 필드 없음

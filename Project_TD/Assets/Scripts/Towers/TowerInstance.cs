@@ -36,6 +36,11 @@ namespace TowerDefence
         public float ChargeTime;             // 차지 진행 시간 (0 → TowerDef.chargeTime)
         public TowerBuildAnim ChargeAnim;    // 차지 연출 (TowerDef.chargeClip이 있을 때)
         public bool ChargePosed;             // 차지 자세를 찍은 상태 (끝나면 기본 자세로 되돌린다)
+        public float SpinUp;                 // 예열 정도 0~1 (미니건). 1이면 최고 연사
+        public TowerBuildAnim SpinUpAnim;    // 예열 연출
+        public TowerBuildAnim SpinLoopAnim;  // 최고 연사 반복 연출
+        public float SpinLoopTime;
+        public bool SpinPosed;               // 예열 연출 자세를 찍은 상태
         public TowerBuildAnim FireAnim;      // 발사 연출 (TowerDef.fireClip이 있을 때)
         public float FireAnimTime = -1f;     // 발사 연출 진행 시간 (−1 = 재생 안 함)
     }

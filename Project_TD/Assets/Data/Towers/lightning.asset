@@ -17,9 +17,11 @@ MonoBehaviour:
   description: "\uAD6C\uC2AC\uC5D0 \uC804\uAE30\uB97C \uBAA8\uC558\uB2E4\uAC00 \uBAAC\uC2A4\uD130\uC5D0\uAC8C
     \uBC88\uAC1C\uB97C \uB0A0\uB9BD\uB2C8\uB2E4. \uD55C \uBC29\uC774 \uAC15\uD558\uACE0
     \uC0AC\uAC70\uB9AC\uAC00 \uAE41\uB2C8\uB2E4."
-  buildCost: 90
+  buildCost: 50
   damage: 4
   interval: 1
+  bonusTrait: 
+  bonusMultiplier: 1
   burstCount: 1
   burstGap: 0.12
   chargeTime: 0.9583333
@@ -32,6 +34,11 @@ MonoBehaviour:
   upgradeTo: []
   tier: 1
   unlockFloor: 1
+  showInPalette: 0
+  spinUpTime: 0
+  spinUpStartInterval: 0.6
+  spinUpClip: {fileID: 0}
+  spinLoopClip: {fileID: 0}
   fieldRadius: 0
   fieldDuration: 3
   fieldSlow: 0.6

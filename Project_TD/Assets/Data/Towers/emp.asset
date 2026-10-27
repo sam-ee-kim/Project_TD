@@ -19,7 +19,7 @@ MonoBehaviour:
     \uD30C\uB3D9\uC5D0 \uB2FF\uC740 \uBAAC\uC2A4\uD130 \uBAA8\uB450\uAC00 \uD53C\uD574\uB97C
     \uC785\uACE0, \uAE30\uACC4 \uBAAC\uC2A4\uD130\uB294 2\uBC30 \uD53C\uD574\uB97C
     \uC785\uC2B5\uB2C8\uB2E4."
-  buildCost: 100
+  buildCost: 50
   damage: 1
   interval: 1.6
   bonusTrait: mechanical
@@ -36,6 +36,11 @@ MonoBehaviour:
   upgradeTo: []
   tier: 1
   unlockFloor: 1
+  showInPalette: 0
+  spinUpTime: 0
+  spinUpStartInterval: 0.6
+  spinUpClip: {fileID: 0}
+  spinLoopClip: {fileID: 0}
   fieldRadius: 0
   fieldDuration: 3
   fieldSlow: 0.6

@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41af158138b595d459f1987ff035ae6d, type: 3}
+  m_Name: cryo
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
+  id: cryo
+  displayName: "\uB0C9\uAE30 \uD0C0\uC6CC"
+  description: "\uB0C9\uAC01\uD55C \uC5BC\uC74C \uD0C4\uC744 \uD55C \uBC1C\uC529
+    \uC3E9\uB2C8\uB2E4. \uB0C9\uAE30 \uC18D\uC131 (\uC774\uC0C1\uD6A8\uACFC\uB294
+    \uC900\uBE44 \uC911)."
+  buildCost: 50
+  damage: 3
+  interval: 1
+  bonusTrait: 
+  bonusMultiplier: 1
+  burstCount: 1
+  burstGap: 0.12
+  chargeTime: 0
+  range: 2
+  lockMode: 0
+  targetRule: 0
+  typePriority: []
+  attackType: 0
+  projectileSpeed: 10
+  upgradeTo: []
+  tier: 2
+  unlockFloor: 1
+  showInPalette: 1
+  spinUpTime: 0
+  spinUpStartInterval: 0.6
+  spinUpClip: {fileID: 0}
+  spinLoopClip: {fileID: 0}
+  fieldRadius: 0
+  fieldDuration: 3
+  fieldSlow: 0.6
+  fieldFxPrefab: {fileID: 0}
+  fieldFxRadius: 1.6
+  pulseRadius: 2
+  pulseSpeed: 6
+  coneAngle: 90
+  coneLength: 1.6
+  viewPrefab: {fileID: 6269796506021353457, guid: 029d8c07667f53141bf44686488a7b0b, type: 3}
+  viewScale: 0.3
+  projectilePrefab: {fileID: 126958415562337013, guid: 3f7507c667c61a84a926913bbfcc46cb, type: 3}
+  projectileScale: 1
+  projectileModelForward: {x: 0, y: 0, z: 1}
+  projectileTurnSpeed: 1080
+  muzzleFxPrefab: {fileID: 4816463635121310530, guid: 07a4b0dd5db72164198eab3d567a0b0f, type: 3}
+  coneFxReach: 2.28
+  buildClip: {fileID: -623603649343465320, guid: d81f138501837f742adfb7e705f7e24a, type: 3}
+  chargeClip: {fileID: 0}
+  fireClip: {fileID: -623603649343465320, guid: 4f14aac0d0ad9034ca12414e7cac4600, type: 3}
+  chargeFxPrefab: {fileID: 0}
+  hitFxPrefab: {fileID: 5605383622696918679, guid: eb7f1d50320c9484d9d832fd7b7080e0, type: 3}

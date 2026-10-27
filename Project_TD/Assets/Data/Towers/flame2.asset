@@ -16,9 +16,11 @@ MonoBehaviour:
   displayName: "\uD654\uC5FC\uD3EC"
   description: "\uD654\uC5FC\uBC29\uC0AC 2\uB2E8\uACC4. \uBD88\uAE38\uC774 \uB354
     \uBA40\uB9AC, \uB354 \uB728\uAC81\uAC8C \uB2FF\uC2B5\uB2C8\uB2E4."
-  buildCost: 170
+  buildCost: 50
   damage: 1.4
   interval: 0.2
+  bonusTrait: 
+  bonusMultiplier: 1
   burstCount: 1
   burstGap: 0.12
   chargeTime: 0
@@ -32,6 +34,11 @@ MonoBehaviour:
   - flame3
   tier: 2
   unlockFloor: 3
+  showInPalette: 0
+  spinUpTime: 0
+  spinUpStartInterval: 0.6
+  spinUpClip: {fileID: 0}
+  spinLoopClip: {fileID: 0}
   fieldRadius: 0
   fieldDuration: 3
   fieldSlow: 0.6

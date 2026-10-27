@@ -18,6 +18,8 @@ MonoBehaviour:
   buildCost: 50
   damage: 1
   interval: 1
+  bonusTrait: 
+  bonusMultiplier: 1
   burstCount: 2
   burstGap: 0.12
   chargeTime: 0
@@ -31,6 +33,11 @@ MonoBehaviour:
   - gun2
   tier: 1
   unlockFloor: 1
+  showInPalette: 0
+  spinUpTime: 0
+  spinUpStartInterval: 0.6
+  spinUpClip: {fileID: 0}
+  spinLoopClip: {fileID: 0}
   fieldRadius: 0
   fieldDuration: 3
   fieldSlow: 0.6

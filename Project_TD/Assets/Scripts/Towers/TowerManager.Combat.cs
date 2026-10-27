@@ -29,6 +29,8 @@ namespace TowerDefence
                 var t = placed[i];
                 if (t.State == TowerState.Building)
                     continue;                     // 건축 연출이 끝나야 공격 (TickViews가 끝낸다)
+                if (t.Def.spinUpTime > 0f)
+                    TickSpinUp(t, dt);
                 t.Cooldown -= dt;
                 if (t.BurstLeft > 0)
                     TickBurst(t, dt);
@@ -70,7 +72,7 @@ namespace TowerDefence
                     continue;
                 }
                 Fire(t, target);
-                t.Cooldown = GetInterval(t.Def); // 연사 아이템 반영
+                t.Cooldown = GetInterval(t); // 연사 아이템·예열 반영
                 t.State = TowerState.Reloading;
                 t.BurstLeft = t.Def.burstCount - 1; // 이점사: 남은 1발은 burstGap 뒤
                 t.BurstTimer = t.Def.burstGap;
@@ -156,6 +158,14 @@ namespace TowerDefence
             }
         }
 
+        // 예열 (미니건): 대상을 잡고 있는 동안 spinUpTime에 걸쳐 0 → 1, 대상이 없으면 그 절반 시간에 걸쳐 식는다.
+        void TickSpinUp(TowerInstance t, float dt)
+        {
+            bool firing = t.State != TowerState.Idle && !t.Locked.IsNone;
+            float rate = 1f / t.Def.spinUpTime;
+            t.SpinUp = Mathf.Clamp01(t.SpinUp + (firing ? rate : -2f * rate) * dt);
+        }
+
         // 차지 진행: 대상이 사라지면 사거리 안 다른 대상으로 이어 가고(차지 유지), 없으면 Idle. 다 차면 발사.
         void TickCharge(TowerInstance t, float dt)
         {
@@ -222,6 +232,31 @@ namespace TowerDefence
                     {
                         t.ChargeAnim.Restore();
                         t.ChargePosed = false;
+                    }
+                }
+                if (t.SpinUpAnim != null || t.SpinLoopAnim != null)
+                {
+                    // 예열 연출: 예열 중이면 예열 클립을 예열 정도에 맞춰, 다 돌면 반복 클립. 식으면 기본 자세로
+                    if (t.SpinUp > 0f)
+                    {
+                        if (t.SpinUp < 1f || t.SpinLoopAnim == null)
+                        {
+                            t.SpinUpAnim?.Sample(t.SpinUp * t.SpinUpAnim.Length);
+                            t.SpinLoopTime = 0f;
+                        }
+                        else
+                        {
+                            t.SpinLoopTime += dt;
+                            if (t.SpinLoopTime >= t.SpinLoopAnim.Length)
+                                t.SpinLoopTime -= t.SpinLoopAnim.Length;
+                            t.SpinLoopAnim.Sample(t.SpinLoopTime);
+                        }
+                        t.SpinPosed = true;
+                    }
+                    else if (t.SpinPosed)
+                    {
+                        (t.SpinLoopAnim ?? t.SpinUpAnim).Restore();
+                        t.SpinPosed = false;
                     }
                 }
                 if (t.FireAnim != null && t.FireAnimTime >= 0f)

@@ -338,7 +338,7 @@ namespace TowerDefence
         {
             var list = new System.Collections.Generic.List<TowerDef>();
             foreach (var def in data.Towers)
-                if (def.tier <= 1)
+                if (def.tier <= 1 || def.showInPalette) // 2단계 이상은 테스트 표시를 켠 것만
                     list.Add(def);
             return list;
         }

@@ -173,6 +173,14 @@ namespace TowerDefence
         public float GetDamage(TowerDef def) => def.damage * (run != null ? run.ItemDamageMul : 1f);
         public float GetInterval(TowerDef def) => def.interval / (run != null ? run.ItemSpeedMul : 1f);
 
+        // 이 타워의 지금 공격 간격: 예열 타워(미니건)는 예열 정도에 따라 spinUpStartInterval → interval.
+        public float GetInterval(TowerInstance t)
+        {
+            var def = t.Def;
+            float interval = def.spinUpTime > 0f ? Mathf.Lerp(def.spinUpStartInterval, def.interval, t.SpinUp) : def.interval;
+            return interval / (run != null ? run.ItemSpeedMul : 1f);
+        }
+
         // 이 칸의 타워 (없으면 null).
         public TowerInstance GetTowerAt(Vector2Int cell)
         {
@@ -194,6 +202,7 @@ namespace TowerDefence
             t.Cooldown = 0f;
             t.BurstLeft = 0;
             t.ChargeTime = 0f;
+            t.SpinUp = 0f;
             t.State = TowerState.Idle;
             t.Locked = MonsterHandle.None;
             BuildRangeCache(t);
@@ -297,6 +306,10 @@ namespace TowerDefence
                     t.ChargeAnim = new TowerBuildAnim(go, def.chargeClip, t.Aim != null ? t.Aim.animatedParts : null);
                 if (def.fireClip != null)
                     t.FireAnim = new TowerBuildAnim(go, def.fireClip, t.Aim != null ? t.Aim.animatedParts : null);
+                if (def.spinUpClip != null)
+                    t.SpinUpAnim = new TowerBuildAnim(go, def.spinUpClip, t.Aim != null ? t.Aim.animatedParts : null);
+                if (def.spinLoopClip != null)
+                    t.SpinLoopAnim = new TowerBuildAnim(go, def.spinLoopClip, t.Aim != null ? t.Aim.animatedParts : null);
                 t.Parts = MergeView(def, go, t.Aim);
                 go.SetActive(false);
                 TowerViewsCreated++;
@@ -345,6 +358,11 @@ namespace TowerDefence
             t.ChargeAnim?.Restore();
             t.FireAnimTime = -1f;
             t.FireAnim?.Restore();
+            t.SpinUp = 0f;
+            t.SpinLoopTime = 0f;
+            t.SpinPosed = false;
+            t.SpinLoopAnim?.Restore();
+            t.SpinUpAnim?.Restore();
             t.BuildAnim?.Restore();      // 다음에 꺼낼 때 기본 자세에서 시작
             t.Parts?.SetMerged(true);
             if (t.View != null)

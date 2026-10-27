@@ -31,6 +31,8 @@ namespace TowerDefence.EditorTools
                 MuzzleFxBuilder.BuildNano();
             if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.EmpWavePath) == null)
                 MuzzleFxBuilder.BuildEmp();
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.CryoShardPath) == null)
+                MuzzleFxBuilder.BuildTier2();
             if (AssetDatabase.IsValidFolder("Assets/Models/Monsters"))
                 MonsterPrefabBuilder.BuildAll();
             LinkViewPrefabs();
@@ -85,6 +87,10 @@ namespace TowerDefence.EditorTools
             GetOrCreate<TowerDef>(DataFolder + "/Towers/nano.asset", ApplyNanoStats);
             // EMP: 전기를 모았다가(0.42초) 타워 둘레로 원형 전자파를 방출, 파면이 닿는 몬스터 모두에게 피해 (값은 임시)
             GetOrCreate<TowerDef>(DataFolder + "/Towers/emp.asset", ApplyEmpStats);
+            // 2단계 타워 (지금은 테스트로 건축 목록에 표시, 나중에 진화 전용)
+            GetOrCreate<TowerDef>(DataFolder + "/Towers/minigun.asset", ApplyMinigunStats);
+            GetOrCreate<TowerDef>(DataFolder + "/Towers/electro.asset", ApplyElectroStats);
+            GetOrCreate<TowerDef>(DataFolder + "/Towers/cryo.asset", ApplyCryoStats);
             AssetDatabase.SaveAssets();
         }
 
@@ -139,6 +145,51 @@ namespace TowerDefence.EditorTools
             d.viewScale = 0.3f;
         }
 
+        // ---------- 2단계 타워 (값은 임시, Docs/TowerTable 참고) ----------
+        // 공통: tier 2, showInPalette = true (테스트). 진화 전용으로 돌릴 때 showInPalette를 끄고 1단계의 upgradeTo에 연결한다.
+        static void Tier2Common(TowerDef d)
+        {
+            d.tier = 2;
+            d.unlockFloor = 1;
+            d.showInPalette = true;
+            d.attackType = AttackType.Projectile;
+            d.lockMode = TargetLock.Lock; d.targetRule = TargetRule.First;
+            d.projectileScale = 1f; d.projectileModelForward = Vector3.forward;
+            d.viewScale = 0.3f;
+            d.burstCount = 1;
+        }
+
+        // 미니건: 쏠수록 빨라져 1.5초 만에 초당 5발 (0.6초 → 0.2초 간격), 1발 1 피해
+        static void ApplyMinigunStats(TowerDef d)
+        {
+            Tier2Common(d);
+            d.id = "minigun"; d.displayName = "미니건 타워";
+            d.description = "총열 6개가 돌아가며 쏠수록 빨라집니다. 1.5초 동안 예열하면 초당 5발을 퍼붓습니다.";
+            d.buildCost = 150; d.damage = 1f; d.interval = 0.2f; d.range = 2;
+            d.spinUpTime = 1.5f; d.spinUpStartInterval = 0.6f; // 예열 클립(Fire_Warmup) 길이와 같게
+            d.projectileSpeed = 16f; d.projectileTurnSpeed = 1440f;
+        }
+
+        // 전기: 단발 플라즈마탄, 한 방 4 · 1.2초 · 사거리 3 (속성 이상효과는 나중에)
+        static void ApplyElectroStats(TowerDef d)
+        {
+            Tier2Common(d);
+            d.id = "electro"; d.displayName = "전기 타워";
+            d.description = "코일로 가속한 플라즈마 탄을 한 발씩 쏩니다. 전기 속성 (이상효과는 준비 중).";
+            d.buildCost = 140; d.damage = 4f; d.interval = 1.2f; d.range = 3;
+            d.projectileSpeed = 12f; d.projectileTurnSpeed = 1080f;
+        }
+
+        // 냉기: 단발 얼음탄, 한 방 3 · 1초 · 사거리 2 (감속·빙결 이상효과는 나중에)
+        static void ApplyCryoStats(TowerDef d)
+        {
+            Tier2Common(d);
+            d.id = "cryo"; d.displayName = "냉기 타워";
+            d.description = "냉각한 얼음 탄을 한 발씩 쏩니다. 냉기 속성 (이상효과는 준비 중).";
+            d.buildCost = 130; d.damage = 3f; d.interval = 1f; d.range = 2;
+            d.projectileSpeed = 10f; d.projectileTurnSpeed = 1080f;
+        }
+
         [MenuItem("TowerDefence/Setup/Flamethrower Stats (Reset)")]
         public static void ResetFlamethrower()
         {
@@ -171,6 +222,34 @@ namespace TowerDefence.EditorTools
             // EMP: 머리 위 원반(발사 연출이 돌리고 키움) 중심 ET_Pulse_Emitter. 파동은 원형이라 조준은 머리만 돌린다
             if (MakeTower("Tower_EMP", "ET", "ET_Head_Eye", new[] { "ET_Pulse_Emitter" }, null, -15f))
                 ConfigureEmpAim();
+            // 2단계: 총구 빈 오브젝트(*_Muzzle)에서 쏜다. 반동·코일·냉각 링은 발사 연출이 움직인다
+            // 미니건의 MG_Head_Eye는 지붕 옆(가운데가 아님)이라 조준 기준으로 쓰면 총열이 비껴간다 → 총구로 조준
+            if (MakeTower("Tower_T2_Minigun", "MG", "MG_Muzzle", new[] { "MG_Muzzle" }, null, -20f))
+                ConfigureAnimatedAim("Tower_T2_Minigun", new[] { "MG_Barrel_Spin", "MG_Gun_Recoil" }, 0.6f);
+            if (MakeTower("Tower_T2_Electro", "EL", "EL_Head_Eye", new[] { "EL_Muzzle" }, null, -20f))
+                ConfigureAnimatedAim("Tower_T2_Electro", new[] { "EL_Gun_Recoil", "EL_Gun_Coil_0", "EL_Gun_Coil_1", "EL_Gun_Coil_2", "EL_Gun_Coil_3" }, 3f);
+            if (MakeTower("Tower_T2_Cryo", "CR", "CR_Head_Eye", new[] { "CR_Muzzle" }, null, -20f))
+                ConfigureAnimatedAim("Tower_T2_Cryo", new[] { "CR_Gun_Recoil", "CR_Gun_CoolRing_0", "CR_Gun_CoolRing_1", "CR_Gun_CoolRing_2" }, 3f);
+        }
+
+        // 발사 연출로 움직이는 부품 지정 + 머리 튐 세기 (총구 끝 = 빈 오브젝트 위치 그대로)
+        static void ConfigureAnimatedAim(string model, string[] parts, float kickPitch)
+        {
+            string path = "Assets/Prefabs/Towers/" + model + ".prefab";
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var aim = root.GetComponent<TowerAim>();
+                aim.animatedParts = FindAll(root.transform, parts);
+                aim.muzzleTipOffset = 0f;
+                aim.kickPitch = kickPitch;
+                aim.kickYaw = 0f;
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         static void ConfigureEmpAim()
@@ -366,6 +445,17 @@ namespace TowerDefence.EditorTools
                 EditorUtility.SetDirty(emp);
             }
 
+            LinkTier2("minigun", "Tower_T2_Minigun", MuzzleFxBuilder.MinigunTracerPath, MuzzleFxBuilder.MinigunFlashPath, MuzzleFxBuilder.MinigunHitPath, null);
+            LinkTier2("electro", "Tower_T2_Electro", MuzzleFxBuilder.ElectroBoltPath, MuzzleFxBuilder.ElectroMuzzlePath, MuzzleFxBuilder.ElectroHitPath, "@Fire");
+            LinkTier2("cryo", "Tower_T2_Cryo", MuzzleFxBuilder.CryoShardPath, MuzzleFxBuilder.CryoMuzzlePath, MuzzleFxBuilder.CryoHitPath, "@Fire");
+            var minigun = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/minigun.asset");
+            if (minigun != null)
+            {
+                if (minigun.spinUpClip == null) minigun.spinUpClip = FirstClip(TowerModelFolder + "/Tower_T2_Minigun@Fire_Warmup.fbx");
+                if (minigun.spinLoopClip == null) minigun.spinLoopClip = FirstClip(TowerModelFolder + "/Tower_T2_Minigun@Fire_Loop.fbx");
+                EditorUtility.SetDirty(minigun);
+            }
+
             // 건축 연출: 모델 이름@Build.fbx의 Build 클립 (모든 타워 데이터, 비어 있을 때만)
             foreach (var guid in AssetDatabase.FindAssets("t:TowerDef", new[] { DataFolder }))
             {
@@ -389,6 +479,28 @@ namespace TowerDefence.EditorTools
                 normal.viewPrefab = saberfang;
                 EditorUtility.SetDirty(normal);
             }
+        }
+
+        // 2단계 타워 표시 연결 (비어 있을 때만): 모델·투사체·총구·명중 이펙트, 발사 클립(fireSuffix 파일)
+        static void LinkTier2(string id, string model, string projectile, string muzzle, string hit, string fireSuffix)
+        {
+            var d = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/" + id + ".asset");
+            if (d == null)
+                return;
+            if (d.viewPrefab == null) d.viewPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Towers/" + model + ".prefab");
+            if (d.projectilePrefab == null) d.projectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projectile);
+            if (d.muzzleFxPrefab == null) d.muzzleFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(muzzle);
+            if (d.hitFxPrefab == null) d.hitFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(hit);
+            if (fireSuffix != null && d.fireClip == null) d.fireClip = FirstClip(TowerModelFolder + "/" + model + fireSuffix + ".fbx");
+            EditorUtility.SetDirty(d);
+        }
+
+        static AnimationClip FirstClip(string fbxPath)
+        {
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(fbxPath))
+                if (asset is AnimationClip clip && !clip.name.StartsWith("__preview"))
+                    return clip;
+            return null;
         }
 
         // ---------- 타일 (FBX가 없으면 임시 큐브 타일) ----------
@@ -628,7 +740,7 @@ namespace TowerDefence.EditorTools
             for (int i = 0; i < ids.Length; i++)
                 mons.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<MonsterDef>(DataFolder + "/Monsters/" + ids[i] + ".asset");
             // 건축 목록 순서 = 이 배열 순서
-            var towerIds = new[] { "basic", "flamethrower", "lightning", "nano", "emp" };
+            var towerIds = new[] { "basic", "flamethrower", "lightning", "nano", "emp", "minigun", "electro", "cryo" };
             var tows = so.FindProperty("towerDefs");
             tows.arraySize = 0;
             foreach (var id in towerIds)

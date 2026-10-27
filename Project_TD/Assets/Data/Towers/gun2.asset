@@ -15,9 +15,11 @@ MonoBehaviour:
   id: gun2
   displayName: "\uC30D\uC5F4 \uAE30\uAD00\uCD1D"
   description: "\uCD1D \uD0C0\uC6CC 2\uB2E8\uACC4. \uB354 \uBE60\uB974\uAC8C \uC774\uC810\uC0AC\uD569\uB2C8\uB2E4."
-  buildCost: 120
+  buildCost: 50
   damage: 1.5
   interval: 0.6
+  bonusTrait: 
+  bonusMultiplier: 1
   burstCount: 2
   burstGap: 0.12
   chargeTime: 0
@@ -31,6 +33,11 @@ MonoBehaviour:
   - gun3
   tier: 2
   unlockFloor: 3
+  showInPalette: 0
+  spinUpTime: 0
+  spinUpStartInterval: 0.6
+  spinUpClip: {fileID: 0}
+  spinLoopClip: {fileID: 0}
   fieldRadius: 0
   fieldDuration: 3
   fieldSlow: 0.6
