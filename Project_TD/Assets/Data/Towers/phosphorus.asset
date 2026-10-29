@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41af158138b595d459f1987ff035ae6d, type: 3}
+  m_Name: phosphorus
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
+  id: phosphorus
+  displayName: "\uD63C\uD569\uBC31\uB9B0 \uD0C0\uC6CC"
+  description: "\uBC31\uB9B0\uC744 \uC11E\uC740 \uC8FC\uD669 \uBD88\uAE38\uC744 \uBFDC\uC2B5\uB2C8\uB2E4.
+    \uD558\uC597\uAC8C \uD0C0\uB294 \uBC31\uB9B0 \uB369\uC5B4\uB9AC\uC640 \uC9D9\uC740
+    \uD770 \uC5F0\uAE30\uAC00 \uB0A8\uC2B5\uB2C8\uB2E4 (\uC5F0\uC18C \uC774\uC0C1\uD6A8\uACFC\uB294
+    \uC900\uBE44 \uC911)."
+  buildCost: 50
+  damage: 0.8
+  interval: 0.2
+  bonusTrait: 
+  bonusMultiplier: 1
+  burstCount: 1
+  burstGap: 0.12
+  chargeTime: 0
+  range: 2
+  lockMode: 0
+  targetRule: 0
+  typePriority: []
+  attackType: 2
+  projectileSpeed: 8
+  upgradeTo: []
+  tier: 2
+  unlockFloor: 1
+  showInPalette: 1
+  spinUpTime: 0
+  spinUpStartInterval: 0.6
+  spinUpClip: {fileID: 0}
+  spinLoopClip: {fileID: 0}
+  fieldRadius: 0
+  fieldDuration: 3
+  fieldSlow: 0.6
+  fieldFxPrefab: {fileID: 0}
+  fieldFxRadius: 1.6
+  pulseRadius: 2
+  pulseSpeed: 6
+  coneAngle: 40
+  coneLength: 1.8
+  viewPrefab: {fileID: 6320235095185293856, guid: 36371f6dba1acf9418e41f17a8380dfb, type: 3}
+  viewScale: 0.3
+  projectilePrefab: {fileID: 0}
+  projectileScale: 1
+  projectileModelForward: {x: 0, y: 0, z: 1}
+  projectileTurnSpeed: 720
+  muzzleFxPrefab: {fileID: 3090224821675973979, guid: 10470f35d5bb35545bf025993d5486e7, type: 3}
+  coneFxReach: 1.8
+  buildClip: {fileID: -623603649343465320, guid: 7d7d9a43e120d5548a23a09f5d7551fe, type: 3}
+  chargeClip: {fileID: 0}
+  fireClip: {fileID: -623603649343465320, guid: eb54a1873e409c54588ff4928de6f431, type: 3}
+  chargeFxPrefab: {fileID: 0}
+  hitFxPrefab: {fileID: 0}

@@ -163,6 +163,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0e2dfaa294c759a438a2e8f4379786ea, type: 2}
   - {fileID: 11400000, guid: b9cebeedf29fbd8449e802e5fd5f413a, type: 2}
   - {fileID: 11400000, guid: ef756600a737a0d4e991148826da6a68, type: 2}
+  - {fileID: 11400000, guid: d51e6f20c5b435e478f9dffa9e1d60c0, type: 2}
+  - {fileID: 11400000, guid: d4ff6e244ca6577478c1e1d11b516c10, type: 2}
+  - {fileID: 11400000, guid: 513db7eebaadfb846a3050d676d067a3, type: 2}
   mainCamera: {fileID: 330585545}
   canvas: {fileID: 1780871977}
   mapRenderer: {fileID: 242623280}

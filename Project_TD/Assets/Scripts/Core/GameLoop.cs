@@ -119,6 +119,8 @@ namespace TowerDefence
             build.SelectionChanged += ui.HandleSelectionChanged;
             build.PopupRequested += ui.HandlePopupRequested;
             build.DragChanged += ui.HandleDragChanged;
+            build.PreviewChanged += ui.HandlePreviewChanged;
+            build.RangeDisplayChanged += ui.HandleRangeDisplayChanged;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (stressTest != null)

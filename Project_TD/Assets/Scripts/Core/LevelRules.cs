@@ -123,7 +123,35 @@ namespace TowerDefence
             // 지금 규칙: 일반 몬스터 × count마리, spawnIntervalSec 간격 한 줄.
             var r = config.rules;
             buffer[0] = new WaveSpawn(r.defaultMonsterId, MonsterCount(config, g), r.spawnIntervalSec, 0f);
-            return 1;
+            int lines = 1;
+            // + 일반 몬스터 뒤에 돌격조 줄 (모든 웨이브)
+            int runners = RunnerCount(config, floor);
+            if (runners > 0 && lines < buffer.Length)
+                buffer[lines++] = new WaveSpawn(r.runnerMonsterId, runners, r.runnerIntervalSec, r.runnerDelaySec);
+            // + 층의 마지막 웨이브: 맨 끝에 탱커 줄
+            int tankers = TankerCount(config, floor, waveIndex);
+            if (tankers > 0 && lines < buffer.Length)
+                buffer[lines++] = new WaveSpawn(r.tankerMonsterId, tankers, r.tankerIntervalSec, r.tankerDelaySec);
+            return lines;
+        }
+
+        // 이 층의 웨이브마다 나오는 돌격조 수: runnerFromFloor층부터, runnerBaseCount에서 Tier마다 1마리씩 늘어난다.
+        public static int RunnerCount(GameConfig config, int floor)
+        {
+            var r = config.rules;
+            if (r.runnerFromFloor <= 0 || floor < r.runnerFromFloor || string.IsNullOrEmpty(r.runnerMonsterId))
+                return 0;
+            return r.runnerBaseCount + GetTier(config, floor) - GetTier(config, r.runnerFromFloor);
+        }
+
+        // 이 웨이브에 나오는 탱커 수: tankerFromFloor층부터, 층의 마지막 웨이브에만, Tier마다 1마리씩 늘어난다.
+        public static int TankerCount(GameConfig config, int floor, int waveIndex)
+        {
+            var r = config.rules;
+            if (r.tankerFromFloor <= 0 || floor < r.tankerFromFloor || string.IsNullOrEmpty(r.tankerMonsterId)
+                || waveIndex != GetWaveCount(config, floor))
+                return 0;
+            return GetTier(config, floor) - GetTier(config, r.tankerFromFloor) + 1;
         }
 
         // 레벨디자인 waves 테이블 (GDD 9장 "Waves", GameConfig.waves). 층·웨이브 항목을 찾아 buffer에 채운다.

@@ -119,8 +119,10 @@ namespace TowerDefence.Tests
             {
                 if (flow.State == GameState.Wave)
                 {
-                    // Wave 진입 때 MonsterManager에 구성표가 넘어갔는지: 남은 스폰 = 이번 g의 몬스터 수
-                    Assert.AreEqual(LevelRules.MonsterCount(config, flow.TotalWaveIndex), monsters.RemainingToSpawn,
+                    // Wave 진입 때 MonsterManager에 구성표가 넘어갔는지: 남은 스폰 = 이번 g의 몬스터 수 + 돌격조 + 탱커(층 마지막 웨이브)
+                    Assert.AreEqual(LevelRules.MonsterCount(config, flow.TotalWaveIndex) + LevelRules.RunnerCount(config, flow.Floor)
+                        + LevelRules.TankerCount(config, flow.Floor, flow.Wave),
+                        monsters.RemainingToSpawn,
                         $"{flow.Floor}층 {flow.Wave}웨이브 구성표");
                 }
                 AdvanceOneStep();

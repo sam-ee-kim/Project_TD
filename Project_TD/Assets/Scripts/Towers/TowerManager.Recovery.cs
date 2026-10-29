@@ -63,11 +63,13 @@ namespace TowerDefence
         }
 
         // [재건축]: 캐시 없이 설치, 목록에서 1개 차감.
-        public bool RequestRebuild(TowerDef def, Vector2Int cell)
+        public bool RequestRebuild(TowerDef def, Vector2Int cell) => def != null && RequestRebuild(def, cell, BestFacing(def, cell));
+
+        public bool RequestRebuild(TowerDef def, Vector2Int cell, int facing)
         {
             if (def == null || !board.IsBuildable(cell) || !run.RecoveryList.Remove(def))
                 return false;
-            Place(cell, def);
+            Place(cell, def, facing);
             RecoveryChanged?.Invoke(new RecoveryChange(def, GetRecoveryCount(def), RecoveryTotalCount));
             return true;
         }

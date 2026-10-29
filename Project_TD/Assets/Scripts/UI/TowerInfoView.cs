@@ -68,20 +68,23 @@ namespace TowerDefence
         // 정보 항목 (클릭 때만 만든다).
         static string BuildStats(TowerDef def)
         {
-            int side = def.range * 2 + 1;
+            int side = def.range * 2 + 1; // 앞쪽 절반: 가로 side칸 × 앞으로 range칸
             var sb = new StringBuilder();
             sb.AppendLine($"건축 비용   {def.buildCost} 캐시");
             int shots = Mathf.Max(1, def.burstCount);
-            sb.AppendLine($"공격력      {def.damage:0.##}" + (def.attackType == AttackType.Cone ? " (틱 피해)" : shots > 1 ? $" × {shots}연발" : ""));
+            sb.AppendLine($"공격력      {def.damage:0.##}" + (def.attackType == AttackType.Cone || def.attackType == AttackType.Line ? " (틱 피해)" : shots > 1 ? $" × {shots}연발" : ""));
             sb.AppendLine($"공격 간격   {def.interval:0.##}초 (초당 {def.damage * shots / Mathf.Max(0.01f, def.interval):0.##} 피해)");
             if (!string.IsNullOrEmpty(def.bonusTrait) && def.bonusMultiplier != 1f)
                 sb.AppendLine($"상성        {TraitName(def.bonusTrait)} 몬스터 {def.bonusMultiplier:0.##}배 피해");
-            if (def.attackType == AttackType.Cone)
-                sb.AppendLine($"사거리      {def.coneLength:0.#}칸 부채꼴 {def.coneAngle:0}°");
+            if (def.attackType == AttackType.Line)
+                sb.AppendLine($"사거리      정면 일직선 {def.range}칸 (헤드 고정)");
+            else if (def.attackType == AttackType.Cone)
+                sb.AppendLine($"사거리      {def.coneLength:0.#}칸 부채꼴 {def.coneAngle:0}° (앞쪽 180° 안)");
             else if (def.attackType == AttackType.Pulse)
-                sb.AppendLine($"사거리      반지름 {def.pulseRadius:0.#}칸 원형 (닿는 적 모두)");
+                sb.AppendLine($"사거리      반지름 {def.pulseRadius:0.#}칸 반원 (앞쪽, 닿는 적 모두)");
             else
-                sb.AppendLine($"사거리      {def.range}칸 ({side}×{side})");
+                sb.AppendLine($"사거리      {def.range}칸 (앞쪽 {side}×{def.range})");
+            sb.AppendLine("방향        설치할 때 R키로 회전 · G키로 사거리 표시");
             sb.AppendLine($"공격 방식   {AttackName(def)}");
             sb.AppendLine($"대상 선택   {RuleName(def.targetRule)}");
             sb.AppendLine($"대상 유지   {LockName(def.lockMode)}");
@@ -97,6 +100,7 @@ namespace TowerDefence
                 case AttackType.Hitscan: return "즉시 명중";
                 case AttackType.Cone: return "범위 공격 (부채꼴 안 모두)";
                 case AttackType.Pulse: return "전자파 (원형으로 퍼지며 닿는 적 모두)";
+                case AttackType.Line: return "일직선 관통 (줄 위의 적 모두)";
                 default: return $"투사체 (속도 {def.projectileSpeed:0.#}칸/초)";
             }
         }

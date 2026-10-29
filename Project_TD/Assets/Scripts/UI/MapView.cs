@@ -34,6 +34,9 @@ namespace TowerDefence
 
         // 라운드 시작 전 몬스터 경로 미리보기. 타일이 다 솟아오른 뒤에 보인다.
         readonly PathPreviewView pathPreview = new PathPreviewView();
+        // 사거리 그리드 (G키 / 설치 미리보기)
+        readonly RangeGridView ranges = new RangeGridView();
+        public RangeGridView Ranges => ranges;
         bool pathPreviewWanted;
         public PathPreviewView PathPreview => pathPreview;
 
@@ -57,6 +60,7 @@ namespace TowerDefence
             blockedHover = new Color(tint.r, tint.g, tint.b, ui != null ? ui.blockedHoverAlpha : 0.4f);
             CreateOverlay();
             pathPreview.Init(board, renderer != null ? renderer.PathPreviewMaterial : null);
+            ranges.Init(board);
         }
 
         // 맵 교체 시 전체 다시 그리기: 이전 타일을 지우고 새 맵이 아래에서 솟아오른다.
@@ -68,6 +72,7 @@ namespace TowerDefence
                 PaintAll();
             pathPreview.SetVisible(false); // 새 타일이 다 올라온 뒤 다시 보인다
             pathPreview.Build(map);
+            ranges.Rebuild();
         }
 
         // 라운드 시작 전(Ready·Break)에만 경로 미리보기를 켠다.

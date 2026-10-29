@@ -61,9 +61,11 @@ namespace TowerDefence.Tests
                 Assert.AreEqual("tank", buffer[1].MonsterId);
                 Assert.AreEqual(2f, buffer[1].DelaySec);
 
-                // 표에 없는 웨이브는 공식 규칙 그대로 (일반 몬스터 한 줄)
+                // 표에 없는 웨이브는 공식 규칙 그대로 (일반 몬스터 + 돌격조)
                 lines = LevelRules.GetWaveComposition(config, 46, 1, 300, buffer);
-                Assert.AreEqual(1, lines);
+                Assert.AreEqual(2, lines);
+                Assert.AreEqual(config.rules.runnerMonsterId, buffer[1].MonsterId);
+                Assert.AreEqual(LevelRules.RunnerCount(config, 46), buffer[1].Count);
                 Assert.AreEqual(config.rules.defaultMonsterId, buffer[0].MonsterId);
                 Assert.AreEqual(LevelRules.MonsterCount(config, 300), buffer[0].Count);
             }

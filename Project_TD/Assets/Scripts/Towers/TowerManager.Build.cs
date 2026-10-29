@@ -70,12 +70,41 @@ namespace TowerDefence
             def != null && board.IsBuildable(cell) && player.CanAfford(def.buildCost);
 
         // 건축: 부지 확인 → 캐시 차감 → 풀에서 타워 → 사거리 칸·순위표 계산 → TowerChanged(Board 점유).
-        public bool Build(Vector2Int cell, TowerDef def)
+        // 방향을 주지 않으면 경로 칸을 가장 많이 덮는 방향 (BestFacing).
+        public bool Build(Vector2Int cell, TowerDef def) => def != null && Build(cell, def, BestFacing(def, cell));
+
+        public bool Build(Vector2Int cell, TowerDef def, int facing)
         {
             if (!CanBuild(def, cell) || !player.Spend(def.buildCost, CashReason.Build))
                 return false;
-            Place(cell, def);
+            Place(cell, def, facing);
             return true;
+        }
+
+        // 이 칸에서 사거리 앞쪽에 경로 칸이 가장 많은 방향 (같으면 0 → 1 → 2 → 3 순서로 앞선 것). 설치 때 기본 방향.
+        public int BestFacing(TowerDef def, Vector2Int cell)
+        {
+            int best = 0, bestCount = -1;
+            for (int f = 0; f < TowerFacing.Count; f++)
+            {
+                int count = 0;
+                for (int pathId = 0; pathId < board.PathCount; pathId++)
+                {
+                    int pathLength = board.GetPathLength(pathId);
+                    for (int i = 0; i < pathLength; i++)
+                    {
+                        var c = board.GetPathCell(pathId, i);
+                        if (TowerFacing.InArea(def, f, c.x - cell.x, c.y - cell.y))
+                            count++;
+                    }
+                }
+                if (count > bestCount)
+                {
+                    best = f;
+                    bestCount = count;
+                }
+            }
+            return best;
         }
 
         // 판매: 타워만 풀에 반납 (날아가던 투사체는 그대로), 점유 해제, 건축 비용 × sellRefundRate 반환.
@@ -94,27 +123,41 @@ namespace TowerDefence
 
         // 이동 (드래그): 빈 부지로 옮긴다. 캐시 변화 없음, 재장전 시간은 유지하고 고정 대상만 푼다.
         // 사거리 칸은 새 위치로 다시 계산한다. Board 점유는 TowerChanged(옛 칸 해제 → 새 칸 점유)로 바뀐다.
-        public bool Move(TowerInstance tower, Vector2Int cell)
+        public bool Move(TowerInstance tower, Vector2Int cell) => tower != null && Move(tower, cell, tower.Facing);
+
+        // 이동 + 방향. 제자리에 방향만 바꾸는 것도 된다 (드래그로 집어서 R키로 돌리고 그 자리에 놓기).
+        public bool Move(TowerInstance tower, Vector2Int cell, int facing)
         {
-            if (tower == null || !placed.Contains(tower) || cell == tower.Cell || !board.IsBuildable(cell))
+            facing &= 3;
+            if (tower == null || !placed.Contains(tower))
+                return false;
+            bool same = cell == tower.Cell;
+            if (same ? facing == tower.Facing : !board.IsBuildable(cell))
                 return false;
             var from = tower.Cell;
             TowerChanged?.Invoke(new TowerChange(from, tower.Def, false));
 
             tower.Cell = cell;
+            tower.Facing = facing;
             tower.Locked = MonsterHandle.None;
             if (tower.State == TowerState.Aiming)
                 tower.State = TowerState.Idle;
             BuildRangeCache(tower);
-            if (tower.View != null)
-            {
-                tower.View.localPosition = board.CellToWorld(cell);
-                if (tower.Aim != null)
-                    tower.Aim.ResetPose();
-            }
+            PoseView(tower);
 
-            TowerChanged?.Invoke(new TowerChange(cell, tower.Def, true));
+            TowerChanged?.Invoke(new TowerChange(cell, tower.Def, true, facing));
             return true;
+        }
+
+        // 모델 위치·방향을 칸과 Facing에 맞춘다 (포탑은 정면으로).
+        void PoseView(TowerInstance t)
+        {
+            if (t.View == null)
+                return;
+            t.View.localPosition = board.CellToWorld(t.Cell); // 모델 바닥 = 타일 윗면
+            t.View.localRotation = TowerFacing.ViewRotation(t.Facing, t.RestYaw, t.BaseRotation);
+            if (t.Aim != null)
+                t.Aim.ResetPose();
         }
 
         // ---------- 테크트리 (진화) ----------
@@ -143,11 +186,12 @@ namespace TowerDefence
             if (next == null || !IsUpgradeUnlocked(next) || !player.Spend(GetUpgradeCost(from, next), CashReason.Upgrade))
                 return false;
             var cell = tower.Cell;
+            int facing = tower.Facing; // 진화해도 방향은 그대로
             placed.Remove(tower);
             run.Towers.Remove(tower);
             towerPools[from].Release(tower); // 옛 모델은 바로 치우고 새 모델이 조립된다
             TowerChanged?.Invoke(new TowerChange(cell, from, false));
-            Place(cell, next);
+            Place(cell, next, facing);
             return true;
         }
 
@@ -194,11 +238,12 @@ namespace TowerDefence
         public int GetSellRefund(TowerDef def) => Mathf.RoundToInt(def.buildCost * data.Config.sellRefundRate);
 
         // 풀에서 꺼내 칸에 놓는다 (캐시 처리는 호출한 쪽). 재건축(작업 9)도 이 경로를 쓴다.
-        TowerInstance Place(Vector2Int cell, TowerDef def)
+        TowerInstance Place(Vector2Int cell, TowerDef def, int facing)
         {
             var t = towerPools[def].Get();
             t.Def = def;
             t.Cell = cell;
+            t.Facing = facing & 3;
             t.Cooldown = 0f;
             t.BurstLeft = 0;
             t.ChargeTime = 0f;
@@ -209,10 +254,8 @@ namespace TowerDefence
 
             if (t.View != null)
             {
-                t.View.localPosition = board.CellToWorld(cell); // 모델 바닥 = 타일 윗면
                 t.View.gameObject.SetActive(true);
-                if (t.Aim != null)
-                    t.Aim.ResetPose();
+                PoseView(t);
                 if (t.BuildAnim != null)
                 {
                     // 건축 연출: 부품이 모여 조립된 뒤에 공격을 시작한다 (TickViews가 진행)
@@ -225,21 +268,16 @@ namespace TowerDefence
 
             placed.Add(t);
             run.Towers.Add(t);
-            TowerChanged?.Invoke(new TowerChange(cell, def, true));
+            TowerChanged?.Invoke(new TowerChange(cell, def, true, t.Facing));
             return t;
         }
 
-        // 설치 때 1번: 정사각형 사거리 안 경로 칸 + 칸 번호별 포함 여부 + 몬스터 종류별 순위표 (DamageDesign 3-0).
+        // 설치 때 1번: 사거리 안 경로 칸 + 칸 번호별 포함 여부 + 몬스터 종류별 순위표 (DamageDesign 3-0).
+        // 사거리 모양은 TowerFacing.InArea: 바라보는 쪽 앞 칸만 (정사각형 / 부채꼴·전자파는 원 / 플라즈마는 일직선).
+        // 부채꼴 타워의 실제 피해는 발사 때 부채꼴로, 전자파는 파면 거리로 다시 판정한다.
         void BuildRangeCache(TowerInstance t)
         {
-            int range = t.Def.range;
             int n = board.N;
-            // 부채꼴 타워: 불길이 닿을 수 있는 원 (칸 중심 거리 ≤ 길이 + 반 칸). 실제 피해는 발사 때 부채꼴로 다시 판정
-            // 전자파 타워: 파동이 닿는 원 (칸 중심 거리 ≤ 반지름 + 반 칸)
-            bool cone = t.Def.attackType == AttackType.Cone || t.Def.attackType == AttackType.Pulse;
-            float reach = t.Def.attackType == AttackType.Pulse ? t.Def.pulseRadius : t.Def.coneLength;
-            float coneReachSq = (reach + 0.5f) * (reach + 0.5f);
-
             var covered = new List<int>();
             t.CoversCell = new bool[n * n];
             // 모든 스타트 지점 경로의 칸 (합류 뒤 겹치는 칸은 1번만)
@@ -249,10 +287,7 @@ namespace TowerDefence
                 for (int i = 0; i < pathLength; i++)
                 {
                     var c = board.GetPathCell(pathId, i);
-                    int dx = c.x - t.Cell.x, dy = c.y - t.Cell.y;
-                    bool inRange = cone
-                        ? dx * dx + dy * dy <= coneReachSq
-                        : Math.Max(Math.Abs(dx), Math.Abs(dy)) <= range; // 정사각형, 원형 아님
+                    bool inRange = TowerFacing.InArea(t.Def, t.Facing, c.x - t.Cell.x, c.y - t.Cell.y);
                     int id = board.CellId(c);
                     if (inRange && !t.CoversCell[id])
                     {
@@ -300,6 +335,8 @@ namespace TowerDefence
                 go.transform.localScale = Vector3.one * def.viewScale;
                 t.View = go.transform;
                 t.Aim = go.GetComponent<TowerAim>(); // 생성 때 1번만
+                t.BaseRotation = go.transform.localRotation;
+                t.RestYaw = TowerFacing.RestYaw(t.Aim);
                 if (def.buildClip != null)
                     t.BuildAnim = new TowerBuildAnim(go, def.buildClip); // 기본 자세를 합치기 전에 저장
                 if (def.chargeClip != null)

@@ -54,7 +54,7 @@ namespace TowerDefence
                     continue;
                 }
                 // 포탑이 아직 대상 쪽으로 돌아가는 중이면 기다린다 (총구에서 대상 쪽으로 나가게). 표시가 없으면(테스트) 바로 쏜다.
-                if (t.Aim != null && !t.Aim.IsAimedAt(monsters.GetAimPoint(monsters.Get(target))))
+                if (t.Aim != null && t.Def.attackType != AttackType.Line && !t.Aim.IsAimedAt(monsters.GetAimPoint(monsters.Get(target))))
                 {
                     t.State = TowerState.Aiming;
                     t.Cooldown = 0f;
@@ -274,7 +274,7 @@ namespace TowerDefence
                 if (t.Aim == null)
                     continue;
                 t.Aim.TickRecoil(dt);
-                if (t.State != TowerState.Idle && monsters.IsValid(t.Locked))
+                if (t.State != TowerState.Idle && t.Def.attackType != AttackType.Line && monsters.IsValid(t.Locked)) // 일직선 타워는 헤드 고정
                     t.Aim.Aim(monsters.GetAimPoint(monsters.Get(t.Locked)), dt);
             }
         }
@@ -500,12 +500,27 @@ namespace TowerDefence
                 var toTarget = monsters.GetGroundPoint(monsters.Get(target)) - center;
                 toTarget.y = 0f;
                 var forward = toTarget.sqrMagnitude > 1e-6f ? toTarget.normalized : Vector3.forward;
+                if (t.FireAnim != null && t.FireAnimTime < 0f)
+                    t.FireAnimTime = 0f; // 발사 연출은 끝까지 재생, 계속 뿜으면 끝날 때마다 다시 (0.2초마다 처음부터 하지 않는다)
                 if (t.Aim != null)
                 {
                     t.Aim.Fire(out var origin, out var direction);
                     PlayMuzzleFx(t.Def, origin, direction);
                 }
                 ApplyCone(t, center, forward, info);
+                return;
+            }
+            if (t.Def.attackType == AttackType.Line)
+            {
+                // 일직선 (플라즈마): 헤드는 돌지 않는다. 바라보는 방향 range칸 위의 몬스터 모두에게 즉시 피해
+                if (t.FireAnim != null && t.FireAnimTime < 0f)
+                    t.FireAnimTime = 0f;
+                if (t.Aim != null)
+                {
+                    t.Aim.Fire(out var origin, out _);
+                    PlayMuzzleFx(t.Def, origin, TowerFacing.World(t.Facing)); // 빔은 바닥과 나란히 정면으로
+                }
+                ApplyCovered(t, info);
                 return;
             }
             if (t.Def.attackType == AttackType.Hitscan)
@@ -555,6 +570,25 @@ namespace TowerDefence
 
         // 부채꼴 히트박스 안의 살아 있는 몬스터 모두에게 피해. 후보는 설치 때 계산한 범위 칸의 몬스터만 본다.
         // 죽은 몬스터는 그 칸 목록에서 바로 빠지므로(맨 뒤와 자리 바꿈) 칸 목록은 뒤에서부터 돈다.
+        // 사거리 칸(일직선) 위의 살아 있는 몬스터 모두에게 피해.
+        void ApplyCovered(TowerInstance t, in DamageInfo info)
+        {
+            var covered = t.Covered;
+            for (int c = 0; c < covered.Length; c++)
+            {
+                var bucket = board.MonstersAt(covered[c]);
+                for (int k = bucket.Count - 1; k >= 0; k--)
+                {
+                    if (k >= bucket.Count)
+                        continue;
+                    var h = bucket[k];
+                    var m = monsters.Get(h);
+                    if (m != null && m.State == MonsterState.Alive)
+                        monsters.ApplyDamage(h, info);
+                }
+            }
+        }
+
         void ApplyCone(TowerInstance t, Vector3 center, Vector3 forward, in DamageInfo info)
         {
             float length = t.Def.coneLength;
@@ -684,7 +718,8 @@ namespace TowerDefence
                 if (def.muzzleFxPrefab != null)
                 {
                     // 불길 끝 = 히트박스 끝
-                    float scale = def.attackType == AttackType.Cone && def.coneFxReach > 0f ? def.coneLength / def.coneFxReach : 1f;
+                    bool spray = def.attackType == AttackType.Cone || def.attackType == AttackType.Line;
+                    float scale = spray && def.coneFxReach > 0f ? def.coneLength / def.coneFxReach : 1f;
                     muzzleFx.Add(def, CreateFxRing(def.muzzleFxPrefab, def.id + "_MuzzleFx", count, scale));
                 }
                 if (def.chargeFxPrefab != null)

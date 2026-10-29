@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: tank
   m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.MonsterDef
   id: tank
-  displayName: "\uD0F1\uD06C \uBAAC\uC2A4\uD130"
+  displayName: "\uBC14\uC2A4\uD2F0\uC628"
   category: 1
   hp: 12
   speed: 0.5
@@ -21,8 +21,8 @@ MonoBehaviour:
   nexusDamage: 2
   traits: []
   spawnIdleSec: 0
-  viewPrefab: {fileID: 0}
-  viewScale: 0.25
-  aimHeight: 0.4
+  viewPrefab: {fileID: 7625334574143413476, guid: fbf8951bafa4fc0419a7a5d8077623d7, type: 3}
+  viewScale: 0.35
+  aimHeight: 0.39
   walkAnimSpeed: 1
   animCrossFadeSec: 0.12

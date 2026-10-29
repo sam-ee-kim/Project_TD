@@ -117,11 +117,56 @@ public class LevelRulesTests
         var buffer = new WaveSpawn[4];
         int lines = LevelRules.GetWaveComposition(config, 6, 3, 13, buffer);
 
-        Assert.AreEqual(1, lines);
+        Assert.AreEqual(3, lines, "6층 마지막(3) 웨이브: 일반 + 돌격조 + 탱커");
         Assert.AreEqual("normal", buffer[0].MonsterId);
         Assert.AreEqual(22, buffer[0].Count);
         Assert.AreEqual(1f, buffer[0].IntervalSec);
         Assert.AreEqual(0f, buffer[0].DelaySec);
+        Assert.AreEqual("fast", buffer[1].MonsterId);
+        Assert.AreEqual(4, buffer[1].Count, "5·6층 (Tier 3) 돌격조 = 4마리");
+        Assert.AreEqual(0.5f, buffer[1].IntervalSec);
+        Assert.AreEqual(1f, buffer[1].DelaySec);
+        Assert.AreEqual("tank", buffer[2].MonsterId);
+        Assert.AreEqual(2, buffer[2].Count, "5·6층 (Tier 3) 탱커 = 2마리");
+        Assert.AreEqual(3f, buffer[2].IntervalSec);
+        Assert.AreEqual(2f, buffer[2].DelaySec);
+
+        // 마지막 웨이브가 아니면 일반 + 돌격조
+        Assert.AreEqual(2, LevelRules.GetWaveComposition(config, 6, 2, 12, buffer));
+        // 1층은 일반 몬스터만
+        Assert.AreEqual(1, LevelRules.GetWaveComposition(config, 1, 1, 1, buffer));
+    }
+
+    // 돌격조(해머헤드): 2층부터 모든 웨이브, 2층 2 → 9·10층 6마리
+    [TestCase(1, 0)]
+    [TestCase(2, 2)]
+    [TestCase(3, 3)]
+    [TestCase(4, 3)]
+    [TestCase(5, 4)]
+    [TestCase(7, 5)]
+    [TestCase(9, 6)]
+    [TestCase(10, 6)]
+    public void RunnerCount_FromFloor2_EveryWave(int floor, int expected)
+    {
+        Assert.AreEqual(expected, LevelRules.RunnerCount(config, floor));
+    }
+
+    // 탱커(바스티온): 3층부터 층의 마지막 웨이브에만, 3·4층 1 → 9·10층 4마리
+    [TestCase(1, 1, 0)]
+    [TestCase(2, 1, 0)]
+    [TestCase(3, 1, 0)]
+    [TestCase(3, 2, 1)]
+    [TestCase(4, 2, 1)]
+    [TestCase(5, 3, 2)]
+    [TestCase(6, 3, 2)]
+    [TestCase(7, 4, 3)]
+    [TestCase(8, 4, 3)]
+    [TestCase(9, 5, 4)]
+    [TestCase(10, 4, 0)]
+    [TestCase(10, 5, 4)]
+    public void TankerCount_FromFloor3_LastWaveOnly(int floor, int wave, int expected)
+    {
+        Assert.AreEqual(expected, LevelRules.TankerCount(config, floor, wave));
     }
 
     [Test]

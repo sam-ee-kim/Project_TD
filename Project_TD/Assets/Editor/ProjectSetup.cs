@@ -33,6 +33,8 @@ namespace TowerDefence.EditorTools
                 MuzzleFxBuilder.BuildEmp();
             if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.CryoShardPath) == null)
                 MuzzleFxBuilder.BuildTier2();
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.PlasmaJetPath) == null)
+                MuzzleFxBuilder.BuildFlameTier2();
             if (AssetDatabase.IsValidFolder("Assets/Models/Monsters"))
                 MonsterPrefabBuilder.BuildAll();
             LinkViewPrefabs();
@@ -61,13 +63,18 @@ namespace TowerDefence.EditorTools
             });
             GetOrCreate<MonsterDef>(DataFolder + "/Monsters/fast.asset", d =>
             {
-                d.id = "fast"; d.displayName = "빠른 몬스터"; d.category = MonsterCategory.Special;
+                d.id = "fast"; d.displayName = "해머헤드"; d.category = MonsterCategory.Special; // 빠르고 약함 (모델: Monster_Hammerhead)
                 d.hp = 2f; d.speed = 2f; d.reward = 4; d.nexusDamage = 1;
+                d.viewScale = 0.22f;    // 사버팽(0.25)보다 조금 작게: 전체 크기(대각선) 약 85%. 납작하고 넓은 몸 (폭 약 0.62칸)
+                d.aimHeight = 0.12f;    // 모델 높이 0.71 × 0.22 = 0.16 → 몸통 가운데보다 살짝 위
+                d.walkAnimSpeed = 2f;   // 이동 속도 2배라 걷기도 2배속 (발이 미끄러지지 않게)
             });
             GetOrCreate<MonsterDef>(DataFolder + "/Monsters/tank.asset", d =>
             {
-                d.id = "tank"; d.displayName = "탱크 몬스터"; d.category = MonsterCategory.Special;
+                d.id = "tank"; d.displayName = "바스티온"; d.category = MonsterCategory.Special; // 탱커 (모델: Monster_Bastion)
                 d.hp = 12f; d.speed = 0.5f; d.reward = 10; d.nexusDamage = 2;
+                d.viewScale = 0.35f; // 일반(0.25)보다 1.4배: 탱커라 크고 묵직하게 (폭 약 0.86칸)
+                d.aimHeight = 0.39f; // 모델 높이 2.18 × viewScale 0.35의 절반쯤 (몸통 가운데)
             });
             GetOrCreate<TowerDef>(DataFolder + "/Towers/basic.asset", d =>
             {
@@ -91,6 +98,9 @@ namespace TowerDefence.EditorTools
             GetOrCreate<TowerDef>(DataFolder + "/Towers/minigun.asset", ApplyMinigunStats);
             GetOrCreate<TowerDef>(DataFolder + "/Towers/electro.asset", ApplyElectroStats);
             GetOrCreate<TowerDef>(DataFolder + "/Towers/cryo.asset", ApplyCryoStats);
+            GetOrCreate<TowerDef>(DataFolder + "/Towers/dust.asset", ApplyDustStats);
+            GetOrCreate<TowerDef>(DataFolder + "/Towers/phosphorus.asset", ApplyPhosphorusStats);
+            GetOrCreate<TowerDef>(DataFolder + "/Towers/plasma.asset", ApplyPlasmaStats);
             AssetDatabase.SaveAssets();
         }
 
@@ -190,6 +200,44 @@ namespace TowerDefence.EditorTools
             d.projectileSpeed = 10f; d.projectileTurnSpeed = 1080f;
         }
 
+        // 화염 계열 2단계 공통: 화염방사 타워처럼 0.2초마다 부채꼴 틱 피해. 이펙트 길이 = 히트박스 길이 (크기 1배)
+        static void Tier2FlameCommon(TowerDef d, float angle, float length)
+        {
+            Tier2Common(d);
+            d.attackType = AttackType.Cone;
+            d.interval = 0.2f;
+            d.coneAngle = angle; d.coneLength = length; d.coneFxReach = length;
+            d.range = Mathf.CeilToInt(length);
+        }
+
+        // 혼합분진: 60° · 1.6칸 · 틱 0.7 (초당 3.5). 폭·길이 = 블렌더 이펙트(FX_Dust)가 퍼지는 모양 (자가폭발은 나중에)
+        static void ApplyDustStats(TowerDef d)
+        {
+            Tier2FlameCommon(d, MuzzleFxBuilder.DustArc, MuzzleFxBuilder.DustReach);
+            d.id = "dust"; d.displayName = "혼합분진 타워";
+            d.description = "가연성 분진을 섞은 짧고 넓은 불길을 뿜습니다. 튀는 불티와 분진 알갱이가 섞여 있습니다 (분진 자가폭발은 준비 중).";
+            d.buildCost = 160; d.damage = 0.7f;
+        }
+
+        // 혼합백린: 40° · 1.8칸 · 틱 0.8 (초당 4). 폭·길이 = 블렌더 이펙트(FX_Phosphorus) (남아서 타는 연소 효과는 나중에)
+        static void ApplyPhosphorusStats(TowerDef d)
+        {
+            Tier2FlameCommon(d, MuzzleFxBuilder.PhosphorusArc, MuzzleFxBuilder.PhosphorusReach);
+            d.id = "phosphorus"; d.displayName = "혼합백린 타워";
+            d.description = "백린을 섞은 주황 불길을 뿜습니다. 하얗게 타는 백린 덩어리와 짙은 흰 연기가 남습니다 (연소 이상효과는 준비 중).";
+            d.buildCost = 170; d.damage = 0.8f;
+        }
+
+        // 플라즈마: 헤드 고정, 바라보는 방향 일직선 3칸 · 틱 1 (초당 5). 줄 위의 적 모두 (빔 길이 = 3칸)
+        static void ApplyPlasmaStats(TowerDef d)
+        {
+            Tier2FlameCommon(d, MuzzleFxBuilder.PlasmaArc, MuzzleFxBuilder.PlasmaReach);
+            d.id = "plasma"; d.displayName = "플라즈마 타워";
+            d.description = "자기장으로 모은 플라즈마를 정면 일직선으로 쏩니다. 헤드가 돌지 않고, 바라보는 방향 3칸 위의 적을 모두 태웁니다.";
+            d.buildCost = 180; d.damage = 1f;
+            d.attackType = AttackType.Line; d.range = 3; // 헤드 고정 일직선
+        }
+
         [MenuItem("TowerDefence/Setup/Flamethrower Stats (Reset)")]
         public static void ResetFlamethrower()
         {
@@ -230,6 +278,14 @@ namespace TowerDefence.EditorTools
                 ConfigureAnimatedAim("Tower_T2_Electro", new[] { "EL_Gun_Recoil", "EL_Gun_Coil_0", "EL_Gun_Coil_1", "EL_Gun_Coil_2", "EL_Gun_Coil_3" }, 3f);
             if (MakeTower("Tower_T2_Cryo", "CR", "CR_Head_Eye", new[] { "CR_Muzzle" }, null, -20f))
                 ConfigureAnimatedAim("Tower_T2_Cryo", new[] { "CR_Gun_Recoil", "CR_Gun_CoolRing_0", "CR_Gun_CoolRing_1", "CR_Gun_CoolRing_2" }, 3f);
+            // 화염 계열 2단계: 화염방사 타워처럼 노즐 빈 오브젝트(*_Flame_Emitter)로 조준하고 뿜는다 (Head_Eye는 가운데가 아님)
+            if (MakeTower("Tower_T2_Dust", "DU", "DU_Flame_Emitter", new[] { "DU_Flame_Emitter" }, null, -30f))
+                ConfigureAnimatedAim("Tower_T2_Dust", new[] { "DU_Auger_Wheel", "DU_Igniter_Tip_0", "DU_Igniter_Tip_1", "DU_Igniter_Tip_2", "DU_Igniter_Tip_3" }, 0f);
+            if (MakeTower("Tower_T2_Phosphorus", "WP", "WP_Flame_Emitter", new[] { "WP_Flame_Emitter" }, null, -30f))
+                ConfigureAnimatedAim("Tower_T2_Phosphorus", new[] { "WP_Mixer_Wheel", "WP_Nozzle_Tip", "WP_Phos_Window" }, 0f);
+            if (MakeTower("Tower_T2_Plasma", "PL", "PL_Flame_Emitter", new[] { "PL_Flame_Emitter" }, null, -30f))
+                ConfigureAnimatedAim("Tower_T2_Plasma", new[] { "PL_Generator_Ring_X", "PL_Generator_Ring_Z", "PL_Generator_Core",
+                    "PL_Plasma_Sleeve_0", "PL_Plasma_Sleeve_1", "PL_Plasma_Sleeve_2", "PL_Plasma_Sleeve_3" }, 0f);
         }
 
         // 발사 연출로 움직이는 부품 지정 + 머리 튐 세기 (총구 끝 = 빈 오브젝트 위치 그대로)
@@ -448,6 +504,9 @@ namespace TowerDefence.EditorTools
             LinkTier2("minigun", "Tower_T2_Minigun", MuzzleFxBuilder.MinigunTracerPath, MuzzleFxBuilder.MinigunFlashPath, MuzzleFxBuilder.MinigunHitPath, null);
             LinkTier2("electro", "Tower_T2_Electro", MuzzleFxBuilder.ElectroBoltPath, MuzzleFxBuilder.ElectroMuzzlePath, MuzzleFxBuilder.ElectroHitPath, "@Fire");
             LinkTier2("cryo", "Tower_T2_Cryo", MuzzleFxBuilder.CryoShardPath, MuzzleFxBuilder.CryoMuzzlePath, MuzzleFxBuilder.CryoHitPath, "@Fire");
+            LinkTier2("dust", "Tower_T2_Dust", null, MuzzleFxBuilder.DustSprayPath, null, "@Fire");
+            LinkTier2("phosphorus", "Tower_T2_Phosphorus", null, MuzzleFxBuilder.PhosphorusSprayPath, null, "@Fire");
+            LinkTier2("plasma", "Tower_T2_Plasma", null, MuzzleFxBuilder.PlasmaJetPath, null, "@Fire");
             var minigun = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/minigun.asset");
             if (minigun != null)
             {
@@ -479,6 +538,22 @@ namespace TowerDefence.EditorTools
                 normal.viewPrefab = saberfang;
                 EditorUtility.SetDirty(normal);
             }
+            // 빠른 몬스터 = 해머헤드
+            var fast = AssetDatabase.LoadAssetAtPath<MonsterDef>(DataFolder + "/Monsters/fast.asset");
+            var hammerhead = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monsters/Monster_Hammerhead.prefab");
+            if (fast != null && fast.viewPrefab == null && hammerhead != null)
+            {
+                fast.viewPrefab = hammerhead;
+                EditorUtility.SetDirty(fast);
+            }
+            // 탱커 몬스터 = 바스티온
+            var tank = AssetDatabase.LoadAssetAtPath<MonsterDef>(DataFolder + "/Monsters/tank.asset");
+            var bastion = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monsters/Monster_Bastion.prefab");
+            if (tank != null && tank.viewPrefab == null && bastion != null)
+            {
+                tank.viewPrefab = bastion;
+                EditorUtility.SetDirty(tank);
+            }
         }
 
         // 2단계 타워 표시 연결 (비어 있을 때만): 모델·투사체·총구·명중 이펙트, 발사 클립(fireSuffix 파일)
@@ -488,9 +563,9 @@ namespace TowerDefence.EditorTools
             if (d == null)
                 return;
             if (d.viewPrefab == null) d.viewPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Towers/" + model + ".prefab");
-            if (d.projectilePrefab == null) d.projectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projectile);
+            if (projectile != null && d.projectilePrefab == null) d.projectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projectile);
             if (d.muzzleFxPrefab == null) d.muzzleFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(muzzle);
-            if (d.hitFxPrefab == null) d.hitFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(hit);
+            if (hit != null && d.hitFxPrefab == null) d.hitFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(hit);
             if (fireSuffix != null && d.fireClip == null) d.fireClip = FirstClip(TowerModelFolder + "/" + model + fireSuffix + ".fbx");
             EditorUtility.SetDirty(d);
         }
@@ -740,7 +815,7 @@ namespace TowerDefence.EditorTools
             for (int i = 0; i < ids.Length; i++)
                 mons.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<MonsterDef>(DataFolder + "/Monsters/" + ids[i] + ".asset");
             // 건축 목록 순서 = 이 배열 순서
-            var towerIds = new[] { "basic", "flamethrower", "lightning", "nano", "emp", "minigun", "electro", "cryo" };
+            var towerIds = new[] { "basic", "flamethrower", "lightning", "nano", "emp", "minigun", "electro", "cryo", "dust", "phosphorus", "plasma" };
             var tows = so.FindProperty("towerDefs");
             tows.arraySize = 0;
             foreach (var id in towerIds)

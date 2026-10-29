@@ -25,6 +25,7 @@ namespace TowerDefence
         {
             public Transform Root;
             public Quaternion BaseRotation; // 프리팹 루트 회전 (FBX 축 변환)
+            public float RestYaw;           // 기본 자세에서 모델 정면의 Y축 각도
             public float CenterHeight;      // 루트(바닥)에서 모델 중심까지 높이: 포인터가 타워 몸통을 잡은 것처럼
             public float Scale;
         }
@@ -37,8 +38,15 @@ namespace TowerDefence
         Quaternion tilt = Quaternion.identity;
         float heldTime;
         bool popIn;
+        int facing; // 놓을 방향 (R키). 들고 있는 모델도 그쪽을 본다
 
         public bool Visible => shown != null;
+
+        public void SetFacing(int value)
+        {
+            facing = value;
+            Apply();
+        }
         public Vector3 Position => position;
 
         // 드래그 시작·끝 (칸 변경은 오버레이가 표시하므로 여기서는 무시).
@@ -116,7 +124,7 @@ namespace TowerDefence
             float k = 1f;
             if (popIn && heldTime < PopSec)
                 k = EaseOutBack(heldTime / PopSec);
-            shown.Root.SetPositionAndRotation(position, tilt * shown.BaseRotation);
+            shown.Root.SetPositionAndRotation(position, tilt * TowerFacing.ViewRotation(facing, shown.RestYaw, shown.BaseRotation));
             shown.Root.localScale = Vector3.one * (shown.Scale * HeldScale * k);
         }
 
@@ -209,6 +217,7 @@ namespace TowerDefence
             {
                 Root = go.transform,
                 BaseRotation = go.transform.rotation,
+                RestYaw = TowerFacing.RestYaw(go.GetComponent<TowerAim>()),
                 CenterHeight = centerHeight,
                 Scale = def.viewScale,
             };

@@ -32,7 +32,7 @@ namespace TowerDefence.Tests
             basic = AssetDatabase.LoadAssetAtPath<TowerDef>("Assets/Data/Towers/basic.asset");
             data = new GameData();
             var rules = AssetDatabase.LoadAssetAtPath<MapGenRules>("Assets/Data/MapGenRules.asset");
-            data.Init(config, rules, new[] { TestAssets.NoIdleCopy("Assets/Data/Monsters/normal.asset") }, new[] { basic });
+            data.Init(config, rules, new[] { TestAssets.NoIdleCopy("Assets/Data/Monsters/normal.asset"), TestAssets.NoIdleCopy("Assets/Data/Monsters/fast.asset"), TestAssets.NoIdleCopy("Assets/Data/Monsters/tank.asset") }, new[] { basic }); // 2층부터 돌격조, 3층부터 탱커
 
             maps = new MapProvider();
             board = new Board();

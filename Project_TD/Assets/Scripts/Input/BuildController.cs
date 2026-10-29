@@ -90,6 +90,32 @@ namespace TowerDefence
         }
     }
 
+    // 설치 미리보기 (놓을 칸·타워·방향)가 바뀌었을 때. Has = false면 미리보기 없음.
+    // 칸이 바뀌면 경로를 가장 많이 덮는 방향으로 맞추고, R키로 90°씩 돌린다.
+    public readonly struct PlacementPreview
+    {
+        public readonly bool Has;
+        public readonly Vector2Int Cell;
+        public readonly TowerDef Def;
+        public readonly int Facing;
+
+        public PlacementPreview(bool has, Vector2Int cell, TowerDef def, int facing)
+        {
+            Has = has;
+            Cell = cell;
+            Def = def;
+            Facing = facing;
+        }
+    }
+
+    // G키: 설치된 모든 타워의 사거리 그리드 표시 켜기/끄기.
+    public readonly struct RangeDisplayChange
+    {
+        public readonly bool Visible;
+
+        public RangeDisplayChange(bool visible) => Visible = visible;
+    }
+
     // 확인 팝업 열기·닫기 요청 (Kind = None이면 닫기).
     public readonly struct PopupRequest
     {
@@ -121,6 +147,8 @@ namespace TowerDefence
         public event Action<CellSelection> SelectionChanged;  // → GameUI (파란 칸)
         public event Action<PopupRequest> PopupRequested;     // → GameUI (확인 팝업)
         public event Action<TowerDrag> DragChanged;           // → GameUI (미리보기 타워, 오버레이)
+        public event Action<PlacementPreview> PreviewChanged; // → GameUI (놓을 타워 방향, 사거리 미리보기)
+        public event Action<RangeDisplayChange> RangeDisplayChanged; // → GameUI (G키 사거리 그리드)
 
         static readonly Plane Ground = new Plane(Vector3.up, Vector3.zero);
 
@@ -157,6 +185,10 @@ namespace TowerDefence
         public PopupKind Popup { get; private set; } = PopupKind.None;
         public DragKind Drag => dragKind;
         public bool HasDragPoint { get; private set; }
+        public int PlacementFacing { get; private set; } // 놓을 타워 방향 (TowerFacing)
+        public bool ShowRanges { get; private set; }     // G키 사거리 그리드
+        public bool HasPreview => preview.Has;
+        PlacementPreview preview;
         public Vector3 DragPoint { get; private set; } // 포인터가 잡고 있는 공중 위치 (높이 DragHoldHeight)
 
         // 건축·판매 상호작용은 휴식·웨이브 중에만 (게임은 멈추지 않는다).
@@ -180,6 +212,8 @@ namespace TowerDefence
             pressedTower = null;
             ExitMode();
             ClosePopup();
+            if (ShowRanges)
+                ToggleRanges();
         }
 
         // 입력 처리. GameLoop가 1단계(GameFlow.Tick) 직전에 부른다.
@@ -204,6 +238,13 @@ namespace TowerDefence
                 else if (Popup != PopupKind.None)
                     ClosePopup();
             }
+
+            // G: 사거리 그리드 켜기/끄기 (설치된 타워 전부)
+            if (keyboard != null && keyboard.gKey.wasPressedThisFrame)
+                ToggleRanges();
+            // R: 놓을 타워 방향을 시계 방향으로 90°
+            if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
+                RotatePlacement();
 
             if (!CanInteract || pointer == null)
                 return;
@@ -273,6 +314,7 @@ namespace TowerDefence
                 HoverChanged?.Invoke(new CellHover(hasCell, cell, hasCell && CanDropAt(cell)));
             if (dragKind != DragKind.None)
                 RaiseDrag();
+            UpdatePreview();
         }
 
         // 칸 클릭. 팝업이 열려 있으면 무시한다.
@@ -307,6 +349,7 @@ namespace TowerDefence
             HasSelection = true;
             SelectedCell = cell;
             SelectionChanged?.Invoke(new CellSelection(true, cell));
+            UpdatePreview();
             OpenPopup(PopupKind.Build, cell, modeDef, Mode == BuildMode.Rebuild ? 0 : modeDef.buildCost);
         }
 
@@ -319,6 +362,7 @@ namespace TowerDefence
             if (Popup == PopupKind.Build)
                 ClosePopup();
             modeDef = def;
+            UpdatePreview();
         }
 
         // 타워 목록 아이콘을 끌기 시작 (BuildMode에서만). 손을 떼는 곳에 바로 설치한다 (확인 팝업 없음).
@@ -352,9 +396,9 @@ namespace TowerDefence
             if (HasHover && CanDropAt(HoverCell))
             {
                 if (dragKind == DragKind.NewTower)
-                    towers.Build(HoverCell, dragDef);          // 캐시·부지 최종 판정은 TowerManager
-                else if (HoverCell != dragTower.Cell)
-                    towers.Move(dragTower, HoverCell);
+                    towers.Build(HoverCell, dragDef, PlacementFacing); // 캐시·부지 최종 판정은 TowerManager
+                else
+                    towers.Move(dragTower, HoverCell, PlacementFacing); // 제자리면 방향만 바뀐다 (같으면 그대로)
             }
             EndDrag();
         }
@@ -400,6 +444,7 @@ namespace TowerDefence
             RaiseDrag();
             if (HasHover)
                 HoverChanged?.Invoke(new CellHover(true, HoverCell, CanDropAt(HoverCell)));
+            UpdatePreview();
         }
 
         void EndDrag()
@@ -411,6 +456,7 @@ namespace TowerDefence
             DragChanged?.Invoke(new TowerDrag(DragKind.None, null, null, false, default, false));
             if (HasHover && Mode != BuildMode.None)
                 HoverChanged?.Invoke(new CellHover(true, HoverCell, board.IsBuildable(HoverCell)));
+            UpdatePreview();
         }
 
         void RaiseDrag() =>
@@ -472,9 +518,9 @@ namespace TowerDefence
                 if (HasSelection)
                 {
                     if (Mode == BuildMode.Rebuild)
-                        towers.RequestRebuild(modeDef, SelectedCell); // 캐시 없음, 목록에서 1개 차감
+                        towers.RequestRebuild(modeDef, SelectedCell, PlacementFacing); // 캐시 없음, 목록에서 1개 차감
                     else
-                        towers.Build(SelectedCell, modeDef);          // 캐시·부지 최종 판정은 TowerManager
+                        towers.Build(SelectedCell, modeDef, PlacementFacing);          // 캐시·부지 최종 판정은 TowerManager
                 }
                 ClearSelection();
                 ClosePopup();                                         // BuildMode는 유지 (연속 건축)
@@ -555,6 +601,64 @@ namespace TowerDefence
             ModeChanged?.Invoke(new BuildModeChange(mode, def));
             if (mode != BuildMode.None && HasHover)
                 HoverChanged?.Invoke(new CellHover(true, HoverCell, board.IsBuildable(HoverCell)));
+            UpdatePreview();
+        }
+
+        // --- 설치 방향 (R키) · 사거리 그리드 (G키) ---
+
+        // 놓을 칸·타워가 정해지는 동안의 미리보기: 끄는 중이면 가리키는 칸(놓을 수 있을 때), 칸을 골랐으면 그 칸,
+        // 건축 모드에서 고르기 전이면 가리키는 설치 가능 칸. 칸이나 타워가 바뀌면 방향을 다시 맞춘다
+        // (경로를 가장 많이 덮는 방향, 설치된 타워를 제자리에 들고 있으면 원래 방향).
+        void UpdatePreview()
+        {
+            TowerDef def = null;
+            Vector2Int cell = default;
+            bool has = false;
+            if (dragKind != DragKind.None)
+            {
+                def = dragDef;
+                has = HasHover && CanDropAt(HoverCell);
+                cell = HoverCell;
+            }
+            else if (Mode != BuildMode.None && modeDef != null)
+            {
+                def = modeDef;
+                if (HasSelection)
+                {
+                    has = true;
+                    cell = SelectedCell;
+                }
+                else if (Popup == PopupKind.None && HasHover && board.IsBuildable(HoverCell))
+                {
+                    has = true;
+                    cell = HoverCell;
+                }
+            }
+            if (has == preview.Has && (!has || (cell == preview.Cell && def == preview.Def)))
+                return;
+            if (has)
+                PlacementFacing = dragKind == DragKind.MoveTower && cell == dragTower.Cell ? dragTower.Facing : towers.BestFacing(def, cell);
+            RaisePreview(has, cell, def);
+        }
+
+        public void RotatePlacement()
+        {
+            if (!preview.Has)
+                return;
+            PlacementFacing = TowerFacing.Next(PlacementFacing);
+            RaisePreview(true, preview.Cell, preview.Def);
+        }
+
+        public void ToggleRanges()
+        {
+            ShowRanges = !ShowRanges;
+            RangeDisplayChanged?.Invoke(new RangeDisplayChange(ShowRanges));
+        }
+
+        void RaisePreview(bool has, Vector2Int cell, TowerDef def)
+        {
+            preview = new PlacementPreview(has, cell, def, PlacementFacing);
+            PreviewChanged?.Invoke(preview);
         }
 
         void ClearSelection()
@@ -563,6 +667,7 @@ namespace TowerDefence
                 return;
             HasSelection = false;
             SelectionChanged?.Invoke(new CellSelection(false, SelectedCell));
+            UpdatePreview();
         }
 
         void OpenPopup(PopupKind kind, Vector2Int cell, TowerDef def, int amount)

@@ -182,7 +182,22 @@ namespace TowerDefence
         }
 
         // 타워 설치·판매로 칸 상태가 바뀌면 그 칸만 다시 칠한다.
-        public void HandleTowerChanged(TowerChange e) => Map.RefreshCell(e.Cell);
+        public void HandleTowerChanged(TowerChange e)
+        {
+            Map.RefreshCell(e.Cell);
+            Map.Ranges.HandleTowerChanged(e);
+        }
+
+        // 놓을 타워의 칸·방향 (R키로 회전): 사거리 미리보기 + 끌고 있는 타워 모델 방향.
+        public void HandlePreviewChanged(PlacementPreview e)
+        {
+            Map.Ranges.SetPreview(e);
+            if (e.Has)
+                dragView.SetFacing(e.Facing);
+        }
+
+        // G키: 설치된 모든 타워의 사거리 그리드.
+        public void HandleRangeDisplayChanged(RangeDisplayChange e) => Map.Ranges.SetShowPlaced(e.Visible);
 
         // 좌측 타워 회수 목록: 바뀐 종류의 줄만 갱신 ("기본 타워 ×3"). 줄 클릭 → [재건축]/[철거] 팝업 요청.
         public void HandleRecoveryChanged(RecoveryChange e)

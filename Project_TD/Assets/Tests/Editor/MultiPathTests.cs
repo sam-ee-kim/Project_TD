@@ -245,13 +245,15 @@ namespace TowerDefence.Tests
             Assert.IsTrue(coversMainAfter, "합류 뒤 본선 칸도 포함");
 
             // 두 경로에서 몬스터를 흘려 보낸 뒤 대상 = 사거리 안에서 출구까지 가장 적게 남은 몬스터
+            // (사거리는 타워가 바라보는 쪽 앞 칸만이라, 몬스터가 그 칸들에 2마리 이상 들어올 때까지 흘려 보낸다)
             monsters.BeginWave(new[] { new WaveSpawn("normal", 30, 0.2f, 0f) }, 1);
-            for (int step = 0; step < 60; step++)
+            var inRange = new List<MonsterInstance>();
+            for (int step = 0; step < 400 && inRange.Count < 2; step++)
             {
                 monsters.TickSpawn(0.05f);
                 monsters.TickMove(0.05f);
+                inRange = Alive().FindAll(m => tower.CoversCell[m.CellId]);
             }
-            var inRange = Alive().FindAll(m => tower.CoversCell[m.CellId]);
             Assume.That(inRange.Count, Is.GreaterThan(1), "사거리 안 몬스터 2마리 이상일 때만 의미 있음");
             towers.TickCombat(0f);
             var target = monsters.Get(tower.Locked);

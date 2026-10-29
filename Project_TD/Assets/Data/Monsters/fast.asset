@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: fast
   m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.MonsterDef
   id: fast
-  displayName: "\uBE60\uB978 \uBAAC\uC2A4\uD130"
+  displayName: "\uD574\uBA38\uD5E4\uB4DC"
   category: 1
   hp: 2
   speed: 2
@@ -21,8 +21,8 @@ MonoBehaviour:
   nexusDamage: 1
   traits: []
   spawnIdleSec: 0
-  viewPrefab: {fileID: 0}
-  viewScale: 0.25
-  aimHeight: 0.4
-  walkAnimSpeed: 1
+  viewPrefab: {fileID: 4338154833106373377, guid: f491a97203cb38348852964dc993ba50, type: 3}
+  viewScale: 0.22
+  aimHeight: 0.12
+  walkAnimSpeed: 2
   animCrossFadeSec: 0.12

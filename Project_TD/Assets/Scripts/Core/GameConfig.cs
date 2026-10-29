@@ -71,6 +71,23 @@ namespace TowerDefence
             public float spawnIntervalSec = 1f;
             public string defaultMonsterId = "normal"; // 웨이브 테이블이 없을 때 공식 웨이브에 나오는 몬스터 (GDD 4장)
 
+            // 돌격조 (해머헤드): runnerFromFloor층부터 모든 웨이브에서 일반 몬스터 뒤에 몰려 나온다 (0이면 안 나옴).
+            // 마리 수 = runnerBaseCount + (맵 단계(Tier) − 처음 나온 층의 Tier) → 2층 2, 3·4층 3, 5·6층 4, 7·8층 5, 9·10층 6.
+            // 일반 몬스터를 다 내보낸 뒤 runnerDelaySec 쉬고 runnerIntervalSec 간격으로 빠르게.
+            public string runnerMonsterId = "fast";
+            public int runnerFromFloor = 2;
+            public int runnerBaseCount = 2;
+            public float runnerDelaySec = 1f;
+            public float runnerIntervalSec = 0.5f;
+
+            // 탱커 (바스티온): tankerFromFloor층부터 층의 마지막 웨이브 끝에 따로 나온다 (0이면 안 나옴).
+            // 마리 수 = 맵 단계(Tier) − 처음 나온 층의 Tier + 1 → 3·4층 1, 5·6층 2, 7·8층 3, 9·10층 4.
+            // 일반 몬스터를 다 내보낸 뒤 tankerDelaySec 쉬고 tankerIntervalSec 간격으로.
+            public string tankerMonsterId = "tank";
+            public int tankerFromFloor = 3;
+            public float tankerDelaySec = 2f;
+            public float tankerIntervalSec = 3f;
+
             // 몬스터 체력 배율 (Docs/HpLevelDesign.md): 체력 = 기본 체력 × M × C × F × W, hpRoundStep 단위 반올림
             public float[] hpMapScale = { 1f, 1.6f, 2.6f, 4f, 6f };               // M: 맵 단계(Tier) 1~5 (맵 확장)
             public float[] hpComplexityScale = { 1f, 0.89f, 0.94f, 0.86f, 0.94f }; // C: 복잡성 1~5 (꺾임 보너스 × 스타트 지점 분산)

@@ -34,6 +34,15 @@ MonoBehaviour:
     monsterIncreaseAmount: 2
     spawnIntervalSec: 1
     defaultMonsterId: normal
+    runnerMonsterId: fast
+    runnerFromFloor: 2
+    runnerBaseCount: 2
+    runnerDelaySec: 1
+    runnerIntervalSec: 0.5
+    tankerMonsterId: tank
+    tankerFromFloor: 3
+    tankerDelaySec: 2
+    tankerIntervalSec: 3
     hpMapScale:
     - 1
     - 1.6
@@ -79,4 +88,8 @@ MonoBehaviour:
     enabled: 0
     maxLines: 5
     lifetimeSec: 3
+  floorItems:
+    enabled: 0
+    damagePerItem: 0.1
+    speedPerItem: 0.08
   waves: []

@@ -60,7 +60,7 @@ namespace TowerDefence.EditorTools
                 var loop = Object.FindFirstObjectByType<GameLoop>();
                 var so = new SerializedObject(loop);
                 so.FindProperty("config").objectReferenceValue = config;
-                var ids = v.tech ? new[] { "basic", "flamethrower", "lightning", "nano", "emp", "minigun", "electro", "cryo", "gun2", "gun3", "flame2", "flame3" } : new[] { "basic", "flamethrower", "lightning", "nano", "emp", "minigun", "electro", "cryo" };
+                var ids = v.tech ? new[] { "basic", "flamethrower", "lightning", "nano", "emp", "minigun", "electro", "cryo", "dust", "phosphorus", "plasma", "gun2", "gun3", "flame2", "flame3" } : new[] { "basic", "flamethrower", "lightning", "nano", "emp", "minigun", "electro", "cryo", "dust", "phosphorus", "plasma" };
                 var tows = so.FindProperty("towerDefs");
                 tows.arraySize = ids.Length;
                 for (int i = 0; i < ids.Length; i++)
