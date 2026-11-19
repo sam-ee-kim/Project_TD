@@ -16,6 +16,7 @@ namespace TowerDefence
     {
         public event Action<MonsterKilled> Killed;           // → PlayerState.Earn(Kill)
         public event Action<MonsterReachedExit> ReachedExit; // → PlayerState.TakeNexusDamage
+        public event Action<MonsterStunned> Stunned;         // → TowerManager (얼음·감전 이펙트)
 
         const float CapsuleScale = 0.4f; // 모델이 없는 몬스터의 기본 캡슐 크기 (높이 0.8)
 
@@ -37,8 +38,8 @@ namespace TowerDefence
         bool movementPaused = true; // Wave가 아니면 남은 몬스터는 제자리 대기(Idle)
 
         // 이번 웨이브 구성표 (GameFlow가 넘긴 버퍼를 복사해 보관, 할당 없이 재사용).
-        WaveSpawn[] waveSpawns = new WaveSpawn[8];
-        MonsterDef[] waveDefs = new MonsterDef[8];
+        WaveSpawn[] waveSpawns = new WaveSpawn[24]; // 줄 × 스타트 3곳 (ArrangeSpawns) 까지 할당 없이
+        MonsterDef[] waveDefs = new MonsterDef[24];
         readonly WaveSpawn[] prewarmBuffer = new WaveSpawn[8];
         int waveSpawnCount;
         int spawnLine;          // 지금 내보내는 구성표 줄
@@ -47,6 +48,10 @@ namespace TowerDefence
         int remainingToSpawn;   // 이번 웨이브에서 아직 내보내지 않은 몬스터 수
         bool inWave;
         int nextSpawn;          // 다음 몬스터의 스타트 지점 (번갈아)
+        bool parallelLines;     // 이번 웨이브: 줄마다 따로 진행 (WaveSpawn.Parallel)
+        float[] lineTimer = new float[24];   // 동시 진행: 줄별 다음 스폰까지 남은 시간
+        int[] lineSpawned = new int[24];     // 동시 진행: 줄별 내보낸 수
+        readonly System.Random spawnRng = new System.Random(20261110); // 가중치 배치용
 
         // 이번 웨이브 스폰이 모두 끝났는지 (웨이브 클리어 판정용).
         public bool IsSpawnFinished => remainingToSpawn == 0;
@@ -70,6 +75,10 @@ namespace TowerDefence
 
         public int DebugHpOverride { get; set; }
 
+        // 측정용: 이번 판에 몬스터가 실제로 잃은 체력 합 (남은 체력보다 큰 피해는 남은 만큼만) · 처치 수. 레벨디자인 시뮬레이터가 읽는다
+        public float DamageTaken { get; private set; }
+        public int KillCount { get; private set; }
+
         // 이번 웨이브 체력 배율 (LevelRules.GetHpScale, 웨이브 시작 때 1번 계산).
         float hpScale = 1f;
         public float HpScale => hpScale;
@@ -91,6 +100,8 @@ namespace TowerDefence
         {
             this.run = run;
             hpScale = 1f;
+            DamageTaken = 0f;
+            KillCount = 0;
             ClearSlowFields();
             for (int i = active.Count - 1; i >= 0; i--)
             {
@@ -135,6 +146,8 @@ namespace TowerDefence
             {
                 waveSpawns = new WaveSpawn[count];
                 waveDefs = new MonsterDef[count];
+                lineTimer = new float[count];
+                lineSpawned = new int[count];
             }
             Array.Copy(spawns, waveSpawns, count);
             waveSpawnCount = count;
@@ -145,7 +158,7 @@ namespace TowerDefence
                 if (!data.TryGetMonster(spawns[i].MonsterId, out waveDefs[i]))
                 {
                     Debug.LogError($"[MonsterManager] 웨이브 구성표의 몬스터 id '{spawns[i].MonsterId}'가 없습니다.");
-                    waveSpawns[i] = new WaveSpawn(spawns[i].MonsterId, 0, spawns[i].IntervalSec, spawns[i].DelaySec);
+                    waveSpawns[i] = new WaveSpawn(spawns[i].MonsterId, 0, spawns[i].IntervalSec, spawns[i].DelaySec, spawns[i].SpawnIndex, spawns[i].Parallel, spawns[i].HpMul);
                 }
                 remainingToSpawn += waveSpawns[i].Count;
             }
@@ -153,6 +166,12 @@ namespace TowerDefence
             spawnLine = 0;
             spawnedInLine = 0;
             spawnTimer = count > 0 ? waveSpawns[0].DelaySec : 0f; // 첫 마리는 지연 뒤 바로
+            parallelLines = count > 0 && waveSpawns[0].Parallel;
+            for (int i = 0; i < count; i++)
+            {
+                lineTimer[i] = waveSpawns[i].DelaySec; // 동시 진행: 줄마다 웨이브 시작부터 지연
+                lineSpawned[i] = 0;
+            }
             inWave = true;
         }
 
@@ -183,6 +202,11 @@ namespace TowerDefence
         {
             if (remainingToSpawn == 0 || board.Map == null)
                 return;
+            if (parallelLines)
+            {
+                TickSpawnParallel(dt);
+                return;
+            }
 
             spawnTimer -= dt;
             while (spawnTimer <= 0f && remainingToSpawn > 0)
@@ -197,10 +221,28 @@ namespace TowerDefence
                 if (spawnTimer > 0f)
                     break;
 
-                Spawn(waveDefs[spawnLine]);
+                Spawn(waveDefs[spawnLine], waveSpawns[spawnLine].SpawnIndex, waveSpawns[spawnLine].HpMul);
                 spawnedInLine++;
                 remainingToSpawn--;
                 spawnTimer += waveSpawns[spawnLine].IntervalSec;
+            }
+        }
+
+        // 동시 진행: 줄마다 자기 타이머로 (스타트 지점별 일정이 겹쳐도 그대로).
+        void TickSpawnParallel(float dt)
+        {
+            for (int i = 0; i < waveSpawnCount; i++)
+            {
+                if (lineSpawned[i] >= waveSpawns[i].Count)
+                    continue;
+                lineTimer[i] -= dt;
+                while (lineTimer[i] <= 0f && lineSpawned[i] < waveSpawns[i].Count)
+                {
+                    Spawn(waveDefs[i], waveSpawns[i].SpawnIndex, waveSpawns[i].HpMul);
+                    lineSpawned[i]++;
+                    remainingToSpawn--;
+                    lineTimer[i] += Mathf.Max(0.01f, waveSpawns[i].IntervalSec);
+                }
             }
         }
 
@@ -211,19 +253,21 @@ namespace TowerDefence
         readonly Vector3[] fieldCenter = new Vector3[MaxSlowFields];
         readonly float[] fieldRadiusSq = new float[MaxSlowFields];
         readonly float[] fieldSlow = new float[MaxSlowFields];
+        readonly float[] fieldDamageBonus = new float[MaxSlowFields]; // 필드 안에서 받는 피해 증가
         readonly float[] fieldEnd = new float[MaxSlowFields];
         int fieldNext;
         float fieldLatestEnd;
         float moveTime; // TickMove 누적 시간 (영역 만료 기준)
 
         // 감속 영역 추가 (TowerManager가 나노 탄 명중 때 요청).
-        public void AddSlowField(Vector3 center, float radius, float slow, float duration)
+        public void AddSlowField(Vector3 center, float radius, float slow, float duration, float damageBonus = 0f)
         {
             int i = fieldNext;
             fieldNext = (i + 1) % MaxSlowFields;
             fieldCenter[i] = center;
             fieldRadiusSq[i] = radius * radius;
             fieldSlow[i] = Mathf.Clamp01(slow);
+            fieldDamageBonus[i] = Mathf.Max(0f, damageBonus);
             fieldEnd[i] = moveTime + duration;
             if (fieldEnd[i] > fieldLatestEnd)
                 fieldLatestEnd = fieldEnd[i];
@@ -258,6 +302,24 @@ namespace TowerDefence
             return 1f - slow;
         }
 
+        // 이 몬스터가 받는 피해 배율 (나노필드 안이면 1 + 피해 증가, 겹치면 가장 센 것 하나).
+        public float GetDamageTakenMultiplier(MonsterInstance m)
+        {
+            if (fieldLatestEnd <= moveTime)
+                return 1f;
+            var p = GetGroundPoint(m);
+            float bonus = 0f;
+            for (int i = 0; i < MaxSlowFields; i++)
+            {
+                if (fieldEnd[i] <= moveTime || fieldDamageBonus[i] <= bonus)
+                    continue;
+                float dx = p.x - fieldCenter[i].x, dz = p.z - fieldCenter[i].z;
+                if (dx * dx + dz * dz <= fieldRadiusSq[i])
+                    bonus = fieldDamageBonus[i];
+            }
+            return 1f + bonus;
+        }
+
         void ClearSlowFields()
         {
             for (int i = 0; i < MaxSlowFields; i++)
@@ -278,7 +340,23 @@ namespace TowerDefence
                 if (m.State != MonsterState.Alive)
                     continue;
 
+                if (m.PhosStacks > 0)
+                {
+                    TickPhosphorus(m, dt);
+                    if (m.State != MonsterState.Alive)
+                        continue; // 백린에 타 죽음
+                }
                 float moveDt = dt;
+                if (m.StunTime > 0f)
+                {
+                    // 얼음·감전: 제자리 (끝나면 걷기 애니메이션 속도 복구)
+                    m.StunTime -= dt;
+                    if (m.StunTime > 0f)
+                        continue;
+                    moveDt = -m.StunTime;
+                    m.StunTime = 0f;
+                    m.SpeedMul = -1f; // 아래에서 걷기 속도를 다시 맞추게
+                }
                 if (m.IdleTime > 0f)
                 {
                     m.IdleTime -= dt;
@@ -384,15 +462,138 @@ namespace TowerDefence
             var m = all[target.Index];
             if (m.State != MonsterState.Alive) return DamageResult.Ignored; // 같은 프레임에 이미 사망·도착
 
-            float dmg = DamageCalculator.Compute(info, m.Def);               // 지금은 info.Amount 그대로
+            float dmg = DamageCalculator.Compute(info, m.Def) * GetDamageTakenMultiplier(m); // 속성 상성 (EMP·분진 → 기계, 백린 → 생물) × 나노필드 취약
+            var result = Hurt(m, dmg);
+            if (result == DamageResult.Damaged && info.Status != null)
+                result = ApplyStatus(m, info.Status, info.Amount);           // 살아 있으면 이상효과 (발동 피해로 죽을 수 있다)
+            return result;
+        }
+
+        // 체력을 깎고 죽었으면 사망 처리 (보상 1회). 이상효과 추가 피해도 여기로.
+        DamageResult Hurt(MonsterInstance m, float dmg)
+        {
+            DamageTaken += Mathf.Min(dmg, Mathf.Max(0f, m.Hp));
             m.Hp -= dmg;
             if (m.Hp > HpEpsilon) return DamageResult.Damaged;               // 소수 피해 누적 오차 (0.5 × 8 = 4) 흡수
 
             m.State = MonsterState.Dying;                                    // 사망 판정은 여기서 딱 1번
             aliveCount--;
+            KillCount++;
             board.RemoveFromCell(m.CellId, m.Handle);                        // 즉시 공격 대상 후보에서 제외
             Killed?.Invoke(new MonsterKilled(m.Def.reward));                 // PlayerState.Earn(amount, Kill)
             return DamageResult.Killed;
+        }
+
+        // 이상효과 쌓기·발동. attack = 이번에 맞힌 공격력 (상성 배율 전). 시각은 moveTime (TickMove 누적).
+        DamageResult ApplyStatus(MonsterInstance m, StatusEffect s, float attack)
+        {
+            switch (s.kind)
+            {
+                case StatusKind.Burn:
+                    if (moveTime < m.BurnReadyAt)
+                        return DamageResult.Damaged;
+                    if (++m.BurnHits < Mathf.Max(1, s.hitsPerStack))
+                        return DamageResult.Damaged;
+                    m.BurnHits = 0;
+                    if (++m.BurnStacks < s.procStacks)
+                        return DamageResult.Damaged;
+                    m.BurnStacks = 0;
+                    m.BurnReadyAt = moveTime + s.cooldown;
+                    return Hurt(m, attack * s.procDamageRatio);
+                case StatusKind.Dust:
+                    if (moveTime < m.DustReadyAt || ++m.DustStacks < s.procStacks)
+                        return DamageResult.Damaged;
+                    m.DustStacks = 0;
+                    m.DustReadyAt = moveTime + s.cooldown;
+                    {
+                        float burst = attack * s.procDamageRatio;
+                        var at = GetGroundPoint(m);
+                        var result = Hurt(m, burst);
+                        Splash(m, at, s.splashRadius, s.splashMaxTargets, burst); // 분진 폭발: 주변 몬스터도
+                        return result;
+                    }
+                case StatusKind.Phosphorus:
+                    if (m.PhosStacks == 0)
+                        m.PhosTimer = s.dotInterval; // 첫 스택부터 1초 뒤 첫 틱
+                    m.PhosStacks++;
+                    m.PhosDamage = attack;
+                    m.PhosEffect = s;
+                    return DamageResult.Damaged;
+                case StatusKind.Frost:
+                    if (m.StunTime <= 0f && ++m.FrostStacks >= s.procStacks)
+                    {
+                        m.FrostStacks = 0;
+                        Stun(m, s);
+                    }
+                    return DamageResult.Damaged;
+                case StatusKind.Static:
+                    if (m.StunTime <= 0f && ++m.StaticStacks >= s.procStacks)
+                    {
+                        m.StaticStacks = 0;
+                        Stun(m, s);
+                    }
+                    return DamageResult.Damaged;
+            }
+            return DamageResult.Damaged;
+        }
+
+        // 얼음·감전: 정지 (정지 중에는 서리·정전기가 쌓이지 않는다). 걷기 애니메이션도 멈춘다.
+        void Stun(MonsterInstance m, StatusEffect s)
+        {
+            float duration = s.stunSec + (!string.IsNullOrEmpty(s.stunBonusTrait) && m.Def.HasTrait(s.stunBonusTrait) ? s.stunBonusSec : 0f);
+            m.StunTime = duration;
+            m.View?.SetMoveScale(0f);
+            Stunned?.Invoke(new MonsterStunned(GetAimPoint(m), duration, s));
+        }
+
+        // 백린 지속 피해 (TickMove에서): dotInterval초마다 기준 공격력 × min(스택 × dotPerStack, dotMax).
+        void TickPhosphorus(MonsterInstance m, float dt)
+        {
+            var s = m.PhosEffect;
+            m.PhosTimer -= dt;
+            while (m.PhosTimer <= 0f && m.State == MonsterState.Alive)
+            {
+                m.PhosTimer += s.dotInterval;
+                float dot = m.PhosDamage * Mathf.Min(m.PhosStacks * s.dotPerStack, s.dotMax);
+                var at = GetGroundPoint(m);
+                Hurt(m, dot);
+                Splash(m, at, s.splashRadius, s.splashMaxTargets, dot); // 백린 불이 옆 몬스터에게 번진다
+            }
+        }
+
+        // 번짐: center에서 radius칸 안의 다른 몬스터에게 같은 피해 (처음 맞은 몬스터 포함 최대 maxTargets마리).
+        // 처음 몬스터가 있던 칸 둘레의 칸 목록만 본다 (전체를 훑지 않음). 이상효과는 붙이지 않는다.
+        void Splash(MonsterInstance source, Vector3 center, float radius, int maxTargets, float dmg)
+        {
+            if (radius <= 0f || maxTargets <= 1 || dmg <= 0f || board.Map == null)
+                return;
+            int n = board.N;
+            int cx = source.CellId / n, cy = source.CellId % n;
+            int reach = Mathf.CeilToInt(radius + 0.5f);
+            int hits = 1;
+            for (int dx = -reach; dx <= reach; dx++)
+                for (int dy = -reach; dy <= reach; dy++)
+                {
+                    int x = cx + dx, y = cy + dy;
+                    if (x < 0 || y < 0 || x >= n || y >= n)
+                        continue;
+                    var bucket = board.MonstersAt(x * n + y);
+                    for (int k = bucket.Count - 1; k >= 0; k--)
+                    {
+                        if (k >= bucket.Count)
+                            continue;
+                        var o = Get(bucket[k]);
+                        if (o == null || o == source || o.State != MonsterState.Alive)
+                            continue;
+                        var p = GetGroundPoint(o);
+                        float ox = p.x - center.x, oz = p.z - center.z;
+                        if (ox * ox + oz * oz > radius * radius)
+                            continue;
+                        Hurt(o, dmg);
+                        if (++hits >= maxTargets)
+                            return;
+                    }
+                }
         }
 
         // 핸들이 아직 같은 몬스터를 가리키는지 (DamageDesign 3-3).
@@ -424,19 +625,22 @@ namespace TowerDefence
         }
 #endif
 
-        void Spawn(MonsterDef def)
+        void Spawn(MonsterDef def, int spawnIndex = -1, float hpMul = 1f)
         {
             var m = pool.Get(); // OnGet: Generation +1, State = Alive
             m.Def = def;
             m.DefIndex = def.Index;
-            m.Hp = DebugHpOverride > 0 ? DebugHpOverride : LevelRules.ScaleHp(data.Config, def.hp, hpScale);
-            m.PathId = ChooseSpawn(def);
+            m.Hp = DebugHpOverride > 0 ? DebugHpOverride : LevelRules.ScaleHp(data.Config, def.hp, hpScale * hpMul); // 동시 출현 줄은 hpMul 0.9
+            m.PathId = ChooseSpawn(def, spawnIndex);
             m.PathIndex = 0;
             m.PathProgress = 0f;
             m.Remaining = board.GetPathLength(m.PathId) - 1;
             m.CellId = board.CellId(board.GetPathCell(m.PathId, 0));
             m.IdleTime = def.spawnIdleSec;
             m.SpeedMul = 1f;
+            m.BurnHits = m.BurnStacks = m.DustStacks = m.PhosStacks = m.FrostStacks = m.StaticStacks = 0;
+            m.BurnReadyAt = m.DustReadyAt = m.PhosDamage = m.PhosTimer = m.StunTime = 0f;
+            m.PhosEffect = null;
             m.View?.SetMoveScale(1f);
             active.Add(m);
             aliveCount++;
@@ -450,13 +654,33 @@ namespace TowerDefence
             }
         }
 
-        // 스타트 지점 고르기: 지금은 순서대로 번갈아 (1 → 2 → 3 → 1 …).
+        // 스타트 지점 고르기: 줄이 지정한 지점 → 맵의 가중치(SpawnWeights)로 랜덤 → 없으면 순서대로 번갈아 (1 → 2 → 3 → 1 …).
         // 나중에 몬스터 티어가 나뉘면 스타트 지점마다 랜덤 가중치를 두어 높은 티어의 배치율을 높이는 자리.
-        int ChooseSpawn(MonsterDef def)
+        int ChooseSpawn(MonsterDef def, int requested)
         {
             int count = board.PathCount;
             if (count <= 1)
                 return 0;
+            if (requested >= 0 && requested < count)
+                return requested;
+            var weights = board.Map.SpawnWeights;
+            if (weights != null && weights.Length >= count)
+            {
+                float total = 0f;
+                for (int i = 0; i < count; i++)
+                    total += Mathf.Max(0f, weights[i]);
+                if (total > 0f)
+                {
+                    float r = (float)spawnRng.NextDouble() * total;
+                    for (int i = 0; i < count; i++)
+                    {
+                        r -= Mathf.Max(0f, weights[i]);
+                        if (r < 0f)
+                            return i;
+                    }
+                    return count - 1;
+                }
+            }
             int k = nextSpawn % count;
             nextSpawn++;
             return k;

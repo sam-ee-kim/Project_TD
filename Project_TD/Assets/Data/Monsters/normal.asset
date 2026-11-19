@@ -19,7 +19,8 @@ MonoBehaviour:
   speed: 1
   reward: 5
   nexusDamage: 1
-  traits: []
+  traits:
+  - biological
   spawnIdleSec: 0.5
   viewPrefab: {fileID: 3557801056693971949, guid: 41959ed6d7d349340b2658af5ddf9c82, type: 3}
   viewScale: 0.25

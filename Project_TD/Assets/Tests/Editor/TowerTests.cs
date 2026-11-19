@@ -46,7 +46,7 @@ namespace TowerDefence.Tests
         public void SetUp()
         {
             config = AssetDatabase.LoadAssetAtPath<GameConfig>("Assets/Data/GameConfig.asset");
-            basic = AssetDatabase.LoadAssetAtPath<TowerDef>("Assets/Data/Towers/basic.asset");
+            basic = TestAssets.SquareBasicCopy(); // 정사각형 사거리 규칙 테스트용 (실제 기본 타워는 앞 한 줄 3칸)
             lockSpecial = MakeDef("lockSpecial", TargetLock.Lock, new[] { "Special" }, AttackType.Hitscan, 1);
             preferSpecial = MakeDef("preferSpecial", TargetLock.PreferType, new[] { "Special" }, AttackType.Hitscan, 1);
             retargetSpecial = MakeDef("retargetSpecial", TargetLock.Retarget, new[] { "Special" }, AttackType.Hitscan, 1);
@@ -87,6 +87,7 @@ namespace TowerDefence.Tests
         [TearDown]
         public void TearDown()
         {
+            UnityEngine.Object.DestroyImmediate(basic);
             UnityEngine.Object.DestroyImmediate(lockSpecial);
             UnityEngine.Object.DestroyImmediate(preferSpecial);
             UnityEngine.Object.DestroyImmediate(retargetSpecial);
@@ -227,7 +228,7 @@ namespace TowerDefence.Tests
             int guard = 0;
             while (towers.ProjectileCount > 0 && guard++ < 1000)
                 towers.TickCombat(0.01f);
-            Assert.AreEqual(3f, monsters.Get(target).Hp, "판매 뒤에도 명중 (피해 1)");
+            Assert.AreEqual(2.5f, monsters.Get(target).Hp, "판매 뒤에도 명중 (피해 1.5)");
         }
 
         [Test]
@@ -242,7 +243,7 @@ namespace TowerDefence.Tests
             Assert.AreEqual(MonsterState.Dying, monsters.Get(target).State);
             Assert.AreEqual(1, killedEvents);
             Assert.AreEqual(cash + 5, player.Cash, "처치 캐시 +5");
-            Assert.That(guard * 0.01f, Is.InRange(1.1f, 1.4f), "1초 간격 이점사(1 피해 × 2발) × 2번 = 체력 4 (0초, 0.12초, 1초, 1.12초 + 비행)");
+            Assert.That(guard * 0.01f, Is.InRange(1.1f, 1.4f), "1초 간격 이점사(1.5 피해 × 2발): 0초·0.12초에 3, 1초에 1.5 → 체력 4는 세 번째 발(1초 + 비행)에 처치");
         }
 
         [Test]
@@ -286,7 +287,7 @@ namespace TowerDefence.Tests
             for (int i = 0; i < 50; i++) // 0.5초: 재장전(1초) 전, 둘째 발은 burstGap(0.12초) 뒤
                 towers.TickCombat(0.01f);
             Assert.AreEqual(0, towers.ProjectileCount, "2발 모두 명중");
-            Assert.AreEqual(2f, monsters.Get(target).Hp, "2발 × 1 피해");
+            Assert.AreEqual(1f, monsters.Get(target).Hp, "2발 × 1.5 피해");
         }
 
         [Test]

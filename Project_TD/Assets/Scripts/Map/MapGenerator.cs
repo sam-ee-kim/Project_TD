@@ -57,6 +57,13 @@ public class MapGenerator : MonoBehaviour
     MapData map;
 
     public MapData Map => map;
+    // 맵 제작 씬이 같은 타일 모델·색으로 편집 화면을 그린다
+    public GameObject PathTilePrefab => pathTilePrefab;
+    public GameObject BuildableTilePrefab => buildableTilePrefab;
+    public GameObject[] BlockedTilePrefabs => blockedTilePrefabs;
+    public float TileHeight => tileHeight;
+    public Color SpawnColor => spawnColor;
+    public Color ExitColor => exitColor;
     public int GridSize => map != null ? map.N : 0;
     public Material PathPreviewMaterial => pathPreviewMaterial;
 
@@ -102,6 +109,16 @@ public class MapGenerator : MonoBehaviour
             planet.Rotate(planetAxis.normalized, planetSpinDegPerSec * dt, Space.Self);
         if (planetClouds != null && cloudSpinDegPerSec != 0f)
             planetClouds.Rotate(Vector3.up, cloudSpinDegPerSec * dt, Space.Self);
+    }
+
+    // 타일 모델 묶음 바꾸기 (풀밭 ↔ 기계). 다음 Show부터 적용된다. 지금 게임에서는 부르지 않는다 (기계 테마는 준비만).
+    public void UseTheme(TileTheme theme)
+    {
+        if (theme == null)
+            return;
+        if (theme.pathTile != null) pathTilePrefab = theme.pathTile;
+        if (theme.buildableTile != null) buildableTilePrefab = theme.buildableTile;
+        if (theme.blockedTiles != null && theme.blockedTiles.Length > 0) blockedTilePrefabs = theme.blockedTiles;
     }
 
     // 맵 교체: 이전 타일을 숨기고(나눠 지움) 새 맵의 타일을 모두 땅속에 예약한 뒤 차례로 솟아오르게 한다.

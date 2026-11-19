@@ -16,6 +16,18 @@ namespace TowerDefence.Tests
             copy.spawnIdleSec = 0f;
             return copy;
         }
+
+        // 정사각형 사거리(반경 2) 기본 타워 사본 — 사거리·타겟팅 규칙 테스트용.
+        // 실제 기본 타워는 "바로 앞 한 줄 3칸"(frontWidth)이라, 정사각형 규칙을 보려면 그 값을 끈 사본을 쓴다.
+        public static TowerDef SquareBasicCopy()
+        {
+            var source = AssetDatabase.LoadAssetAtPath<TowerDef>("Assets/Data/Towers/basic.asset");
+            var copy = Object.Instantiate(source);
+            copy.name = source.name;
+            copy.range = 2;
+            copy.frontWidth = 0;
+            return copy;
+        }
     }
 
     // 경로 칸 번호(본선 = 스타트 지점 0의 경로) → 칸 번호 도우미. Board 몬스터 목록·타워 사거리는 칸 번호 기준.

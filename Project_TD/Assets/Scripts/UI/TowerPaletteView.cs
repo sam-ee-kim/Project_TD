@@ -32,6 +32,20 @@ namespace TowerDefence
         readonly Dictionary<TowerDef, Texture> icons = new Dictionary<TowerDef, Texture>();
 
         public RectTransform Root { get; private set; }
+        public Func<TowerDef, int> CostOf; // 반도체 공장 할인을 반영한 설치 비용 (null이면 buildCost)
+        int lastCash;
+
+        int Cost(TowerDef def) => CostOf != null ? CostOf(def) : def.buildCost;
+
+        // 할인 단계가 바뀌면 비용 글자를 다시 쓴다 (로비에서만, 판 중에는 바뀌지 않음)
+        public void RefreshCosts()
+        {
+            foreach (var slot in slots)
+                slot.Cost.text = $"{Cost(slot.Def)} 캐시";
+            foreach (var slot in slots)
+                slot.Affordable = !slot.Affordable; // 색도 다시 칠하게
+            RefreshAfford(lastCash);
+        }
         public int SlotCount => slots.Count;
 
         public void Init(Transform canvas, IReadOnlyList<TowerDef> towers, Action<TowerDef> onClick, Action<TowerDef> onBeginDrag)
@@ -75,7 +89,8 @@ namespace TowerDefence
                 return null;
             if (!icons.TryGetValue(def, out var texture))
             {
-                texture = TowerIconRenderer.Render(def, IconSize);
+                // 미리 구운 아이콘을 먼저 쓴다 (실행 중 렌더 텍스처 촬영은 그래픽카드·브라우저에 따라 실패할 수 있다)
+                texture = def.icon != null ? def.icon : TowerIconRenderer.Render(def, IconSize);
                 icons.Add(def, texture);
             }
             return texture;
@@ -84,9 +99,10 @@ namespace TowerDefence
         // 지금 캐시로 지을 수 있는지에 따라 비용 색 (바뀐 칸만).
         public void RefreshAfford(int cash)
         {
+            lastCash = cash;
             foreach (var slot in slots)
             {
-                bool afford = cash >= slot.Def.buildCost;
+                bool afford = cash >= Cost(slot.Def);
                 if (afford == slot.Affordable)
                     continue;
                 slot.Affordable = afford;

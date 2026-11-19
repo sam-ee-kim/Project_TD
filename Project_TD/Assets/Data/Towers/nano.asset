@@ -24,10 +24,26 @@ MonoBehaviour:
   interval: 2.3
   bonusTrait: 
   bonusMultiplier: 1
+  status:
+    kind: 0
+    hitsPerStack: 1
+    procStacks: 3
+    procDamageRatio: 0
+    cooldown: 0
+    stunSec: 1
+    stunBonusTrait: 
+    stunBonusSec: 1
+    dotPerStack: 0.001
+    dotMax: 0.2
+    dotInterval: 1
+    splashRadius: 0
+    splashMaxTargets: 5
+    fxPrefab: {fileID: 0}
   burstCount: 7
   burstGap: 0.045
   chargeTime: 0
   range: 2
+  frontWidth: 0
   lockMode: 0
   targetRule: 0
   typePriority: []
@@ -36,13 +52,18 @@ MonoBehaviour:
   upgradeTo: []
   tier: 1
   unlockFloor: 1
+  unlockPrice: 1
   showInPalette: 0
   spinUpTime: 0
   spinUpStartInterval: 0.6
   spinUpClip: {fileID: 0}
   spinLoopClip: {fileID: 0}
+  overheatAfter: 0
+  overheatRest: 3
+  focusBonusPerSec: 0
   fieldRadius: 1
   fieldDuration: 3
+  fieldDamageBonus: 0.2
   fieldSlow: 0.6
   fieldFxPrefab: {fileID: 8900757359031169784, guid: b436a90d7de4b92408835e4ab267952f, type: 3}
   fieldFxRadius: 1.6
@@ -50,13 +71,26 @@ MonoBehaviour:
   pulseSpeed: 6
   coneAngle: 90
   coneLength: 1.6
+  coneWholeArea: 0
+  maxTargets: 0
   viewPrefab: {fileID: 243177689306974363, guid: 342cb0dd45d4a7b47aed16e4fe66be28, type: 3}
+  icon: {fileID: 2800000, guid: f9be39eae07304842b92c1392af962e6, type: 3}
   viewScale: 0.3
   projectilePrefab: {fileID: 2915999268165009512, guid: 708d5157a7b91ea43b0c6c8000f95bb9, type: 3}
   projectileScale: 1
   projectileModelForward: {x: 0, y: 0, z: 1}
   projectileTurnSpeed: 1080
   muzzleFxPrefab: {fileID: 4378007306618465987, guid: 86fa2f27791908d42bf9a0a39ace8d4a, type: 3}
+  fireSound: {fileID: 0}
+  fireSoundLoop: 0
+  fireVolume: 0.5
+  firePitchRange: {x: 0.94, y: 1.06}
+  spinSound: {fileID: 0}
+  spinVolume: 0.3
+  spinSoundShotsPerSec: 5
+  spinBarrel: 
+  barrelCount: 6
+  spinBarrelAxis: {x: 0, y: -1, z: 0}
   coneFxReach: 2.28
   buildClip: {fileID: -623603649343465320, guid: ad4b1e619fbaf6d40867b1fc3dcc57e4, type: 3}
   chargeClip: {fileID: 0}

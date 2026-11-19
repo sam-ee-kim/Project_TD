@@ -39,6 +39,8 @@ namespace TowerDefence.Tests
         {
             config = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameConfig>("Assets/Data/GameConfig.asset"));
             config.upgradeEnabled = true;
+            config.upgradeFree = false; // 차액 계산을 본다 (기본 설정은 임시로 무료)
+            config.labUnlock = false;   // 공학연구소 해금은 LabUnlockTests에서 따로 본다
             config.floorItems.enabled = true;
             config.floorItems.damagePerItem = 0.10f;
             config.floorItems.speedPerItem = 0.08f;
@@ -103,6 +105,37 @@ namespace TowerDefence.Tests
             Assert.IsFalse(towers.Upgrade(towers.GetTowerAt(Site)));
             Assert.AreEqual(cash, player.Cash);
             Assert.AreEqual(t1, towers.GetTowerAt(Site).Def);
+        }
+
+        [Test]
+        public void Upgrade_Branches_PickAnyOption_PaysDifference()
+        {
+            t1.upgradeTo = new[] { "t2", "t3", "missing" }; // 게임에 없는 id는 건너뛴다
+            run.Floor = 7;
+            var options = new System.Collections.Generic.List<TowerDef>();
+            towers.GetUpgrades(t1, options);
+            CollectionAssert.AreEqual(new[] { t2, t3 }, options);
+            Assert.IsTrue(towers.IsUpgradeOption(t1, t3));
+            Assert.IsFalse(towers.IsUpgradeOption(t2, t1), "거꾸로는 안 된다");
+
+            Assert.IsTrue(towers.Build(Site, t1));
+            int cash = player.Cash;
+            Assert.IsTrue(towers.Upgrade(towers.GetTowerAt(Site), t3), "두 번째 갈래로 진화");
+            Assert.AreEqual(t3, towers.GetTowerAt(Site).Def);
+            Assert.AreEqual(cash - (270 - 50), player.Cash, "차액만");
+            Assert.IsFalse(towers.Upgrade(towers.GetTowerAt(Site), t2), "t3에서 t2는 갈래가 아님");
+        }
+
+        [Test]
+        public void Upgrade_FreeFlag_CostsNothing()
+        {
+            config.upgradeFree = true;
+            run.Floor = 3; // t2 해금 층
+            Assert.IsTrue(towers.Build(Site, t1));
+            int cash = player.Cash;
+            Assert.AreEqual(0, towers.GetUpgradeCost(t1, t2));
+            Assert.IsTrue(towers.Upgrade(towers.GetTowerAt(Site)));
+            Assert.AreEqual(cash, player.Cash, "임시 무료 진화");
         }
 
         [Test]

@@ -11,7 +11,7 @@ namespace TowerDefence
 {
     // 마지막 층 조건 스트레스 테스트 자동 진행 + 측정 (작업 10, GDD 8-5). MonoBehaviour가 아니다: GameLoop가 프레임마다 부른다.
     //
-    //   1) startFloor(9층) 마지막 웨이브를 즉시 끝내 층 전환 → Tier 전환(13×13 → 15×15, 스타트 지점 3개) 프레임 시간 측정
+    //   1) startFloor(9층) 마지막 웨이브를 즉시 끝내 층 전환 → Tier 전환(복잡성 4 → 5, 11×11, 스타트 지점 3개) 프레임 시간 측정
     //   2) 10층 휴식 중 타워 towerCount개를 모든 경로를 따라 부지에 균등 배치 (towerPattern 순서 반복, PreferType 타워 섞음)
     //   3) wavesToMeasure개 웨이브를 실제로 진행하며 프레임 시간·GC Alloc·풀 부족 생성·GameObject 수·Tick 시간 기록
     //   4) 보고서(마크다운 표)를 파일로 쓰고 종료

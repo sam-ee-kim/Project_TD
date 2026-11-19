@@ -35,6 +35,8 @@ namespace TowerDefence.EditorTools
                 MuzzleFxBuilder.BuildTier2();
             if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.PlasmaJetPath) == null)
                 MuzzleFxBuilder.BuildFlameTier2();
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.FrozenFxPath) == null)
+                MuzzleFxBuilder.BuildStatusFx();
             if (AssetDatabase.IsValidFolder("Assets/Models/Monsters"))
                 MonsterPrefabBuilder.BuildAll();
             LinkViewPrefabs();
@@ -58,13 +60,13 @@ namespace TowerDefence.EditorTools
             GetOrCreate<MonsterDef>(DataFolder + "/Monsters/normal.asset", d =>
             {
                 d.id = "normal"; d.displayName = "일반 몬스터"; d.category = MonsterCategory.Normal;
-                d.hp = 4f; d.speed = 1f; d.reward = 5; d.nexusDamage = 1;
+                d.hp = 4f; d.speed = 1f; d.reward = 5; d.nexusDamage = 1; d.traits = new[] { "biological" }; // 사버팽: 생물
                 d.spawnIdleSec = 0.5f; d.viewScale = 0.25f; d.aimHeight = 0.25f;
             });
             GetOrCreate<MonsterDef>(DataFolder + "/Monsters/fast.asset", d =>
             {
                 d.id = "fast"; d.displayName = "해머헤드"; d.category = MonsterCategory.Special; // 빠르고 약함 (모델: Monster_Hammerhead)
-                d.hp = 2f; d.speed = 2f; d.reward = 4; d.nexusDamage = 1;
+                d.hp = 2f; d.speed = 2f; d.reward = 4; d.nexusDamage = 1; d.traits = new[] { "biological" }; // 해머헤드: 생물
                 d.viewScale = 0.22f;    // 사버팽(0.25)보다 조금 작게: 전체 크기(대각선) 약 85%. 납작하고 넓은 몸 (폭 약 0.62칸)
                 d.aimHeight = 0.12f;    // 모델 높이 0.71 × 0.22 = 0.16 → 몸통 가운데보다 살짝 위
                 d.walkAnimSpeed = 2f;   // 이동 속도 2배라 걷기도 2배속 (발이 미끄러지지 않게)
@@ -72,15 +74,25 @@ namespace TowerDefence.EditorTools
             GetOrCreate<MonsterDef>(DataFolder + "/Monsters/tank.asset", d =>
             {
                 d.id = "tank"; d.displayName = "바스티온"; d.category = MonsterCategory.Special; // 탱커 (모델: Monster_Bastion)
-                d.hp = 12f; d.speed = 0.5f; d.reward = 10; d.nexusDamage = 2;
+                d.hp = 12f; d.speed = 0.5f; d.reward = 10; d.nexusDamage = 2; d.traits = new[] { "biological" }; // 바스티온: 생물
                 d.viewScale = 0.35f; // 일반(0.25)보다 1.4배: 탱커라 크고 묵직하게 (폭 약 0.86칸)
                 d.aimHeight = 0.39f; // 모델 높이 2.18 × viewScale 0.35의 절반쯤 (몸통 가운데)
             });
+            // 기계 몬스터 4종 (기계 속성: EMP 2배·분진 +30%·감전 +1초). 능력치는 모델 크기에 맞춘 임시값, 웨이브에는 아직 안 나온다
+            GetOrCreate<MonsterDef>(DataFolder + "/Monsters/riflehound.asset", d => ApplyMech(d, "riflehound", "라이플하운드", MonsterCategory.Special,
+                hp: 2f, speed: 1.8f, reward: 4, nexus: 1, scale: 0.32f, height: 1.34f, walk: 1.5f));   // 작고 빠른 사냥개
+            GetOrCreate<MonsterDef>(DataFolder + "/Monsters/rocketcarrier.asset", d => ApplyMech(d, "rocketcarrier", "로켓캐리어", MonsterCategory.Normal,
+                hp: 5f, speed: 0.9f, reward: 6, nexus: 1, scale: 0.33f, height: 1.61f, walk: 1f));     // 보통 체격 운반병
+            GetOrCreate<MonsterDef>(DataFolder + "/Monsters/spiderdigger.asset", d => ApplyMech(d, "spiderdigger", "스파이더디거", MonsterCategory.Special,
+                hp: 9f, speed: 0.7f, reward: 8, nexus: 2, scale: 0.25f, height: 2.71f, walk: 1f));     // 넓은 다리의 굴착기
+            GetOrCreate<MonsterDef>(DataFolder + "/Monsters/urantank.asset", d => ApplyMech(d, "urantank", "우란탱크", MonsterCategory.Special,
+                hp: 16f, speed: 0.45f, reward: 12, nexus: 3, scale: 0.28f, height: 1.8f, walk: 0.8f)); // 가장 단단한 전차
             GetOrCreate<TowerDef>(DataFolder + "/Towers/basic.asset", d =>
             {
                 d.id = "basic"; d.displayName = "기본 타워";
-                d.damage = 1f; d.interval = 1f;
+                d.damage = 1.5f; d.interval = 1f; // 단일 대상 +50% (1 → 1.5)
                 d.burstCount = 2; d.burstGap = 0.12f; // 이점사: 1발 1 피해 × 2
+                d.range = 1; d.frontWidth = 3;        // 사거리: 바로 앞 한 줄 3칸
             });
             // 화염방사: 앞쪽 90° 부채꼴(길이 1.6칸) 안의 적 모두에게 0.2초마다 0.5 틱 피해
             GetOrCreate<TowerDef>(DataFolder + "/Towers/flamethrower.asset", d =>
@@ -107,9 +119,10 @@ namespace TowerDefence.EditorTools
         // 화염방사 타워 값 (만들 때·메뉴로 다시 맞출 때)
         static void ApplyFlamethrowerStats(TowerDef d)
         {
-            d.description = "앞쪽 90° 부채꼴로 불길을 뿜어 범위 안의 적 모두에게 피해를 줍니다. 사거리가 짧습니다.";
-            d.buildCost = 70; d.damage = 0.5f; d.interval = 0.2f; d.range = 2; // 0.2초마다 0.5 틱 피해 (초당 2.5)
+            d.description = "앞쪽 90° 부채꼴로 불길을 뿜어 범위 안의 적 모두에게 피해를 줍니다. 사거리는 바로 앞 한 줄 3칸입니다.";
+            d.buildCost = 70; d.damage = 0.5f; d.interval = 0.2f; d.range = 1; d.frontWidth = 3; // 0.2초마다 0.5 틱 피해 (초당 2.5), 사거리 = 바로 앞 한 줄 3칸
             d.attackType = AttackType.Cone; d.coneAngle = 90f; d.coneLength = 1.6f;
+            d.coneWholeArea = true; d.maxTargets = 5; // 인식은 앞 한 줄 3칸, 피해는 발사구에서 나가는 부채꼴 안 최대 5마리
             d.lockMode = TargetLock.Lock; d.targetRule = TargetRule.First;
         }
 
@@ -118,7 +131,7 @@ namespace TowerDefence.EditorTools
         {
             d.id = "lightning"; d.displayName = "번개 타워";
             d.description = "구슬에 전기를 모았다가 몬스터에게 번개를 날립니다. 한 방이 강하고 사거리가 깁니다.";
-            d.buildCost = 90; d.damage = 4f; d.interval = 1f; d.range = 3;
+            d.buildCost = 90; d.damage = 6f; d.interval = 1f; d.range = 3; // 단일 대상 +50% (4 → 6)
             d.chargeTime = 0.96f; d.burstCount = 1;
             d.attackType = AttackType.Projectile; d.projectileSpeed = 7f; // 날아가는 번개가 눈에 보이게 d.projectileTurnSpeed = 1440f;
             d.projectileScale = 1f; d.projectileModelForward = Vector3.forward;
@@ -137,6 +150,7 @@ namespace TowerDefence.EditorTools
             d.projectileScale = 1f; d.projectileModelForward = Vector3.forward;
             d.lockMode = TargetLock.Lock; d.targetRule = TargetRule.First;
             d.fieldRadius = 1f; d.fieldDuration = 3f; d.fieldSlow = 0.6f;
+            d.fieldDamageBonus = 0.2f; // 필드 안 몬스터는 모든 타워 피해를 20% 더 받는다 (조합 유도)
             d.fieldFxRadius = MuzzleFxBuilder.NanoFieldModelRadius;
             d.viewScale = 0.3f;
         }
@@ -146,7 +160,7 @@ namespace TowerDefence.EditorTools
         {
             d.id = "emp"; d.displayName = "EMP 타워";
             d.description = "전기를 모았다가 타워 둘레로 원형 전자파를 내보냅니다. 퍼지는 파동에 닿은 몬스터 모두가 피해를 입고, 기계 몬스터는 2배 피해를 입습니다.";
-            d.buildCost = 100; d.damage = 1f; d.interval = 1.6f; d.range = 2;
+            d.buildCost = 100; d.damage = 2f; d.interval = 1.6f; d.range = 2; // 피해 1 → 2
             d.bonusTrait = "mechanical"; d.bonusMultiplier = 2f; // 기계 속성 2배
             d.chargeTime = 0.42f; d.burstCount = 1;
             d.attackType = AttackType.Pulse;
@@ -156,12 +170,13 @@ namespace TowerDefence.EditorTools
         }
 
         // ---------- 2단계 타워 (값은 임시, Docs/TowerTable 참고) ----------
-        // 공통: tier 2, showInPalette = true (테스트). 진화 전용으로 돌릴 때 showInPalette를 끄고 1단계의 upgradeTo에 연결한다.
+        // 공통: tier 2, 진화 전용 (건축 목록에 없음). 1단계 타워의 upgradeTo(테크트리)로만 얻는다 (LinkTechTree).
         static void Tier2Common(TowerDef d)
         {
             d.tier = 2;
             d.unlockFloor = 1;
-            d.showInPalette = true;
+            d.unlockPrice = 1; // 공학연구소 해금 가격 (M1반도체). 미니건·분진·백린 2, 플라즈마 3은 각 타워에서
+            d.showInPalette = false;
             d.attackType = AttackType.Projectile;
             d.lockMode = TargetLock.Lock; d.targetRule = TargetRule.First;
             d.projectileScale = 1f; d.projectileModelForward = Vector3.forward;
@@ -173,10 +188,12 @@ namespace TowerDefence.EditorTools
         static void ApplyMinigunStats(TowerDef d)
         {
             Tier2Common(d);
-            d.id = "minigun"; d.displayName = "미니건 타워";
-            d.description = "총열 6개가 돌아가며 쏠수록 빨라집니다. 1.5초 동안 예열하면 초당 5발을 퍼붓습니다.";
-            d.buildCost = 150; d.damage = 1f; d.interval = 0.2f; d.range = 2;
-            d.spinUpTime = 1.5f; d.spinUpStartInterval = 0.6f; // 예열 클립(Fire_Warmup) 길이와 같게
+            d.id = "minigun"; d.displayName = "미니건 타워"; d.unlockPrice = 2;
+            d.description = "총열 6개가 돌아가며 쏠수록 빨라집니다. 1.5초 동안 예열하면 초당 16발을 퍼붓습니다.";
+            d.buildCost = 150; d.damage = 1.5f; d.interval = 1f / 16f; d.range = 2; // 최고 연사 초당 16발, 단일 대상 +50% (1 → 1.5)
+            d.spinUpTime = 2f; d.spinUpStartInterval = 0.6f; // 예열 2초
+            d.overheatAfter = 5f; d.overheatRest = 3f;        // 최고 연사 5초 → 과열 3초 휴식 → 예열부터 (한 주기 10초)
+            d.focusBonusPerSec = 0.2f;                        // 같은 대상을 계속 쏘면 1초마다 한 발 피해 +0.2
             d.projectileSpeed = 16f; d.projectileTurnSpeed = 1440f;
         }
 
@@ -185,8 +202,8 @@ namespace TowerDefence.EditorTools
         {
             Tier2Common(d);
             d.id = "electro"; d.displayName = "전기 타워";
-            d.description = "코일로 가속한 플라즈마 탄을 한 발씩 쏩니다. 전기 속성 (이상효과는 준비 중).";
-            d.buildCost = 140; d.damage = 4f; d.interval = 1.2f; d.range = 3;
+            d.description = "코일로 가속한 전기탄을 한 발씩 쏩니다. 맞은 몬스터에 정전기가 쌓여 3번이면 1초 감전(정지), 기계 몬스터는 2초.";
+            d.buildCost = 140; d.damage = 6f; d.interval = 1.2f; d.range = 3; // 단일 대상 +50% (4 → 6)
             d.projectileSpeed = 12f; d.projectileTurnSpeed = 1080f;
         }
 
@@ -195,8 +212,8 @@ namespace TowerDefence.EditorTools
         {
             Tier2Common(d);
             d.id = "cryo"; d.displayName = "냉기 타워";
-            d.description = "냉각한 얼음 탄을 한 발씩 쏩니다. 냉기 속성 (이상효과는 준비 중).";
-            d.buildCost = 130; d.damage = 3f; d.interval = 1f; d.range = 2;
+            d.description = "냉각한 서리탄을 한 발씩 쏩니다. 맞은 몬스터에 서리가 쌓여 3번이면 1초 얼음(정지), 생물 몬스터는 2초.";
+            d.buildCost = 130; d.damage = 4.5f; d.interval = 1f; d.range = 2; // 단일 대상 +50% (3 → 4.5)
             d.projectileSpeed = 10f; d.projectileTurnSpeed = 1080f;
         }
 
@@ -207,6 +224,7 @@ namespace TowerDefence.EditorTools
             d.attackType = AttackType.Cone;
             d.interval = 0.2f;
             d.coneAngle = angle; d.coneLength = length; d.coneFxReach = length;
+            d.coneWholeArea = true; d.maxTargets = 5; // 발사구에서 나가는 부채꼴 안 최대 5마리 (인식 범위와 따로)
             d.range = Mathf.CeilToInt(length);
         }
 
@@ -214,8 +232,8 @@ namespace TowerDefence.EditorTools
         static void ApplyDustStats(TowerDef d)
         {
             Tier2FlameCommon(d, MuzzleFxBuilder.DustArc, MuzzleFxBuilder.DustReach);
-            d.id = "dust"; d.displayName = "혼합분진 타워";
-            d.description = "가연성 분진을 섞은 짧고 넓은 불길을 뿜습니다. 튀는 불티와 분진 알갱이가 섞여 있습니다 (분진 자가폭발은 준비 중).";
+            d.id = "dust"; d.displayName = "혼합분진 타워"; d.unlockPrice = 2;
+            d.description = "가연성 분진을 섞은 짧고 넓은 불길을 뿜습니다. 기계 몬스터에 30% 추가 피해. 분진 5스택이면 공격력 50% 폭발 피해 (5초마다).";
             d.buildCost = 160; d.damage = 0.7f;
         }
 
@@ -223,8 +241,8 @@ namespace TowerDefence.EditorTools
         static void ApplyPhosphorusStats(TowerDef d)
         {
             Tier2FlameCommon(d, MuzzleFxBuilder.PhosphorusArc, MuzzleFxBuilder.PhosphorusReach);
-            d.id = "phosphorus"; d.displayName = "혼합백린 타워";
-            d.description = "백린을 섞은 주황 불길을 뿜습니다. 하얗게 타는 백린 덩어리와 짙은 흰 연기가 남습니다 (연소 이상효과는 준비 중).";
+            d.id = "phosphorus"; d.displayName = "혼합백린 타워"; d.unlockPrice = 2;
+            d.description = "백린을 섞은 주황 불길을 뿜습니다. 생물 몬스터에 30% 추가 피해. 맞을수록 백린이 쌓여 계속 탑니다 (스택당 초당 공격력 0.1%, 최대 20%).";
             d.buildCost = 170; d.damage = 0.8f;
         }
 
@@ -232,7 +250,7 @@ namespace TowerDefence.EditorTools
         static void ApplyPlasmaStats(TowerDef d)
         {
             Tier2FlameCommon(d, MuzzleFxBuilder.PlasmaArc, MuzzleFxBuilder.PlasmaReach);
-            d.id = "plasma"; d.displayName = "플라즈마 타워";
+            d.id = "plasma"; d.displayName = "플라즈마 타워"; d.unlockPrice = 3;
             d.description = "자기장으로 모은 플라즈마를 정면 일직선으로 쏩니다. 헤드가 돌지 않고, 바라보는 방향 3칸 위의 적을 모두 태웁니다.";
             d.buildCost = 180; d.damage = 1f;
             d.attackType = AttackType.Line; d.range = 3; // 헤드 고정 일직선
@@ -507,6 +525,12 @@ namespace TowerDefence.EditorTools
             LinkTier2("dust", "Tower_T2_Dust", null, MuzzleFxBuilder.DustSprayPath, null, "@Fire");
             LinkTier2("phosphorus", "Tower_T2_Phosphorus", null, MuzzleFxBuilder.PhosphorusSprayPath, null, "@Fire");
             LinkTier2("plasma", "Tower_T2_Plasma", null, MuzzleFxBuilder.PlasmaJetPath, null, "@Fire");
+            // 테크트리: 듀얼샷 → 냉기(서리탄) · 전기 · 미니건 / 화염방사 → 플라즈마 · 혼합분진 · 혼합백린
+            LinkTechTree("basic", "cryo", "electro", "minigun");
+            LinkTechTree("flamethrower", "plasma", "dust", "phosphorus");
+            ApplyStatusEffects();
+            SetupTileThemes();
+            LinkSounds();
             var minigun = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/minigun.asset");
             if (minigun != null)
             {
@@ -546,6 +570,11 @@ namespace TowerDefence.EditorTools
                 fast.viewPrefab = hammerhead;
                 EditorUtility.SetDirty(fast);
             }
+            // 기계 몬스터 4종 (모델 이름 = Monster_ + 프리팹)
+            LinkMonster("riflehound", "Monster_RifleHound");
+            LinkMonster("rocketcarrier", "Monster_RocketCarrier");
+            LinkMonster("spiderdigger", "Monster_SpiderDigger");
+            LinkMonster("urantank", "Monster_UranTank");
             // 탱커 몬스터 = 바스티온
             var tank = AssetDatabase.LoadAssetAtPath<MonsterDef>(DataFolder + "/Monsters/tank.asset");
             var bastion = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monsters/Monster_Bastion.prefab");
@@ -567,6 +596,118 @@ namespace TowerDefence.EditorTools
             if (d.muzzleFxPrefab == null) d.muzzleFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(muzzle);
             if (hit != null && d.hitFxPrefab == null) d.hitFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(hit);
             if (fireSuffix != null && d.fireClip == null) d.fireClip = FirstClip(TowerModelFolder + "/" + model + fireSuffix + ".fbx");
+            EditorUtility.SetDirty(d);
+        }
+
+        // 이상효과 (타워마다 1개, 값은 기획 그대로). 메뉴로 다시 돌리면 이 값으로 덮어쓴다.
+        //   화염방사: 5번 맞으면 화상 1스택, 3스택이면 공격력 20% 추가 피해 후 제거 (쿨타임 1초)
+        //   혼합분진: 기계 +30%. 맞을 때마다 분진 1스택, 5스택이면 공격력 50% 추가 피해 후 제거 (쿨타임 5초)
+        //   혼합백린: 생물 +30%. 맞을 때마다 백린 1스택, 1초마다 공격력 × 0.1% × 스택 (최대 20%)
+        //   냉기(서리탄): 서리 3스택이면 얼음 1초 정지 (생물 +1초)
+        //   전기(전기탄): 정전기 3스택이면 감전 1초 정지 (기계 +1초)
+        [MenuItem("TowerDefence/Setup/Status Effects")]
+        public static void ApplyStatusEffects()
+        {
+            SetStatus("flamethrower", null, 1f, new StatusEffect { kind = StatusKind.Burn, hitsPerStack = 5, procStacks = 3, procDamageRatio = 0.2f, cooldown = 1f });
+            SetStatus("dust", "mechanical", 1.3f, new StatusEffect { kind = StatusKind.Dust, procStacks = 5, procDamageRatio = 0.5f, cooldown = 5f, splashRadius = 1f, splashMaxTargets = 5 });
+            SetStatus("phosphorus", "biological", 1.3f, new StatusEffect { kind = StatusKind.Phosphorus, dotPerStack = 0.001f, dotMax = 0.2f, dotInterval = 1f, splashRadius = 0.5f, splashMaxTargets = 5 });
+            SetStatus("cryo", null, 1f, new StatusEffect { kind = StatusKind.Frost, procStacks = 2, stunSec = 1f, stunBonusTrait = "biological", stunBonusSec = 1f,
+                fxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.FrozenFxPath) });
+            SetStatus("electro", null, 1f, new StatusEffect { kind = StatusKind.Static, procStacks = 2, stunSec = 1f, stunBonusTrait = "mechanical", stunBonusSec = 1f,
+                fxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MuzzleFxBuilder.ShockedFxPath) });
+            AssetDatabase.SaveAssets();
+        }
+
+        static void SetStatus(string id, string bonusTrait, float bonusMul, StatusEffect status)
+        {
+            var d = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/" + id + ".asset");
+            if (d == null)
+                return;
+            d.status = status;
+            if (bonusTrait != null)
+            {
+                d.bonusTrait = bonusTrait;
+                d.bonusMultiplier = bonusMul;
+            }
+            EditorUtility.SetDirty(d);
+        }
+
+        // 발사음 (Assets/Audio, 직접 합성한 원본 소리): 듀얼샷 = 한 발마다, 화염방사 = 쏘는 동안 반복
+        [MenuItem("TowerDefence/Setup/Tower Sounds")]
+        public static void LinkSounds()
+        {
+            SetSound("basic", "Assets/Audio/SFX_DualShot.wav", false, 0.65f); // 대구경 포성: 저음이라 조금 크게
+            SetSound("flamethrower", "Assets/Audio/SFX_Flamethrower_Loop.wav", true, 0.5f);
+            SetSound("minigun", "Assets/Audio/SFX_Minigun.wav", false, 0.3f); // 초당 16발로 겹쳐 울리니 작게
+            var minigun = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/minigun.asset");
+            var spin = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX_Minigun_Spin_Loop.wav");
+            if (minigun != null && spin != null)
+            {
+                minigun.spinSound = spin; // 총열 회전음 (예열 정도에 따라 음 높이·볼륨)
+                minigun.spinVolume = 0.24f; // 가까이 들리게 조금 키움 (발사음은 가리지 않게)
+                minigun.spinSoundShotsPerSec = 16f; // 회전음 클립: 초당 16박 (한 발에 1박)
+                minigun.spinBarrel = "MG_Barrel_Spin"; // 한 발에 총열 한 칸 (초당 16발 = 초당 960°)
+                minigun.barrelCount = 6;
+                minigun.spinBarrelAxis = new Vector3(0f, -1f, 0f);
+                EditorUtility.SetDirty(minigun);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        static void SetSound(string id, string clipPath, bool loop, float volume)
+        {
+            var d = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/" + id + ".asset");
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(clipPath);
+            if (d == null || clip == null)
+                return;
+            d.fireSound = clip;
+            d.fireSoundLoop = loop;
+            d.fireVolume = volume;
+            EditorUtility.SetDirty(d);
+            // 짧은 발사음은 메모리에 풀어 두고(바로 재생), 긴 반복음은 압축한 채로
+            var importer = (AudioImporter)AssetImporter.GetAtPath(clipPath);
+            var settings = importer.defaultSampleSettings;
+            settings.loadType = loop ? AudioClipLoadType.CompressedInMemory : AudioClipLoadType.DecompressOnLoad;
+            importer.defaultSampleSettings = settings;
+            importer.SaveAndReimport();
+        }
+
+        // 기계 몬스터 값: 모델 높이 × viewScale의 절반을 조준 높이로 (몸통 가운데)
+        static void ApplyMech(MonsterDef d, string id, string name, MonsterCategory category, float hp, float speed, int reward, int nexus,
+            float scale, float height, float walk)
+        {
+            d.id = id; d.displayName = name; d.category = category;
+            d.hp = hp; d.speed = speed; d.reward = reward; d.nexusDamage = nexus;
+            d.traits = new[] { "mechanical" };
+            d.viewScale = scale;
+            d.aimHeight = height * scale * 0.5f;
+            d.walkAnimSpeed = walk;
+            d.spawnIdleSec = 0f;
+        }
+
+        static void LinkMonster(string id, string prefabName)
+        {
+            var d = AssetDatabase.LoadAssetAtPath<MonsterDef>(DataFolder + "/Monsters/" + id + ".asset");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Monsters/" + prefabName + ".prefab");
+            if (d == null || prefab == null || d.viewPrefab != null)
+                return;
+            d.viewPrefab = prefab;
+            EditorUtility.SetDirty(d);
+        }
+
+        // 1단계 타워의 진화 갈래 (이미 있는 갈래는 그대로 두고 빠진 것만 앞에 넣는다: 밸런스 테스트 씬의 gun2·flame2와 함께 쓴다)
+        static void LinkTechTree(string baseId, params string[] branches)
+        {
+            var d = AssetDatabase.LoadAssetAtPath<TowerDef>(DataFolder + "/Towers/" + baseId + ".asset");
+            if (d == null)
+                return;
+            var list = new System.Collections.Generic.List<string>(branches);
+            if (d.upgradeTo != null)
+                foreach (var id in d.upgradeTo)
+                    if (!list.Contains(id))
+                        list.Add(id);
+            d.upgradeTo = list.ToArray();
+            d.tier = 1;
             EditorUtility.SetDirty(d);
         }
 
@@ -622,6 +763,37 @@ namespace TowerDefence.EditorTools
             if (path == null) path = Placeholder("Placeholder_Path", new Color(0.55f, 0.45f, 0.33f), false);
             if (buildable == null) buildable = Placeholder("Placeholder_Grass", new Color(0.45f, 0.72f, 0.38f), false);
             if (blocked.Length == 0) blocked = new[] { Placeholder("Placeholder_GrassTree", new Color(0.3f, 0.55f, 0.28f), true) };
+        }
+
+        // 타일 테마 (Data/TileThemes): 풀밭 = 지금 쓰는 타일, 기계 = Models/Tiles/Mech (시멘트 길 · 합판 · 합판+건물/장식).
+        // 기계 테마는 준비만 해 둔다 (MapGenerator.UseTheme으로 바꿀 수 있음, 지금 게임은 풀밭만).
+        [MenuItem("TowerDefence/Setup/Tile Themes")]
+        public static void SetupTileThemes()
+        {
+            EnsureFolder(DataFolder + "/TileThemes");
+            ResolveTiles(out var path, out var buildable, out var blocked);
+            var grass = GetOrCreate<TileTheme>(DataFolder + "/TileThemes/Grass.asset", null);
+            grass.displayName = "풀밭";
+            grass.pathTile = path;
+            grass.buildableTile = buildable;
+            grass.blockedTiles = blocked;
+            EditorUtility.SetDirty(grass);
+
+            var mech = GetOrCreate<TileTheme>(DataFolder + "/TileThemes/Mech.asset", null);
+            mech.displayName = "기계";
+            mech.pathTile = TileModel("Mech/CementBlockTile");
+            mech.buildableTile = TileModel("Mech/PlywoodTile");
+            var list = new List<GameObject>();
+            for (int i = 1; i <= 5; i++)
+            {
+                var c = TileModel("Mech/PlywoodTile_Center" + i);
+                if (c != null) list.Add(c);
+                var b = TileModel("Mech/PlywoodTile_Building" + i);
+                if (b != null) list.Add(b);
+            }
+            mech.blockedTiles = list.ToArray();
+            EditorUtility.SetDirty(mech);
+            AssetDatabase.SaveAssets();
         }
 
         // 1×0.4×1, 피벗이 바닥인 임시 타일. 콜라이더 없음 (물리 사용 금지 규칙).
@@ -809,7 +981,7 @@ namespace TowerDefence.EditorTools
             var so = new SerializedObject(loop);
             so.FindProperty("config").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameConfig>(DataFolder + "/GameConfig.asset");
             so.FindProperty("mapGenRules").objectReferenceValue = AssetDatabase.LoadAssetAtPath<MapGenRules>(DataFolder + "/MapGenRules.asset");
-            var ids = new[] { "normal", "fast", "tank" };
+            var ids = new[] { "normal", "fast", "tank", "riflehound", "rocketcarrier", "spiderdigger", "urantank" };
             var mons = so.FindProperty("monsterDefs");
             mons.arraySize = ids.Length;
             for (int i = 0; i < ids.Length; i++)
@@ -840,7 +1012,7 @@ namespace TowerDefence.EditorTools
         }
 
         // ---------- 스트레스 테스트 (작업 10) ----------
-        // 게임 데이터는 건드리지 않고 복사본(Assets/Data/Stress)으로 마지막 층(10층: 15×15, 복잡성 5, 스타트 지점 3개) 조건을 만든다.
+        // 게임 데이터는 건드리지 않고 복사본(Assets/Data/Stress)으로 마지막 층(10층: 11×11, 복잡성 5, 스타트 지점 3개) 조건을 만든다.
 
         const string StressFolder = DataFolder + "/Stress";
         const string StressScenePath = "Assets/Scenes/StressTest.unity";

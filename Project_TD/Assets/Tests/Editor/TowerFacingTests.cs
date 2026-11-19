@@ -89,6 +89,25 @@ namespace TowerDefence.Tests
         }
 
         [Test]
+        public void FrontWidth_CoversOnlyThreeCellsOfFrontRow()
+        {
+            var def = ScriptableObject.CreateInstance<TowerDef>();
+            def.range = 2;
+            def.frontWidth = 3;
+            def.attackType = AttackType.Cone; // 공격 방식의 모양(부채꼴)보다 frontWidth가 우선
+            def.coneLength = 1.6f;
+            var cells = new List<Vector2Int>();
+            for (int dx = -3; dx <= 3; dx++)
+                for (int dy = -3; dy <= 3; dy++)
+                    if (TowerFacing.InArea(def, 0, dx, dy)) // 0 = +y를 바라봄
+                        cells.Add(new Vector2Int(dx, dy));
+            CollectionAssert.AreEquivalent(new[] { new Vector2Int(-1, 1), new Vector2Int(0, 1), new Vector2Int(1, 1) }, cells);
+            Assert.IsTrue(TowerFacing.InArea(def, 1, 1, -1), "+x를 보면 앞 줄 = x+1");
+            Assert.IsFalse(TowerFacing.InArea(def, 1, 2, 0), "두 줄 앞은 제외");
+            Object.DestroyImmediate(def);
+        }
+
+        [Test]
         public void SideRow_IsExcluded_AndBestFacingCoversMostPath()
         {
             var site = new Vector2Int(2, 0);

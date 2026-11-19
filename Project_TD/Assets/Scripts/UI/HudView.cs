@@ -23,13 +23,19 @@ namespace TowerDefence
 
         Text guideText;
 
-        // 회수 목록 줄: 종류별 1줄 ("기본 타워 ×3"). 줄은 처음 등장할 때 1번 만들고 이후 글자만 바꾼다.
+        // 회수 목록 칸: 종류별 아이콘 1칸 (타워 모델 아이콘 + 이름 + ×개수). 처음 등장할 때 1번 만들고 이후 개수만 바꾼다.
+        // 클릭 → [재건축]/[철거] 팝업, 끌어서 맵에 놓기 → 그 자리에 무료 재건축 (TowerSlot: 건축 목록과 같은 방식).
         sealed class RecoveryRow
         {
             public GameObject Root;
-            public Text Label;
-            public int Count = -1;
+            public GameObject Badge; // 아이콘 안 우측 하단 "x2" (2개 이상일 때만)
+            public Text Count;
+            public int Shown = -1;
         }
+
+        const int RecoveryColumns = 2;
+        const float RecoverySlotW = 130f, RecoverySlotH = 160f, RecoveryGap = 12f, RecoveryTop = 62f;
+        static readonly Color RecoverySlotColor = new Color(0.16f, 0.18f, 0.22f, 0.95f);
 
         readonly System.Collections.Generic.Dictionary<TowerDef, RecoveryRow> recoveryRows = new System.Collections.Generic.Dictionary<TowerDef, RecoveryRow>();
 
@@ -133,7 +139,7 @@ namespace TowerDefence
             // --- 시작 문구 (Ready에서만) ---
             var promptRt = BasicUi.Rect("StartPrompt", root, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(900f, 70f));
             BasicUi.OwnCanvas(promptRt);
-            BasicUi.Panel(promptRt, new Color(0f, 0f, 0f, 0.6f));
+            BasicUi.Panel(promptRt, new Color(0f, 0f, 0f, 0.6f)).raycastTarget = false; // 문구 위를 눌러도 시작되게 (UI 위 클릭은 시작으로 안 친다)
             BasicUi.Label(promptRt, "아무 곳이나 클릭 시 게임 시작", 34, TextAnchor.MiddleCenter, Color.white);
             startPrompt = promptRt.gameObject;
 
@@ -164,6 +170,9 @@ namespace TowerDefence
             result = resultRt.gameObject;
             result.SetActive(false);
         }
+
+        // 마지막 층 수가 바뀔 때 (맵 제작 씬: 테스트 판은 1층짜리)
+        public void SetFinalFloor(int floor) => finalFloor = floor;
 
         public void SetFloor(int floor)
         {
@@ -258,8 +267,8 @@ namespace TowerDefence
                 guideText.text = text;
         }
 
-        // 회수 목록 한 종류의 남은 수. 0이면 그 줄을 숨기고, 모든 줄이 숨으면 패널도 숨긴다.
-        public void SetRecoveryCount(TowerDef def, int count, Action onClick)
+        // 회수 목록 한 종류의 남은 수. 0이면 그 칸을 숨기고(남은 칸은 앞으로 당긴다), 모든 칸이 숨으면 패널도 숨긴다.
+        public void SetRecoveryCount(TowerDef def, int count, Action onClick, Texture icon, Action<TowerDef> onBeginDrag)
         {
             if (RecoveryPanel == null || def == null)
                 return;
@@ -267,23 +276,61 @@ namespace TowerDefence
             {
                 if (count <= 0)
                     return;
-                float y = -70f - recoveryRows.Count * 70f;
-                var button = BasicUi.Button(RecoveryPanel, "Recovery_" + def.id, "", new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(270f, 60f), onClick, out var label);
-                row = new RecoveryRow { Root = button.gameObject, Label = label };
+                row = CreateRecoverySlot(def, onClick, icon, onBeginDrag);
                 recoveryRows.Add(def, row);
             }
-            if (row.Count != count)
+            if (row.Shown != count)
             {
-                row.Count = count;
-                if (count > 0)
-                    row.Label.text = $"{def.displayName} ×{count}";
+                row.Shown = count;
+                if (count > 1)
+                    row.Count.text = $"x{count}";
+                SetActive(row.Badge, count > 1);
             }
             SetActive(row.Root, count > 0);
+            LayoutRecovery();
+        }
 
-            bool any = false;
+        RecoveryRow CreateRecoverySlot(TowerDef def, Action onClick, Texture icon, Action<TowerDef> onBeginDrag)
+        {
+            var rt = BasicUi.Rect("Recovery_" + def.id, RecoveryPanel, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(RecoverySlotW, RecoverySlotH));
+            BasicUi.Panel(rt, RecoverySlotColor); // 클릭·드래그를 받는 영역
+            // 건축 목록 칸과 같은 모양: 위에 타워 모델 아이콘, 아래 이름. 개수는 아이콘 안 우측 하단 배지
+            var iconRt = BasicUi.Rect("Icon", rt, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -6f), new Vector2(RecoverySlotW - 12f, RecoverySlotW - 12f));
+            var image = iconRt.gameObject.AddComponent<RawImage>();
+            image.raycastTarget = false;
+            image.texture = icon;
+            image.enabled = icon != null;
+            var nameRt = BasicUi.Rect("Name", rt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 6f), new Vector2(RecoverySlotW - 6f, 30f));
+            BasicUi.Label(nameRt, def.displayName, 18, TextAnchor.MiddleCenter, Color.white);
+            var badge = BasicUi.Rect("Badge", iconRt, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-2f, 2f), new Vector2(50f, 30f));
+            BasicUi.Panel(badge, new Color(0.04f, 0.05f, 0.07f, 0.85f)).raycastTarget = false;
+            var countText = BasicUi.Label(badge, "", 22, TextAnchor.MiddleCenter, Accent);
+            countText.fontStyle = FontStyle.Bold;
+            badge.gameObject.SetActive(false);
+
+            var slot = rt.gameObject.AddComponent<TowerSlot>();
+            slot.Def = def;
+            slot.Clicked = _ => onClick?.Invoke();
+            slot.DragStarted = onBeginDrag;
+            return new RecoveryRow { Root = rt.gameObject, Badge = badge.gameObject, Count = countText };
+        }
+
+        // 보이는 칸만 2열로 채우고, 패널 높이를 칸 수에 맞춘다.
+        void LayoutRecovery()
+        {
+            int i = 0;
             foreach (var r in recoveryRows.Values)
-                any |= r.Count > 0;
-            SetActive(RecoveryPanel.gameObject, any);
+            {
+                if (r.Shown <= 0)
+                    continue;
+                int col = i % RecoveryColumns, line = i / RecoveryColumns;
+                float x = (col - (RecoveryColumns - 1) * 0.5f) * (RecoverySlotW + RecoveryGap);
+                ((RectTransform)r.Root.transform).anchoredPosition = new Vector2(x, -RecoveryTop - line * (RecoverySlotH + RecoveryGap));
+                i++;
+            }
+            int lines = (i + RecoveryColumns - 1) / RecoveryColumns;
+            RecoveryPanel.sizeDelta = new Vector2(RecoveryPanel.sizeDelta.x, RecoveryTop + Mathf.Max(1, lines) * (RecoverySlotH + RecoveryGap) + 8f);
+            SetActive(RecoveryPanel.gameObject, i > 0);
         }
 
         // 회수 목록 만료·새 판: 줄과 패널을 모두 숨긴다.
@@ -291,7 +338,7 @@ namespace TowerDefence
         {
             foreach (var r in recoveryRows.Values)
             {
-                r.Count = 0;
+                r.Shown = 0;
                 SetActive(r.Root, false);
             }
             if (RecoveryPanel != null)

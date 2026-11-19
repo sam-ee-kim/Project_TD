@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>맵 규칙 제작 도구</title>
+<style>
+:root{--bg:#f4f2ed;--panel:#fffdf8;--ink:#24221d;--dim:#6e695e;--line:#dcd6c9;--accent:#b4521f;--accent-ink:#fff;
+--empty:#5d7a4f;--site:#a9cf86;--star:#e8c547;--path:#d9b98a;--spawn:#e06c6c;--exit:#8b62c9;--block:#3e4a36;--range:#2f86d6;--rangeAll:#e9852f;--bad:#c93b3b;--ok:#2e8a4f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1916;--panel:#23211d;--ink:#ebe6dc;--dim:#a29b8d;--line:#3b3832;--accent:#e58a52;--accent-ink:#1a1916}}
+:root[data-theme="dark"]{--bg:#1a1916;--panel:#23211d;--ink:#ebe6dc;--dim:#a29b8d;--line:#3b3832;--accent:#e58a52;--accent-ink:#1a1916}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Pretendard","Malgun Gothic",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:17px;margin:0 8px 0 0}
+header .sp{flex:1}
+button,select,input[type=text],input[type=number],textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr) 360px;gap:0;min-height:calc(100vh - 54px)}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:12px 14px;overflow:auto;max-height:calc(100vh - 54px)}
+aside.right{border-right:0;border-left:1px solid var(--line)}
+h2{font-size:14px;margin:16px 0 8px;color:var(--dim);font-weight:700;letter-spacing:.02em}
+h2:first-child{margin-top:0}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tools button{text-align:left;padding:7px 9px}
+.tools button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.hint{color:var(--dim);font-size:12.5px;margin:6px 0}
+.pal{display:grid;grid-template-columns:1fr;gap:4px}
+.pal button{display:flex;justify-content:space-between;gap:6px;text-align:left;padding:5px 8px}
+.pal button.on{outline:2px solid var(--accent);outline-offset:-2px}
+.pal small{color:var(--dim)}
+main{padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center}
+.bar label{display:flex;gap:4px;align-items:center;color:var(--dim)}
+canvas{background:var(--panel);border:1px solid var(--line);border-radius:8px;touch-action:none;max-width:100%}
+#tip{min-height:42px;color:var(--dim);font-size:13px;text-align:center;max-width:720px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600}
+td.r,th.r{text-align:right}
+.barcell{position:relative}
+.barcell span.b{position:absolute;left:0;top:3px;bottom:3px;background:var(--accent);opacity:.22;border-radius:3px}
+.barcell b{position:relative}
+.viol li{color:var(--bad)}.okmsg{color:var(--ok);font-weight:600}
+ul{margin:4px 0;padding-left:18px}
+.chip{display:inline-block;padding:1px 7px;border-radius:10px;font-size:12px;border:1px solid var(--line);margin:1px 2px}
+.tag{display:flex;gap:6px;align-items:center;margin:3px 0}
+.tag input[type=text]{flex:1;min-width:0}
+.tag .sw{width:18px;height:18px;border-radius:4px;border:1px solid var(--line);flex:none}
+.tag.on{outline:2px solid var(--accent);border-radius:6px;outline-offset:1px}
+textarea{width:100%;min-height:70px;resize:vertical}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--dim);justify-content:center}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+@media (max-width:1100px){.layout{grid-template-columns:1fr}aside{max-height:none;border:0;border-bottom:1px solid var(--line)}aside.right{border-left:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>맵 규칙 제작 도구</h1>
+  <label>맵 단계 <select id="stage"><option value="1">1단계 · 1~2층 · 7×7</option><option value="2" selected>2단계 · 3~4층 · 9×9</option><option value="3">3단계 · 5~6층 · 11×11</option><option value="4">4단계 · 7~8층 · 11×11</option><option value="5">5단계 · 9~10층 · 11×11</option></select></label>
+  <label>크기 <select id="size"><option>7</option><option selected>9</option><option>11</option><option>13</option><option>15</option></select></label>
+  <button id="newMap">새 맵</button>
+  <button id="sample">예시 맵</button>
+  <button id="undo" title="Ctrl+Z">되돌리기</button>
+  <span class="sp"></span>
+  <button id="importBtn">불러오기</button>
+  <button id="exportBtn" class="primary">JSON 내보내기</button>
+  <button id="pngBtn">PNG 저장</button>
+  <button id="themeBtn">밝게/어둡게</button>
+  <input id="fileIn" type="file" accept=".json,application/json" hidden>
+</header>
+<div class="layout">
+<aside>
+  <h2>도구</h2>
+  <div class="tools" id="tools">
+    <button data-tool="main">본선 그리기</button>
+    <button data-tool="branch">지선 그리기</button>
+    <button data-tool="tower">타워 놓기</button>
+    <button data-tool="block">부지 막기</button>
+    <button data-tool="tag">구역 칠하기</button>
+    <button data-tool="erase">경로 지우기</button>
+  </div>
+  <p class="hint" id="toolHint"></p>
+
+  <h2>타워 (게임 데이터 기준)</h2>
+  <div class="pal" id="palette"></div>
+  <p class="hint">타워 놓기: 부지 클릭 = 설치, 설치된 타워 클릭 = 선택, R = 방향 회전, 우클릭 = 철거. G = 모든 타워 사거리.</p>
+
+  <h2>구역 태그</h2>
+  <div id="tags"></div>
+  <div class="row"><button id="addTag">태그 추가</button></div>
+  <p class="hint">"플라즈마 유도 직선", "감속 구간"처럼 의도를 칸에 칠해 둡니다. 구역 칠하기 도구로 칠하고, 다시 칠하면 지워집니다.</p>
+
+  <h2>메모</h2>
+  <textarea id="notes" placeholder="이 맵에서 유도하려는 조합, 규칙 아이디어"></textarea>
+</aside>
+
+<main>
+  <div class="bar">
+    <label>보기 <select id="view">
+      <option value="none">기본</option>
+      <option value="dps">경로 피해 지도 (설치한 타워)</option>
+      <option value="best">선택 타워 최적 부지</option>
+      <option value="segments">직선 구간 번호</option>
+    </select></label>
+    <label><input type="checkbox" id="showAll"> 모든 사거리 (G)</label>
+    <label><input type="checkbox" id="showTags" checked> 태그</label>
+    <label><input type="checkbox" id="showArrows" checked> 진행 방향</label>
+  </div>
+  <canvas id="cv" width="720" height="720"></canvas>
+  <div class="legend">
+    <span><i style="background:var(--empty)"></i>빈 땅</span>
+    <span><i style="background:var(--site)"></i>부지 T1</span>
+    <span><i style="background:var(--star)"></i>명당 T★</span>
+    <span><i style="background:var(--path)"></i>경로</span>
+    <span><i style="background:var(--spawn)"></i>스폰</span>
+    <span><i style="background:var(--exit)"></i>넥서스</span>
+    <span><i style="background:var(--block)"></i>막은 부지</span>
+  </div>
+  <div id="tip"></div>
+</main>
+
+<aside class="right">
+  <h2>게임 규칙 검사 (정본 생성기와 같은 규칙)</h2>
+  <div id="rules"></div>
+
+  <h2>맵 지표</h2>
+  <div id="metrics"></div>
+
+  <h2>타워 유도 분석</h2>
+  <p class="hint">부지마다 가장 좋은 방향으로 놓았을 때 덮는 경로 칸 수입니다. 경로 칸을 많이 덮을수록 몬스터가 사거리 안에 오래 머뭅니다. 노출 피해 = 덮는 칸 × 초당 피해 (몬스터 속도 1칸/초 가정).</p>
+  <div id="induce"></div>
+
+  <h2>설치한 타워</h2>
+  <div id="placed"></div>
+
+  <h2>조합 겹침</h2>
+  <p class="hint">설치한 타워 종류 두 개가 함께 덮는 경로 칸 수입니다. 예: 플라즈마와 나노봇(감속)이 겹치는 칸이 많으면 그 조합을 유도하는 맵입니다.</p>
+  <div id="combos"></div>
+</aside>
+</div>
+
+<script>
+"use strict";
+// ===== 게임 데이터 (Assets/Data/Towers, SampleScene에 연결된 타워) =====
+const TOWERS = [{"id":"basic","name":"기본 타워","tier":1,"cost":50,"damage":1,"interval":1,"burst":2,"range":1,"frontWidth":3,"attack":0,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":0,"upgradeTo":["cryo","electro","minigun"]},
+{"id":"flamethrower","name":"화염방사 타워","tier":1,"cost":50,"damage":0.5,"interval":0.2,"burst":1,"range":1,"frontWidth":3,"attack":2,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":1,"upgradeTo":["plasma","dust","phosphorus"]},
+{"id":"emp","name":"EMP 타워","tier":1,"cost":50,"damage":1,"interval":1.6,"burst":1,"range":2,"frontWidth":0,"attack":3,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":0,"upgradeTo":[]},
+{"id":"nano","name":"나노봇 타워","tier":1,"cost":50,"damage":0.3,"interval":2.3,"burst":7,"range":2,"frontWidth":0,"attack":0,"coneLength":1.6,"pulseRadius":2,"fieldRadius":1,"status":0,"upgradeTo":[]},
+{"id":"lightning","name":"번개 타워","tier":1,"cost":50,"damage":4,"interval":1.96,"burst":1,"range":3,"frontWidth":0,"attack":0,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":0,"upgradeTo":[]},
+{"id":"cryo","name":"냉기 타워","tier":2,"cost":130,"damage":3,"interval":1,"burst":1,"range":2,"frontWidth":0,"attack":0,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":4,"upgradeTo":[]},
+{"id":"electro","name":"전기 타워","tier":2,"cost":140,"damage":4,"interval":1.2,"burst":1,"range":3,"frontWidth":0,"attack":0,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":5,"upgradeTo":[]},
+{"id":"minigun","name":"미니건 타워","tier":2,"cost":150,"damage":1,"interval":0.0625,"burst":1,"range":2,"frontWidth":0,"attack":0,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":0,"upgradeTo":[]},
+{"id":"plasma","name":"플라즈마 타워","tier":2,"cost":180,"damage":1,"interval":0.2,"burst":1,"range":3,"frontWidth":0,"attack":4,"coneLength":3,"pulseRadius":2,"fieldRadius":0,"status":0,"upgradeTo":[]},
+{"id":"dust","name":"혼합분진 타워","tier":2,"cost":160,"damage":0.7,"interval":0.2,"burst":1,"range":2,"frontWidth":0,"attack":2,"coneLength":1.6,"pulseRadius":2,"fieldRadius":0,"status":2,"upgradeTo":[]},
+{"id":"phosphorus","name":"혼합백린 타워","tier":2,"cost":170,"damage":0.8,"interval":0.2,"burst":1,"range":2,"frontWidth":0,"attack":2,"coneLength":1.8,"pulseRadius":2,"fieldRadius":0,"status":3,"upgradeTo":[]}];
+const ATTACK = ["투사체","즉시","부채꼴","전자파","일직선"];
+const STATUS = ["","화상","분진","백린","서리(정지)","정전기(정지)"];
+const CONTROL = new Set(["nano","cryo","electro"]); // 감속·정지 계열
+const TCOLOR = {basic:"#d65a3a",flamethrower:"#e8902a",emp:"#3aa5d6",nano:"#2fb59a",lightning:"#8a6bd6",cryo:"#5fb8e8",electro:"#e3c43a",minigun:"#a86b3a",plasma:"#c84fd6",dust:"#9a8a5a",phosphorus:"#e05b8a"};
+// 복잡성 표 (Assets/Data/MapGenRules.asset). 맵 크기 = 7 + 2 × (복잡성 − 1)
+// 맵 확장은 3단계(11×11)까지, 4·5단계는 크기는 그대로 복잡성(꺾임·스폰)만 오른다 (GameConfig.rules.mapMaxSize = 11)
+const COMPLEXITY = [{n:7,turns:[2,2],spawns:1,branch:0},{n:9,turns:[2,4],spawns:2,branch:1},{n:11,turns:[4,4],spawns:2,branch:1},{n:11,turns:[4,6],spawns:3,branch:2},{n:11,turns:[6,8],spawns:3,branch:2}];
+const MIN_RUN = 2, SPAWN_MIN_DIST = 3;
+const STAGE_FLOORS = ["1~2층","3~4층","5~6층","7~8층","9~10층"];
+const stageText = () => `${S.stage||1}단계 · ${STAGE_FLOORS[(S.stage||1)-1]}`;
+
+// ===== 상태 =====
+let S = blank(9);
+let tool = "main", selTower = "basic", selPlaced = -1, tagIndex = 0, hover = null, history = [];
+function blank(n,stage){return {version:1,stage:stage||Math.max(1,COMPLEXITY.findIndex(l=>l.n===n)+1),size:n,main:[],branches:[],blocked:[],towers:[],tags:[{name:"플라즈마 유도",color:"#c84fd6",cells:[]},{name:"감속 구간",color:"#2fb59a",cells:[]}],notes:""};}
+
+const $ = id => document.getElementById(id);
+const key = (x,y) => x+","+y;
+const eq = (a,b) => a[0]===b[0]&&a[1]===b[1];
+const man = (a,b) => Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1]);
+const DIRS = [[0,1],[1,0],[0,-1],[-1,0]];
+
+function snapshot(){history.push(JSON.stringify(S));if(history.length>200)history.shift();}
+function undo(){if(!history.length)return;S=JSON.parse(history.pop());selPlaced=-1;syncInputs();refresh();}
+
+// ===== 경로 =====
+// 지선은 스폰 → 합류 칸(본선 위)까지 저장하고, 합류 뒤는 본선을 그대로 따라간다 (게임과 같음).
+function fullPaths(){
+  const paths = [];
+  if (S.main.length) paths.push(S.main);
+  for (const b of S.branches){
+    if (!b.length) continue;
+    const last = b[b.length-1];
+    const j = S.main.findIndex(c=>eq(c,last));
+    paths.push(j>=0 ? b.concat(S.main.slice(j+1)) : b);
+  }
+  return paths;
+}
+function pathCells(){const m=new Map();fullPaths().forEach((p,k)=>p.forEach((c,i)=>{const kk=key(c[0],c[1]);if(!m.has(kk))m.set(kk,{k,i});}));return m;}
+function inB(x,y){return x>=0&&y>=0&&x<S.size&&y<S.size;}
+function isBorder(c){const n=S.size-1;return c[0]===0||c[1]===0||c[0]===n||c[1]===n;}
+function isCorner(c){const n=S.size-1;return (c[0]===0||c[0]===n)&&(c[1]===0||c[1]===n);}
+
+// 직선 구간 번호 (MapLayoutGenerator.AddSegments와 같음: 꺾이는 칸은 들어온 쪽 구간)
+function segments(){
+  const seg = new Map(); let s = 0;
+  const add = p => {
+    if (!p.length) return;
+    if (!seg.has(key(...p[0]))) seg.set(key(...p[0]), s);
+    for (let i=1;i<p.length;i++){
+      if (i>=2 && !(p[i][0]-p[i-1][0]===p[i-1][0]-p[i-2][0] && p[i][1]-p[i-1][1]===p[i-1][1]-p[i-2][1])) s++;
+      if (!seg.has(key(...p[i]))) seg.set(key(...p[i]), s);
+    }
+  };
+  add(S.main);
+  for (const b of S.branches){ s++; add(b); }
+  return seg;
+}
+
+// 칸 종류: path / spawn / exit / site / star / blocked / empty  (MapLayoutGenerator.ClassifyTiles + 부지 막기)
+function classify(){
+  const seg = segments(), grid = [];
+  const blocked = new Set(S.blocked.map(c=>key(...c)));
+  const spawns = new Set(); if (S.main.length) spawns.add(key(...S.main[0])); S.branches.forEach(b=>b.length&&spawns.add(key(...b[0])));
+  const exit = S.main.length>1 ? key(...S.main[S.main.length-1]) : null;
+  for (let x=0;x<S.size;x++){grid[x]=[];for(let y=0;y<S.size;y++){
+    const k = key(x,y);
+    if (seg.has(k)){grid[x][y] = spawns.has(k)?"spawn":k===exit?"exit":"path";continue;}
+    const touched = new Set();
+    for (const d of DIRS){const nk=key(x+d[0],y+d[1]);if(seg.has(nk))touched.add(seg.get(nk));}
+    if (!touched.size) grid[x][y] = "empty";
+    else if (blocked.has(k)) grid[x][y] = "blocked";
+    else grid[x][y] = touched.size>=2 ? "star" : "site";
+  }}
+  return {grid, seg};
+}
+const isSite = t => t==="site"||t==="star";
+
+// ===== 사거리 (TowerFacing.InArea와 같음) =====
+function dirOf(f){return [[0,1],[1,0],[0,-1],[-1,0]][f&3];}
+function inArea(def,f,dx,dy){
+  const d = dirOf(f), ahead = dx*d[0]+dy*d[1];
+  if (ahead<=0) return false;
+  if (def.frontWidth>0){const side=dx*d[1]-dy*d[0];return ahead===1&&Math.abs(side)<=Math.floor(def.frontWidth/2);}
+  switch(def.attack){
+    case 4: return dx*d[1]-dy*d[0]===0 && ahead<=def.range;
+    case 2: case 3: {const r=(def.attack===3?def.pulseRadius:def.coneLength)+0.5;return dx*dx+dy*dy<=r*r;}
+    default: return Math.max(Math.abs(dx),Math.abs(dy))<=def.range;
+  }
+}
+const defOf = id => TOWERS.find(t=>t.id===id);
+const dps = d => d.damage*Math.max(1,d.burst)/Math.max(0.01,d.interval);
+function covered(def,x,y,f,pc){const out=[];const R=4;for(let dx=-R;dx<=R;dx++)for(let dy=-R;dy<=R;dy++){if(!inArea(def,f,dx,dy))continue;const k=key(x+dx,y+dy);if(pc.has(k))out.push(k);}return out;}
+function bestFacing(def,x,y,pc){let best=0,bf=0;for(let f=0;f<4;f++){const n=covered(def,x,y,f,pc).length;if(n>best){best=n;bf=f;}}return {f:bf,n:best};}
+
+// ===== 규칙 검사 (MapLayoutGenerator.ValidatePaths + D1, 복잡성 표) =====
+function checkRun(path,label,errs){
+  let turns=0, run=0, prev=null; const target=path[path.length-1];
+  for (let i=1;i<path.length;i++){
+    const c=path[i], p=path[i-1], d=[c[0]-p[0],c[1]-p[1]];
+    if (Math.abs(d[0])+Math.abs(d[1])!==1){errs.push(`${label} 끊긴 경로 (${p})→(${c})`);return turns;}
+    if (man(c,target)>=man(p,target)) errs.push(`${label} 역주행 (${c}) — 끝 칸 쪽으로만 가야 합니다`);
+    if (prev && (d[0]!==prev[0]||d[1]!==prev[1])){
+      if (run<MIN_RUN) errs.push(`${label} 직진 ${run}칸 뒤에 꺾음 (${p}) — 최소 ${MIN_RUN}칸`);
+      if (isCorner(p)) errs.push(`${label} 맵 꼭짓점에서 꺾음 (${p})`);
+      turns++; run=0;
+    }
+    run++; prev=d;
+  }
+  if (path.length>1 && run<MIN_RUN) errs.push(`${label} 마지막 직진 ${run}칸 — 최소 ${MIN_RUN}칸`);
+  return turns;
+}
+function inward(c){const n=S.size-1;if(c[1]===0)return[0,1];if(c[0]===0)return[1,0];if(c[0]===n)return[-1,0];return[0,-1];}
+function sameEdge(a,b){const n=S.size-1;return (a[1]===0&&b[1]===0)||(a[1]===n&&b[1]===n)||(a[0]===0&&b[0]===0)||(a[0]===n&&b[0]===n);}
+function opposite(a,b){const n=S.size-1;return (a[1]===0&&b[1]===n)||(a[1]===n&&b[1]===0)||(a[0]===0&&b[0]===n)||(a[0]===n&&b[0]===0);}
+function validate(cls){
+  const errs=[], warn=[], info={mainTurns:0,branchTurns:[]};
+  const main=S.main;
+  if (main.length<2){errs.push("본선이 없습니다. 본선 그리기로 변 위 칸에서 시작하세요.");return {errs,warn,info};}
+  const sp=main[0], ex=main[main.length-1];
+  if (!isBorder(sp)||isCorner(sp)) errs.push(`A: 본선 스폰 (${sp})은 변 위, 꼭짓점이 아닌 칸이어야 합니다`);
+  if (!isBorder(ex)||isCorner(ex)) errs.push(`A: 넥서스 (${ex})는 변 위, 꼭짓점이 아닌 칸이어야 합니다 (본선 마지막 칸)`);
+  else if (!opposite(sp,ex)) errs.push("A: 넥서스가 본선 스폰의 반대편 변에 있지 않습니다");
+  info.mainTurns = checkRun(main,"B: 본선",errs);
+  const mi=new Map(main.map((c,i)=>[key(...c),i]));
+  const spawns=[sp];
+  S.branches.forEach((b,bi)=>{
+    const k=bi+1, label=`지선 ${k}`;
+    if (b.length<2){errs.push(`${label}이 비어 있습니다`);return;}
+    const s=b[0];
+    if (!isBorder(s)||isCorner(s)) errs.push(`A: ${label} 스폰 (${s}) 위치 오류`);
+    if (sameEdge(s,ex)) errs.push(`A: ${label} 스폰이 넥서스 변에 있습니다`);
+    for (const o of spawns) if (man(s,o)<SPAWN_MIN_DIST) errs.push(`A: ${label} 스폰이 다른 스폰과 가깝습니다 (거리 ${man(s,o)} < ${SPAWN_MIN_DIST})`);
+    spawns.push(s);
+    const last=b[b.length-1], j=mi.get(key(...last));
+    if (j===undefined){errs.push(`B: ${label}이 본선에 합류하지 않았습니다`);return;}
+    for (let i=0;i<b.length-1;i++) if (mi.has(key(...b[i]))) errs.push(`B: ${label}이 합류 전에 본선 칸을 지납니다 (${b[i]})`);
+    if (j<2||j>main.length-3) errs.push(`B: ${label} 합류 지점이 본선 끝에 너무 가깝습니다`);
+    else {
+      const md=[main[j+1][0]-main[j][0],main[j+1][1]-main[j][1]];
+      if (main[j][0]-main[j-1][0]!==md[0]||main[j][1]-main[j-1][1]!==md[1]) errs.push(`B: ${label}이 본선이 꺾이는 칸에 합류합니다 (${main[j]})`);
+      const bd=[last[0]-b[b.length-2][0],last[1]-b[b.length-2][1]];
+      if (bd[0]*md[0]+bd[1]*md[1]!==0) errs.push(`B: ${label}이 본선에 수직으로 합류하지 않습니다`);
+    }
+    info.branchTurns.push(checkRun(b,`B: ${label}`,errs));
+  });
+  // N1: 넥서스 방향
+  if (isBorder(ex)){
+    let px=0,py=0; for(const s of spawns){const v=inward(s);px+=v[0];py+=v[1];}
+    const ax=Math.abs(px), ay=Math.abs(py), n=S.size-1;
+    if (ax!==ay){
+      const ok = ax>ay ? (px>0?ex[0]===n:ex[0]===0) : (py>0?ex[1]===n:ex[1]===0);
+      if (!ok) errs.push("N1: 넥서스가 스타트 지점이 몰린 변의 반대쪽이 아닙니다");
+    } else {
+      if (main.length<2*S.size-3) errs.push(`N1: 스타트 지점 비율이 비슷하면 본선이 최대로 돌아가야 합니다 (${main.length}칸 < ${2*S.size-3})`);
+      for (const s of spawns) if (man(s,ex)<S.size-1) errs.push(`N1: 스타트 지점 (${s})가 넥서스와 가깝습니다`);
+    }
+  }
+  // B1: 이어지지 않은 경로 칸끼리 맞닿음 금지
+  const paths=fullPaths(), edges=new Set(), cells=new Set();
+  for (const p of paths) for (let i=0;i<p.length;i++){cells.add(key(...p[i]));if(i>0){edges.add(key(...p[i-1])+"|"+key(...p[i]));edges.add(key(...p[i])+"|"+key(...p[i-1]));}}
+  const seen=new Set();
+  for (const c of cells){const [x,y]=c.split(",").map(Number);for(const d of DIRS){const nk=key(x+d[0],y+d[1]);if(cells.has(nk)&&!edges.has(c+"|"+nk)){const pk=[c,nk].sort().join("-");if(!seen.has(pk)){seen.add(pk);errs.push(`B1: 경로 칸이 맞닿습니다 (${c})-(${nk})`);}}}}
+  // D1: 사각지대 (모든 경로 칸이 부지와 맞닿음)
+  for (const c of cells){const [x,y]=c.split(",").map(Number);let ok=false;for(const d of DIRS){if(inB(x+d[0],y+d[1])&&isSite(cls.grid[x+d[0]][y+d[1]]))ok=true;}if(!ok)errs.push(`D1: 사각지대 (${c}) — 맞닿은 부지가 없습니다`);}
+  // 복잡성 표
+  const lv=COMPLEXITY[(S.stage||1)-1];
+  if (lv && lv.n!==S.size) warn.push(`${stageText()} 게임 맵은 ${lv.n}×${lv.n}입니다 (지금 ${S.size}×${S.size})`);
+  if (lv){
+    if (info.mainTurns<lv.turns[0]||info.mainTurns>lv.turns[1]) warn.push(`본선 꺾임 ${info.mainTurns}회 — ${S.size}×${S.size} 생성 규칙(${stageText()})은 ${lv.turns[0]}~${lv.turns[1]}회`);
+    if (spawns.length!==lv.spawns) warn.push(`스타트 지점 ${spawns.length}개 — 생성 규칙은 ${lv.spawns}개`);
+    info.branchTurns.forEach((t,i)=>{if(t>lv.branch)warn.push(`지선 ${i+1} 꺾임 ${t}회 — 생성 규칙은 최대 ${lv.branch}회`);});
+  }
+  return {errs,warn,info};
+}
+
+// ===== 그리기 =====
+const cv=$("cv"), ctx=cv.getContext("2d");
+let cell=60, pad=26;
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function resize(){
+  const avail=Math.min(760, Math.max(320, (cv.parentElement.clientWidth||760)-10));
+  cell=Math.floor((avail-pad*2)/S.size); const px=cell*S.size+pad*2;
+  const dpr=window.devicePixelRatio||1;
+  cv.style.width=px+"px";cv.style.height=px+"px";cv.width=px*dpr;cv.height=px*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+// 칸 (x, y) → 화면. y = 0이 아래 (게임 좌표와 같은 방향)
+const sx = x => pad + x*cell, sy = y => pad + (S.size-1-y)*cell;
+function draw(){
+  const cls=classify(), pc=pathCells(), view=$("view").value;
+  const W=cell*S.size+pad*2;
+  ctx.clearRect(0,0,W,W);
+  const col={empty:css("--empty"),site:css("--site"),star:css("--star"),path:css("--path"),spawn:css("--spawn"),exit:css("--exit"),blocked:css("--block")};
+  for (let x=0;x<S.size;x++)for(let y=0;y<S.size;y++){
+    ctx.fillStyle=col[cls.grid[x][y]];ctx.fillRect(sx(x)+1,sy(y)+1,cell-2,cell-2);
+    if (cls.grid[x][y]==="blocked"){ctx.fillStyle="rgba(255,255,255,.35)";ctx.beginPath();ctx.moveTo(sx(x)+cell/2,sy(y)+cell*.22);ctx.lineTo(sx(x)+cell*.72,sy(y)+cell*.7);ctx.lineTo(sx(x)+cell*.28,sy(y)+cell*.7);ctx.fill();}
+  }
+  // 좌표
+  ctx.fillStyle=css("--dim");ctx.font="11px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+  for (let i=0;i<S.size;i++){ctx.fillText(i,sx(i)+cell/2,pad+S.size*cell+12);ctx.fillText(i,12,sy(i)+cell/2);}
+  // 태그
+  if ($("showTags").checked) S.tags.forEach(t=>{ctx.strokeStyle=t.color;ctx.lineWidth=3;ctx.setLineDash([6,4]);t.cells.forEach(c=>ctx.strokeRect(sx(c[0])+4,sy(c[1])+4,cell-8,cell-8));ctx.setLineDash([]);});
+  // 보기 모드
+  if (view==="dps"){
+    const heat=pathHeat(pc);let mx=0;heat.forEach(v=>mx=Math.max(mx,v.dps));
+    heat.forEach((v,k)=>{const [x,y]=k.split(",").map(Number);if(!v.dps)return;ctx.fillStyle=`rgba(214,58,58,${0.15+0.6*v.dps/mx})`;ctx.fillRect(sx(x)+1,sy(y)+1,cell-2,cell-2);label(x,y,v.dps.toFixed(1));});
+  } else if (view==="best"){
+    const def=defOf(selTower);let mx=1;const vals=[];
+    for(let x=0;x<S.size;x++)for(let y=0;y<S.size;y++)if(isSite(cls.grid[x][y])){const b=bestFacing(def,x,y,pc);vals.push([x,y,b]);mx=Math.max(mx,b.n);}
+    vals.forEach(([x,y,b])=>{ctx.fillStyle=`rgba(47,134,214,${0.1+0.65*b.n/mx})`;ctx.fillRect(sx(x)+1,sy(y)+1,cell-2,cell-2);label(x,y,String(b.n));arrow(x,y,b.f,"rgba(0,0,0,.55)");});
+  } else if (view==="segments"){
+    cls.seg.forEach((s,k)=>{const [x,y]=k.split(",").map(Number);label(x,y,"#"+s);});
+  }
+  // 경로 진행 방향
+  if ($("showArrows").checked) fullPaths().forEach(p=>{
+    ctx.strokeStyle="rgba(60,40,20,.55)";ctx.lineWidth=Math.max(2,cell*.07);ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.beginPath();p.forEach((c,i)=>{const X=sx(c[0])+cell/2,Y=sy(c[1])+cell/2;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();
+    for(let i=1;i<p.length;i+=2){const a=p[i-1],b=p[i];chevron(a,b);}
+  });
+  // 사거리
+  const showAll=$("showAll").checked;
+  S.towers.forEach((t,i)=>{if(showAll||i===selPlaced)rangeCells(defOf(t.id),t.x,t.y,t.f,i===selPlaced?css("--range"):css("--rangeAll"),pc);});
+  if (tool==="tower" && hover && isSite(cls.grid[hover[0]]?.[hover[1]]) && !towerAt(hover[0],hover[1])){
+    const def=defOf(selTower), b=bestFacing(def,hover[0],hover[1],pc);
+    rangeCells(def,hover[0],hover[1],b.f,css("--range"),pc,true);
+  }
+  // 타워
+  S.towers.forEach((t,i)=>{
+    const X=sx(t.x)+cell/2,Y=sy(t.y)+cell/2,r=cell*.32;
+    ctx.fillStyle=TCOLOR[t.id]||"#888";ctx.beginPath();ctx.arc(X,Y,r,0,7);ctx.fill();
+    ctx.lineWidth=i===selPlaced?3:1.5;ctx.strokeStyle=i===selPlaced?css("--ink"):"rgba(0,0,0,.45)";ctx.stroke();
+    arrow(t.x,t.y,t.f,"#fff");
+    ctx.fillStyle="#fff";ctx.font=`bold ${Math.max(9,cell*.2)}px system-ui`;ctx.fillText(defOf(t.id).name.slice(0,2),X,Y+r*.15);
+  });
+  // 마우스 칸
+  if (hover && inB(...hover)){ctx.strokeStyle=css("--ink");ctx.lineWidth=2;ctx.strokeRect(sx(hover[0])+1,sy(hover[1])+1,cell-2,cell-2);}
+}
+function label(x,y,t){ctx.fillStyle="rgba(20,20,20,.85)";ctx.font=`bold ${Math.max(10,cell*.24)}px system-ui`;ctx.fillText(t,sx(x)+cell/2,sy(y)+cell*.78);}
+function chevron(a,b){const X=sx(b[0])+cell/2,Y=sy(b[1])+cell/2,dx=b[0]-a[0],dy=-(b[1]-a[1]),s=cell*.14;ctx.beginPath();ctx.moveTo(X-dx*s-dy*s,Y-dy*s+dx*s);ctx.lineTo(X+dx*s*.6,Y+dy*s*.6);ctx.lineTo(X-dx*s+dy*s,Y-dy*s-dx*s);ctx.stroke();}
+function arrow(x,y,f,color){const d=dirOf(f),X=sx(x)+cell/2,Y=sy(y)+cell/2,L=cell*.46;ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(X+d[0]*cell*.2,Y-d[1]*cell*.2);ctx.lineTo(X+d[0]*L,Y-d[1]*L);ctx.stroke();}
+function rangeCells(def,x,y,f,color,pc,ghost){
+  for(let dx=-4;dx<=4;dx++)for(let dy=-4;dy<=4;dy++){if(!inArea(def,f,dx,dy)||!inB(x+dx,y+dy))continue;const onPath=pc.has(key(x+dx,y+dy));
+    ctx.fillStyle=color;ctx.globalAlpha=(ghost?0.18:0.22)+(onPath?0.22:0);ctx.fillRect(sx(x+dx)+3,sy(y+dy)+3,cell-6,cell-6);ctx.globalAlpha=1;
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.strokeRect(sx(x+dx)+3,sy(y+dy)+3,cell-6,cell-6);}
+}
+
+// ===== 분석 =====
+function towerCover(pc){return S.towers.map(t=>({t,cells:covered(defOf(t.id),t.x,t.y,t.f,pc)}));}
+function pathHeat(pc){const m=new Map();pc.forEach((v,k)=>m.set(k,{dps:0,ids:[]}));towerCover(pc).forEach(({t,cells})=>cells.forEach(k=>{const e=m.get(k);e.dps+=dps(defOf(t.id));e.ids.push(t.id);}));return m;}
+function analyze(){
+  const cls=classify(), pc=pathCells(), v=validate(cls);
+  // 규칙
+  let h="";
+  if (!v.errs.length) h+=`<p class="okmsg">게임 생성 규칙을 모두 지킵니다.</p>`; else h+=`<ul class="viol">${v.errs.slice(0,30).map(e=>`<li>${e}</li>`).join("")}</ul>${v.errs.length>30?`<p class="hint">외 ${v.errs.length-30}건</p>`:""}`;
+  if (v.warn.length) h+=`<p class="hint">복잡성 표와 다른 점 (게임 생성기는 이 범위로 만듭니다):</p><ul>${v.warn.map(e=>`<li>${e}</li>`).join("")}</ul>`;
+  $("rules").innerHTML=h;
+  // 지표
+  const paths=fullPaths(); let t1=0,ts=0,bl=0;
+  for(let x=0;x<S.size;x++)for(let y=0;y<S.size;y++){const g=cls.grid[x][y];if(g==="site")t1++;else if(g==="star")ts++;else if(g==="blocked")bl++;}
+  const runs=straightRuns(S.main);
+  $("metrics").innerHTML=`<table>
+    <tr><th>맵</th><td>${S.size}×${S.size} · ${stageText()}</td></tr>
+    <tr><th>경로</th><td>${paths.map((p,i)=>`${i?"지선 "+i:"본선"} ${p.length}칸`).join(" · ")||"-"}</td></tr>
+    <tr><th>본선 꺾임</th><td>${v.info.mainTurns}회</td></tr>
+    <tr><th>본선 직선 구간</th><td>${runs.join(", ")||"-"} 칸 (최장 ${Math.max(0,...runs)})</td></tr>
+    <tr><th>부지</th><td>T1 ${t1} · 명당 T★ ${ts} · 막음 ${bl}</td></tr>
+    <tr><th>합류 지점</th><td>${S.branches.map(b=>b.length?`(${b[b.length-1]})`:"").join(" ")||"-"}</td></tr></table>`;
+  // 타워 유도
+  const rows=TOWERS.map(def=>{
+    const list=[];for(let x=0;x<S.size;x++)for(let y=0;y<S.size;y++)if(isSite(cls.grid[x][y]))list.push(bestFacing(def,x,y,pc).n);
+    list.sort((a,b)=>b-a);const best=list[0]||0;const top3=list.slice(0,3);const avg3=top3.length?top3.reduce((a,b)=>a+b,0)/top3.length:0;
+    return {def,best,avg3,expo:best*dps(def)};
+  });
+  const maxBest=Math.max(1,...rows.map(r=>r.best)), maxExpo=Math.max(1,...rows.map(r=>r.expo));
+  $("induce").innerHTML=`<table><thead><tr><th>타워</th><th class=r>최고 부지</th><th class=r>상위 3곳</th><th class=r>노출 피해</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td><span class=chip style="border-color:${TCOLOR[r.def.id]}">${r.def.tier}단계</span> ${r.def.name}<br><small class=hint>${ATTACK[r.def.attack]}${r.def.frontWidth?` · 앞 한 줄 ${r.def.frontWidth}칸`:r.def.attack===4?` · 일직선 ${r.def.range}칸`:""}${STATUS[r.def.status]?" · "+STATUS[r.def.status]:""}</small></td>
+    <td class="r barcell"><span class=b style="width:${100*r.best/maxBest}%"></span><b>${r.best}칸</b></td><td class=r>${r.avg3.toFixed(1)}</td>
+    <td class="r barcell"><span class=b style="width:${100*r.expo/maxExpo}%"></span><b>${r.expo.toFixed(1)}</b></td></tr>`).join("")}</tbody></table>
+    <p class="hint">플라즈마 기준 직선: 최고 부지 ${rows.find(r=>r.def.id==="plasma").best}칸 / 3칸 만점. ${rows.find(r=>r.def.id==="plasma").best>=3?"플라즈마가 경로 3칸을 모두 관통하는 자리가 있습니다.":"플라즈마가 3칸을 다 관통하는 자리가 없습니다 (경로와 나란한 부지 + 직선 3칸 필요)."}</p>`;
+  // 설치한 타워
+  const tc=towerCover(pc); let cost=0;
+  $("placed").innerHTML=S.towers.length?`<table><thead><tr><th>타워</th><th>칸·방향</th><th class=r>덮는 경로</th><th></th></tr></thead><tbody>${
+    tc.map(({t,cells},i)=>{cost+=defOf(t.id).cost;return `<tr${i===selPlaced?' style="background:rgba(127,127,127,.12)"':""}><td>${defOf(t.id).name}</td><td>(${t.x},${t.y}) ${["↑","→","↓","←"][t.f]}</td><td class=r>${cells.length}칸</td><td><button data-sel="${i}">선택</button></td></tr>`;}).join("")}</tbody></table><p class=hint>건축 비용 합계 ${cost} 캐시 (진화 단계는 해당 타워 비용)</p>`:`<p class=hint>아직 설치한 타워가 없습니다.</p>`;
+  $("placed").querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{selPlaced=+b.dataset.sel;tool="tower";syncTools();draw();});
+  // 조합 겹침
+  const ids=[...new Set(S.towers.map(t=>t.id))];
+  if (ids.length<2) $("combos").innerHTML=`<p class=hint>타워 종류를 두 개 이상 설치하면 보입니다.</p>`;
+  else {
+    const byId=new Map(ids.map(id=>[id,new Set()]));tc.forEach(({t,cells})=>cells.forEach(k=>byId.get(t.id).add(k)));
+    const pairs=[];for(let a=0;a<ids.length;a++)for(let b=a+1;b<ids.length;b++){let n=0;byId.get(ids[a]).forEach(k=>{if(byId.get(ids[b]).has(k))n++;});pairs.push([ids[a],ids[b],n]);}
+    pairs.sort((p,q)=>q[2]-p[2]);
+    $("combos").innerHTML=`<table><tbody>${pairs.map(([a,b,n])=>`<tr><td>${defOf(a).name} + ${defOf(b).name}${(CONTROL.has(a)||CONTROL.has(b))&&!(CONTROL.has(a)&&CONTROL.has(b))?' <span class=chip>감속·정지 조합</span>':""}</td><td class=r><b>${n}</b>칸</td></tr>`).join("")}</tbody></table>`;
+  }
+}
+// 직선 구간마다 칸 수 (꺾이는 칸 포함). 플라즈마(일직선 3칸)가 관통할 수 있는 길이를 본다
+function straightRuns(p){const r=[];let n=0,prev=null;for(let i=1;i<p.length;i++){const d=(p[i][0]-p[i-1][0])+","+(p[i][1]-p[i-1][1]);if(d===prev)n++;else{if(prev)r.push(n+1);n=1;prev=d;}}if(prev)r.push(n+1);return r;}
+
+// ===== 입력 =====
+const towerAt=(x,y)=>S.towers.findIndex(t=>t.x===x&&t.y===y)+1;
+function cellFromEvent(e){const r=cv.getBoundingClientRect();const x=Math.floor((e.clientX-r.left-pad)/cell),yy=Math.floor((e.clientY-r.top-pad)/cell);return [x,S.size-1-yy];}
+let dragging=false, dragPath=null, tagPaint=null;
+function extend(path,c){
+  // 이전 칸으로 되돌아가면 한 칸 지운다 (끌면서 되돌리기)
+  if (path.length>=2 && eq(path[path.length-2],c)){path.pop();return true;}
+  if (path.some(p=>eq(p,c))) return false;
+  if (!path.length) return false;
+  if (man(path[path.length-1],c)!==1) return false;
+  path.push(c); return true;
+}
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+cv.addEventListener("pointerdown",e=>{
+  const c=cellFromEvent(e);if(!inB(...c))return;
+  const cls=classify(), pc=pathCells();
+  if (tool==="tower"){
+    const i=towerAt(...c)-1;
+    if (e.button===2){if(i>=0){snapshot();S.towers.splice(i,1);selPlaced=-1;refresh();}return;}
+    if (i>=0){selPlaced=i;refresh();return;}
+    if (!isSite(cls.grid[c[0]][c[1]])){setTip("타워는 부지(경로와 맞닿은 칸)에만 놓을 수 있습니다.");return;}
+    snapshot();const def=defOf(selTower);S.towers.push({id:selTower,x:c[0],y:c[1],f:bestFacing(def,c[0],c[1],pc).f});selPlaced=S.towers.length-1;refresh();return;
+  }
+  if (tool==="block"){
+    if (pc.has(key(...c))) return;
+    snapshot();const k=S.blocked.findIndex(b=>eq(b,c));if(k>=0)S.blocked.splice(k,1);else S.blocked.push(c);
+    S.towers=S.towers.filter(t=>!(t.x===c[0]&&t.y===c[1]));selPlaced=-1;refresh();return;
+  }
+  if (tool==="tag"){
+    const t=S.tags[tagIndex];if(!t)return;snapshot();const k=t.cells.findIndex(b=>eq(b,c));tagPaint=k<0;
+    if(k>=0)t.cells.splice(k,1);else t.cells.push(c);dragging=true;refresh();return;
+  }
+  if (tool==="erase"){
+    const k=key(...c);let hit=false;
+    S.branches.forEach((b,i)=>{if(!hit&&b.slice(0,-1).some(p=>key(...p)===k)){snapshot();S.branches.splice(i,1);hit=true;}});
+    if(!hit&&S.main.some(p=>key(...p)===k)){snapshot();S.main=[];S.branches=[];}
+    refresh();return;
+  }
+  if (tool==="main"){
+    snapshot();
+    const last=S.main[S.main.length-1];
+    if (S.main.some(p=>eq(p,c))){
+      S.main=S.main.slice(0,S.main.findIndex(p=>eq(p,c))+1); // 그 칸까지 잘라 이어 그리기
+    } else if (last && man(last,c)===1){
+      extend(S.main,c);
+    } else {
+      if (!isBorder(c)){setTip("본선은 맵 가장자리 칸에서 시작합니다. 이어 그리려면 본선 끝 칸 옆을 누르세요.");history.pop();return;}
+      S.main=[c];S.branches=[];
+    }
+    dragging=true;dragPath=S.main;refresh();return;
+  }
+  if (tool==="branch"){
+    if (!S.main.length){setTip("본선을 먼저 그리세요.");return;}
+    snapshot();
+    const own=S.branches.find(b=>b.length&&eq(b[b.length-1],c)&&!S.main.some(p=>eq(p,c)));
+    if (own){dragPath=own;} else {
+      if (!isBorder(c)||pc.has(key(...c))){setTip("지선은 경로가 없는 가장자리 칸에서 시작합니다.");history.pop();return;}
+      const b=[c];S.branches.push(b);dragPath=b;
+    }
+    dragging=true;refresh();return;
+  }
+});
+cv.addEventListener("pointermove",e=>{
+  const c=cellFromEvent(e);const changed=!hover||!eq(hover,c);hover=inB(...c)?c:null;
+  if (dragging && hover){
+    if (tool==="tag"){const t=S.tags[tagIndex];const k=t.cells.findIndex(b=>eq(b,c));if(tagPaint&&k<0)t.cells.push(c);if(!tagPaint&&k>=0)t.cells.splice(k,1);}
+    else if (dragPath){
+      const last=dragPath[dragPath.length-1];
+      const joined=dragPath!==S.main && S.main.some(p=>eq(p,last));
+      if (!joined || (dragPath.length>=2&&eq(dragPath[dragPath.length-2],c))){
+        if (dragPath!==S.main && pc_has_other(c,dragPath) && !S.main.some(p=>eq(p,c))) {} else extend(dragPath,c);
+      }
+    }
+    refresh();return;
+  }
+  if (changed){draw();tipFor(hover);}
+});
+function pc_has_other(c,path){return fullPaths().some(p=>p!==path&&p.some(q=>eq(q,c)));}
+window.addEventListener("pointerup",()=>{if(dragging){dragging=false;dragPath=null;S.branches=S.branches.filter(b=>b.length>1);refresh();}});
+cv.addEventListener("pointerleave",()=>{hover=null;draw();});
+window.addEventListener("keydown",e=>{
+  if (e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA") return;
+  if ((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();undo();return;}
+  if (e.key==="r"||e.key==="R"){if(selPlaced>=0){snapshot();S.towers[selPlaced].f=(S.towers[selPlaced].f+1)&3;refresh();}}
+  if (e.key==="g"||e.key==="G"){$("showAll").checked=!$("showAll").checked;draw();}
+  if (e.key==="Delete"&&selPlaced>=0){snapshot();S.towers.splice(selPlaced,1);selPlaced=-1;refresh();}
+  if (e.key==="Escape"){selPlaced=-1;draw();}
+});
+function setTip(t){$("tip").textContent=t;}
+function tipFor(c){
+  if(!c){setTip(TOOL_HINT[tool]);return;}
+  const cls=classify(),pc=pathCells(),g=cls.grid[c[0]][c[1]];
+  const names={empty:"빈 땅",site:"부지 T1",star:"명당 T★",path:"경로",spawn:"스폰",exit:"넥서스",blocked:"막은 부지"};
+  let t=`(${c[0]}, ${c[1]}) ${names[g]}`;
+  const heat=pathHeat(pc).get(key(...c));
+  if (heat) t+=` · 덮는 타워 ${heat.ids.length}개${heat.ids.length?" ("+heat.ids.map(id=>defOf(id).name).join(", ")+")":""} · 초당 ${heat.dps.toFixed(1)} 피해`;
+  if (isSite(g)){const def=defOf(selTower),b=bestFacing(def,c[0],c[1],pc);t+=` · ${def.name}을 두면 경로 ${b.n}칸 (${["↑","→","↓","←"][b.f]})`;}
+  const tg=S.tags.filter(x=>x.cells.some(q=>eq(q,c))).map(x=>x.name);if(tg.length)t+=` · 태그: ${tg.join(", ")}`;
+  setTip(t);
+}
+
+// ===== 패널 =====
+const TOOL_HINT={
+  main:"본선 그리기: 가장자리 칸에서 시작해 끌면서 칸을 잇습니다. 마지막 칸이 넥서스입니다. 이전 칸으로 되돌아가면 지워지고, 본선 칸을 누르면 그 칸부터 다시 이어 그립니다.",
+  branch:"지선 그리기: 경로가 없는 가장자리 칸에서 시작해 본선 칸에 닿으면 합류합니다. 합류 뒤에는 본선을 따라 넥서스로 갑니다.",
+  tower:"타워 놓기: 왼쪽 목록에서 타워를 고르고 부지를 누르면 경로를 가장 많이 덮는 방향으로 놓입니다. R로 돌리고 우클릭으로 철거합니다.",
+  block:"부지 막기 (규칙 실험): 부지를 장식으로 막아 그 자리에 타워를 못 짓게 합니다. 특정 타워 자리만 남길 때 씁니다. 다시 누르면 풀립니다.",
+  tag:"구역 칠하기: 오른쪽 태그 목록에서 고른 태그를 칸에 칠합니다. 의도한 규칙(예: 플라즈마 유도 직선)을 표시해 JSON에 함께 남깁니다.",
+  erase:"경로 지우기: 지선 칸을 누르면 그 지선만, 본선 칸을 누르면 본선과 지선을 모두 지웁니다."};
+function syncTools(){document.querySelectorAll("#tools button").forEach(b=>b.classList.toggle("on",b.dataset.tool===tool));$("toolHint").textContent=TOOL_HINT[tool];}
+document.querySelectorAll("#tools button").forEach(b=>b.onclick=()=>{tool=b.dataset.tool;if(tool!=="tower")selPlaced=-1;syncTools();draw();});
+function buildPalette(){
+  $("palette").innerHTML=TOWERS.map(t=>`<button data-id="${t.id}" class="${t.id===selTower?"on":""}"><span><span class=chip style="background:${TCOLOR[t.id]};color:#fff;border:0">${t.tier}</span> ${t.name}</span><small>${ATTACK[t.attack]} · 초당 ${dps(t).toFixed(1)}</small></button>`).join("");
+  $("palette").querySelectorAll("button").forEach(b=>b.onclick=()=>{selTower=b.dataset.id;tool="tower";selPlaced=-1;
+    syncTools();buildPalette();refresh();});
+}
+function buildTags(){
+  $("tags").innerHTML=S.tags.map((t,i)=>`<div class="tag ${i===tagIndex?"on":""}" data-i="${i}"><input type=color value="${t.color}" class=sw data-c="${i}" title="색"><input type=text value="${t.name.replace(/"/g,"&quot;")}" data-n="${i}"><small>${t.cells.length}칸</small><button data-d="${i}" title="삭제">✕</button></div>`).join("");
+  $("tags").querySelectorAll(".tag").forEach(el=>el.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="BUTTON")return;tagIndex=+el.dataset.i;tool="tag";syncTools();buildTags();});
+  $("tags").querySelectorAll("[data-n]").forEach(el=>{el.onfocus=()=>{tagIndex=+el.dataset.n;tool="tag";syncTools();};el.oninput=()=>{S.tags[+el.dataset.n].name=el.value;save();};});
+  $("tags").querySelectorAll("[data-c]").forEach(el=>el.oninput=()=>{S.tags[+el.dataset.c].color=el.value;save();draw();});
+  $("tags").querySelectorAll("[data-d]").forEach(el=>el.onclick=()=>{snapshot();S.tags.splice(+el.dataset.d,1);tagIndex=0;refresh();});
+}
+$("addTag").onclick=()=>{snapshot();const cols=["#e05b8a","#3aa5d6","#e3c43a","#8a6bd6","#d65a3a"];S.tags.push({name:"새 태그",color:cols[S.tags.length%cols.length],cells:[]});tagIndex=S.tags.length-1;tool="tag";syncTools();refresh();};
+$("notes").oninput=()=>{S.notes=$("notes").value;save();};
+["view","showAll","showTags","showArrows"].forEach(id=>$(id).onchange=draw);
+$("newMap").onclick=()=>{if(S.main.length&&!confirm("지금 맵을 지우고 새로 만들까요? (되돌리기로 복구할 수 있습니다)"))return;snapshot();S=blank(+$("size").value,+$("stage").value);selPlaced=-1;syncInputs();refresh();};
+$("size").onchange=()=>{snapshot();const n=+$("size").value;S.size=n;const ok=c=>c[0]<n&&c[1]<n;S.main=S.main.every(ok)?S.main:[];S.branches=S.branches.filter(b=>b.every(ok));S.blocked=S.blocked.filter(ok);S.towers=S.towers.filter(t=>t.x<n&&t.y<n);S.tags.forEach(t=>t.cells=t.cells.filter(ok));resize();refresh();};
+$("stage").onchange=()=>{const st=+$("stage").value;S.stage=st;const n=COMPLEXITY[st-1].n;if(n!==S.size){$("size").value=n;$("size").onchange();}else refresh();};
+$("undo").onclick=undo;
+$("sample").onclick=()=>{snapshot();S=blank(9);
+  // 9×9 예시: 아래 변 스폰 2개 → 위 변 넥서스, 본선 꺾임 2회, 지선은 가로 직선 구간에 수직 합류 (게임 규칙을 모두 지킨다)
+  S.main=[[2,0],[2,1],[2,2],[2,3],[3,3],[4,3],[5,3],[6,3],[6,4],[6,5],[6,6],[6,7],[6,8]];
+  S.branches=[[[5,0],[5,1],[5,2],[5,3]]];
+  S.notes="예시: 아래 변 스폰 2개(본선·지선), 넥서스는 위 변. 지선은 본선 가로 구간 (5,3)에 수직으로 합류.";
+  selPlaced=-1;syncInputs();refresh();};
+function syncInputs(){$("size").value=S.size;$("stage").value=S.stage||1;$("notes").value=S.notes||"";resize();}
+
+// ===== 저장·내보내기 =====
+function save(){try{localStorage.setItem("td-map-editor",JSON.stringify(S));}catch(e){}}
+function exportJson(){
+  const cls=classify(), pc=pathCells(), v=validate(cls);
+  const codes={empty:".",site:"#",star:"*",path:"P",spawn:"S",exit:"E",blocked:"x"};
+  const rows=[];for(let y=S.size-1;y>=0;y--){let r="";for(let x=0;x<S.size;x++)r+=codes[cls.grid[x][y]];rows.push(r);}
+  return {
+    format:"Project_TD map-editor",version:1,stage:S.stage||1,size:S.size,
+    // 경로: 스폰 → 넥서스 칸 목록 (MapData.MonsterPaths와 같은 순서). 0 = 본선
+    paths:fullPaths(),
+    exit:S.main.length?S.main[S.main.length-1]:null,
+    junctions:S.branches.filter(b=>b.length).map(b=>b[b.length-1]),
+    blockedSites:S.blocked,
+    towers:S.towers.map(t=>({id:t.id,x:t.x,y:t.y,facing:t.f})),
+    tags:S.tags,
+    notes:S.notes,
+    // 위 줄이 y = N−1. . 빈 땅 # 부지 * 명당 P 경로 S 스폰 E 넥서스 x 막은 부지
+    tiles:rows,
+    check:{valid:v.errs.length===0,errors:v.errs,warnings:v.warn,mainTurns:v.info.mainTurns},
+    editor:{main:S.main,branches:S.branches}
+  };
+}
+function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
+$("exportBtn").onclick=()=>{const j=exportJson();const txt=JSON.stringify(j,null,1);download(`map_${S.size}x${S.size}.json`,new Blob([txt],{type:"application/json"}));try{navigator.clipboard.writeText(txt);setTip("JSON 파일을 저장하고 클립보드에도 복사했습니다.");}catch(e){setTip("JSON 파일을 저장했습니다.");}};
+$("pngBtn").onclick=()=>cv.toBlob(b=>download(`map_${S.size}x${S.size}.png`,b));
+$("importBtn").onclick=()=>$("fileIn").click();
+$("fileIn").onchange=async()=>{const f=$("fileIn").files[0];if(!f)return;try{load(JSON.parse(await f.text()));}catch(e){alert("불러오기 실패: "+e.message);}$("fileIn").value="";};
+function load(j){
+  snapshot();const n=j.size||9;const s=blank(n,j.stage);
+  if (j.editor){s.main=j.editor.main||[];s.branches=j.editor.branches||[];}
+  else if (j.paths){s.main=j.paths[0]||[];s.branches=(j.paths.slice(1)||[]).map(p=>{const q=p.findIndex(c=>s.main.some(m=>eq(m,c)));return q>=0?p.slice(0,q+1):p;});}
+  else {s.main=j.main||[];s.branches=j.branches||[];}
+  s.blocked=j.blockedSites||j.blocked||[];
+  s.towers=(j.towers||[]).filter(t=>defOf(t.id)).map(t=>({id:t.id,x:t.x,y:t.y,f:(t.facing??t.f??0)&3}));
+  s.tags=j.tags||s.tags;s.notes=j.notes||"";
+  S=s;selPlaced=-1;syncInputs();refresh();
+}
+$("themeBtn").onclick=()=>{const r=document.documentElement,d=r.dataset.theme||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");r.dataset.theme=d==="dark"?"light":"dark";draw();};
+
+function refresh(){
+  // 경로가 바뀌어 부지가 아니게 된 칸의 타워는 치운다
+  const cls=classify();const before=S.towers.length;
+  S.towers=S.towers.filter(t=>inB(t.x,t.y)&&isSite(cls.grid[t.x][t.y]));
+  if(S.towers.length!==before)selPlaced=-1;
+  save();buildTags();draw();analyze();
+}
+window.addEventListener("resize",()=>{resize();draw();});
+
+// 시작: 저장된 작업이 있으면 이어서
+try{const saved=localStorage.getItem("td-map-editor");if(saved)S=JSON.parse(saved);}catch(e){}
+syncInputs();syncTools();buildPalette();refresh();setTip(TOOL_HINT[tool]);
+</script>
+</body>
+</html>

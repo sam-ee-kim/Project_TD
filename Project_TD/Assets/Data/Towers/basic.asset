@@ -16,30 +16,54 @@ MonoBehaviour:
   displayName: "\uAE30\uBCF8 \uD0C0\uC6CC"
   description: 
   buildCost: 50
-  damage: 1
+  damage: 1.5
   interval: 1
   bonusTrait: 
   bonusMultiplier: 1
+  status:
+    kind: 0
+    hitsPerStack: 1
+    procStacks: 3
+    procDamageRatio: 0
+    cooldown: 0
+    stunSec: 1
+    stunBonusTrait: 
+    stunBonusSec: 1
+    dotPerStack: 0.001
+    dotMax: 0.2
+    dotInterval: 1
+    splashRadius: 0
+    splashMaxTargets: 5
+    fxPrefab: {fileID: 0}
   burstCount: 2
   burstGap: 0.12
   chargeTime: 0
-  range: 2
+  range: 1
+  frontWidth: 3
   lockMode: 0
   targetRule: 0
   typePriority: []
   attackType: 0
   projectileSpeed: 8
   upgradeTo:
+  - cryo
+  - electro
+  - minigun
   - gun2
   tier: 1
   unlockFloor: 1
+  unlockPrice: 1
   showInPalette: 0
   spinUpTime: 0
   spinUpStartInterval: 0.6
   spinUpClip: {fileID: 0}
   spinLoopClip: {fileID: 0}
+  overheatAfter: 0
+  overheatRest: 3
+  focusBonusPerSec: 0
   fieldRadius: 0
   fieldDuration: 3
+  fieldDamageBonus: 0
   fieldSlow: 0.6
   fieldFxPrefab: {fileID: 0}
   fieldFxRadius: 1.6
@@ -47,13 +71,26 @@ MonoBehaviour:
   pulseSpeed: 6
   coneAngle: 90
   coneLength: 1.6
+  coneWholeArea: 0
+  maxTargets: 0
   viewPrefab: {fileID: 4684078478952574139, guid: 5b84f128a9b50e04d95b6e6a2e813740, type: 3}
+  icon: {fileID: 2800000, guid: d856b2961d6aef8408ecc4423fcac91c, type: 3}
   viewScale: 0.3
   projectilePrefab: {fileID: 919132149155446097, guid: 9da38cda5daa9724a8b9fde20c2d2f06, type: 3}
   projectileScale: 0.6
   projectileModelForward: {x: 0, y: 1, z: 0}
   projectileTurnSpeed: 720
   muzzleFxPrefab: {fileID: 3752508689999814891, guid: f95e4997c2de9bd43b6ea99e5e9ea696, type: 3}
+  fireSound: {fileID: 8300000, guid: b4fd88cc62b10ca41a5be8573804d5f6, type: 3}
+  fireSoundLoop: 0
+  fireVolume: 0.65
+  firePitchRange: {x: 0.9, y: 1.02}
+  spinSound: {fileID: 0}
+  spinVolume: 0.3
+  spinSoundShotsPerSec: 5
+  spinBarrel: 
+  barrelCount: 6
+  spinBarrelAxis: {x: 0, y: -1, z: 0}
   coneFxReach: 2.28
   buildClip: {fileID: -623603649343465320, guid: 1f8171cd17f6f5442a14c7d3f892e8cf, type: 3}
   chargeClip: {fileID: 0}

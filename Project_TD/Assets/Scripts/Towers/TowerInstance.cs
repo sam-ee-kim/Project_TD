@@ -46,5 +46,16 @@ namespace TowerDefence
         public bool SpinPosed;               // 예열 연출 자세를 찍은 상태
         public TowerBuildAnim FireAnim;      // 발사 연출 (TowerDef.fireClip이 있을 때)
         public float FireAnimTime = -1f;     // 발사 연출 진행 시간 (−1 = 재생 안 함)
+        public AudioSource LoopAudio;        // 반복 발사음 (TowerDef.fireSoundLoop, 모델에 붙여 풀과 함께 재사용)
+        public AudioSource SpinAudio;        // 총열 회전음 (TowerDef.spinSound)
+        public Transform SpinBarrel;         // 도는 총열 (TowerDef.spinBarrel): 초당 발사 수에 맞춰 직접 돌린다
+        public Quaternion BarrelRest;
+        public float BarrelAngle;
+        public float LastFireTime = -10f;    // 마지막 발사 시각 (반복음을 켜 둘지 판정)
+        public int[] AttackCells;            // 공격 범위 칸 (coneWholeArea 타워: 헤드가 어느 쪽을 보든 부채꼴이 닿을 수 있는 경로 칸)
+        public float Heat;                   // 최고 연사로 쏜 시간 (overheatAfter가 되면 과열)
+        public float OverheatTime;           // 남은 과열 휴식 (0보다 크면 쏘지 않는다)
+        public MonsterHandle FocusTarget = MonsterHandle.None; // 집중 사격 대상
+        public float FocusTime;              // 같은 대상을 계속 쏜 시간
     }
 }

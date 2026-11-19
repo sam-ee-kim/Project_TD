@@ -47,6 +47,7 @@ namespace TowerDefence
                     pool.Prewarm(perf.towerPoolPrewarm);
             }
             InitProjectilePools();
+            monsters.Stunned += HandleStunned; // 얼음·감전 이펙트 (앱 시작 때 1번 구독)
         }
 
         // 새 판: 타워·투사체를 모두 풀에 반납, 회수 목록 비우기. 매니저·풀은 다시 만들지 않는다.
@@ -67,7 +68,7 @@ namespace TowerDefence
 
         // 이 칸에 이 타워를 지을 수 있는지 (부지·점유·캐시). 화면은 이 결과로 [설치] 활성 여부를 정한다.
         public bool CanBuild(TowerDef def, Vector2Int cell) =>
-            def != null && board.IsBuildable(cell) && player.CanAfford(def.buildCost);
+            def != null && board.IsBuildable(cell) && player.CanAfford(GetBuildCost(def));
 
         // 건축: 부지 확인 → 캐시 차감 → 풀에서 타워 → 사거리 칸·순위표 계산 → TowerChanged(Board 점유).
         // 방향을 주지 않으면 경로 칸을 가장 많이 덮는 방향 (BestFacing).
@@ -75,7 +76,7 @@ namespace TowerDefence
 
         public bool Build(Vector2Int cell, TowerDef def, int facing)
         {
-            if (!CanBuild(def, cell) || !player.Spend(def.buildCost, CashReason.Build))
+            if (!CanBuild(def, cell) || !player.Spend(GetBuildCost(def), CashReason.Build))
                 return false;
             Place(cell, def, facing);
             return true;
@@ -162,28 +163,62 @@ namespace TowerDefence
 
         // ---------- 테크트리 (진화) ----------
 
-        // 다음 진화 단계 (테크트리가 꺼져 있거나 마지막 단계면 null).
+        // 다음 진화 단계 중 첫 번째 (테크트리가 꺼져 있거나 마지막 단계면 null).
         public TowerDef GetUpgrade(TowerDef def)
         {
-            if (def == null || data.Config == null || !data.Config.upgradeEnabled || def.upgradeTo == null || def.upgradeTo.Length == 0)
+            if (def == null || data.Config == null || !data.Config.upgradeEnabled || def.upgradeTo == null)
                 return null;
-            return data.TryGetTower(def.upgradeTo[0], out var next) ? next : null;
+            for (int i = 0; i < def.upgradeTo.Length; i++)
+                if (data.TryGetTower(def.upgradeTo[i], out var next))
+                    return next;
+            return null;
         }
 
-        // 진화 비용 = 다음 단계 누적 비용 − 지금 단계 누적 비용.
-        public int GetUpgradeCost(TowerDef from, TowerDef to) => Mathf.Max(0, to.buildCost - from.buildCost);
+        // 진화 갈래 전부 (테크트리: 듀얼샷 → 냉기·전기·미니건). 이 게임에 들어 있는 타워만, upgradeTo 순서대로.
+        // 화면(테크트리 창)에서 열 때 쓴다 (Tick 밖).
+        public void GetUpgrades(TowerDef def, List<TowerDef> into)
+        {
+            into.Clear();
+            if (def == null || data.Config == null || !data.Config.upgradeEnabled || def.upgradeTo == null)
+                return;
+            for (int i = 0; i < def.upgradeTo.Length; i++)
+                if (data.TryGetTower(def.upgradeTo[i], out var next))
+                    into.Add(next);
+        }
 
-        // 이번 층에서 진화할 수 있는 단계인지 (해금 층).
-        public bool IsUpgradeUnlocked(TowerDef to) => to != null && run != null && run.Floor >= to.unlockFloor;
+        // from에서 to로 진화할 수 있는 갈래인지 (테크트리 켜짐 + upgradeTo에 있음).
+        public bool IsUpgradeOption(TowerDef from, TowerDef to)
+        {
+            if (from == null || to == null || data.Config == null || !data.Config.upgradeEnabled || from.upgradeTo == null)
+                return false;
+            for (int i = 0; i < from.upgradeTo.Length; i++)
+                if (from.upgradeTo[i] == to.id)
+                    return true;
+            return false;
+        }
+
+        // 진화 비용 = 다음 단계 누적 비용 − 지금 단계 누적 비용 (GameConfig.upgradeFree면 임시로 0).
+        public int GetUpgradeCost(TowerDef from, TowerDef to) => player.ApplyCost(UpgradeCost(data.Config, from, to)); // 반도체 공장 할인
+
+        // 설치 비용 (반도체 공장 할인 반영). 판매·회수 환급은 원래 비용 기준
+        public int GetBuildCost(TowerDef def) => def == null ? 0 : player.ApplyCost(def.buildCost);
+
+        public static int UpgradeCost(GameConfig config, TowerDef from, TowerDef to) =>
+            config != null && config.upgradeFree ? 0 : Mathf.Max(0, to.buildCost - from.buildCost);
+
+        // 이번 층에서 진화할 수 있는 단계인지 (해금 층 + 공학연구소 해금).
+        public bool IsUpgradeUnlocked(TowerDef to) => to != null && run != null && run.Floor >= to.unlockFloor && player.IsTowerUnlocked(to);
 
         // 진화: 같은 칸에서 다음 단계 타워로 바꾼다 (차액만 낸다). 새 타워는 건축 연출을 거쳐 공격을 시작한다.
-        public bool Upgrade(TowerInstance tower)
+        public bool Upgrade(TowerInstance tower) => tower != null && Upgrade(tower, GetUpgrade(tower.Def));
+
+        // 갈래를 골라 진화 (테크트리 창).
+        public bool Upgrade(TowerInstance tower, TowerDef next)
         {
             if (tower == null || !placed.Contains(tower) || tower.State == TowerState.Building)
                 return false;
             var from = tower.Def;
-            var next = GetUpgrade(from);
-            if (next == null || !IsUpgradeUnlocked(next) || !player.Spend(GetUpgradeCost(from, next), CashReason.Upgrade))
+            if (!IsUpgradeOption(from, next) || !IsUpgradeUnlocked(next) || !player.Spend(GetUpgradeCost(from, next), CashReason.Upgrade))
                 return false;
             var cell = tower.Cell;
             int facing = tower.Facing; // 진화해도 방향은 그대로
@@ -213,16 +248,16 @@ namespace TowerDefence
             ItemGranted?.Invoke(new FloorItemGrant(clearedFloor, damage, bonus, run.ItemDamageMul, run.ItemSpeedMul));
         }
 
-        // 아이템을 반영한 1발 피해·공격 간격.
-        public float GetDamage(TowerDef def) => def.damage * (run != null ? run.ItemDamageMul : 1f);
-        public float GetInterval(TowerDef def) => def.interval / (run != null ? run.ItemSpeedMul : 1f);
+        // 아이템·반도체 공장을 반영한 1발 피해·공격 간격.
+        public float GetDamage(TowerDef def) => def.damage * (run != null ? run.ItemDamageMul : 1f) * player.DamageMul;
+        public float GetInterval(TowerDef def) => def.interval / ((run != null ? run.ItemSpeedMul : 1f) * player.SpeedMul);
 
         // 이 타워의 지금 공격 간격: 예열 타워(미니건)는 예열 정도에 따라 spinUpStartInterval → interval.
         public float GetInterval(TowerInstance t)
         {
             var def = t.Def;
             float interval = def.spinUpTime > 0f ? Mathf.Lerp(def.spinUpStartInterval, def.interval, t.SpinUp) : def.interval;
-            return interval / (run != null ? run.ItemSpeedMul : 1f);
+            return interval / ((run != null ? run.ItemSpeedMul : 1f) * player.SpeedMul);
         }
 
         // 이 칸의 타워 (없으면 null).
@@ -248,6 +283,10 @@ namespace TowerDefence
             t.BurstLeft = 0;
             t.ChargeTime = 0f;
             t.SpinUp = 0f;
+            t.Heat = 0f;
+            t.OverheatTime = 0f;
+            t.FocusTarget = MonsterHandle.None;
+            t.FocusTime = 0f;
             t.State = TowerState.Idle;
             t.Locked = MonsterHandle.None;
             BuildRangeCache(t);
@@ -298,6 +337,29 @@ namespace TowerDefence
             }
             t.Covered = covered.ToArray();
             t.TypeRank = BuildTypeRank(t.Def.typePriority);
+            t.AttackCells = t.Def.coneWholeArea ? BuildAttackCells(t) : null;
+        }
+
+        // 공격 범위 칸: 헤드가 돌아 어느 쪽을 보든 부채꼴 불길이 닿을 수 있는 경로 칸 (타워 중심에서 coneLength + 반 칸 + 몸통 안).
+        // 인식 범위(Covered, 사거리 표시)와 따로 둔다: 인식은 앞쪽 칸에서 하고, 피해는 실제 불길 모양으로 준다.
+        int[] BuildAttackCells(TowerInstance t)
+        {
+            float reach = t.Def.coneLength + 0.5f + ConeHitRadius;
+            var cells = new List<int>();
+            var seen = new HashSet<int>();
+            for (int pathId = 0; pathId < board.PathCount; pathId++)
+            {
+                int pathLength = board.GetPathLength(pathId);
+                for (int i = 0; i < pathLength; i++)
+                {
+                    var c = board.GetPathCell(pathId, i);
+                    int dx = c.x - t.Cell.x, dy = c.y - t.Cell.y;
+                    int id = board.CellId(c);
+                    if (dx * dx + dy * dy <= reach * reach && seen.Add(id))
+                        cells.Add(id);
+                }
+            }
+            return cells.ToArray();
         }
 
         // 몬스터 Def.Index → 순위. typePriority 항목은 몬스터 id 또는 분류 이름("Normal"/"Special"),
@@ -348,10 +410,51 @@ namespace TowerDefence
                 if (def.spinLoopClip != null)
                     t.SpinLoopAnim = new TowerBuildAnim(go, def.spinLoopClip, t.Aim != null ? t.Aim.animatedParts : null);
                 t.Parts = MergeView(def, go, t.Aim);
+                if (!string.IsNullOrEmpty(def.spinBarrel))
+                {
+                    t.SpinBarrel = FindChild(go.transform, def.spinBarrel); // 생성 때 1번만 찾는다
+                    if (t.SpinBarrel != null)
+                        t.BarrelRest = t.SpinBarrel.localRotation;
+                }
+                if (def.spinSound != null && def.spinUpTime > 0f)
+                {
+                    // 총열 회전음 (미니건): 예열 정도에 따라 TickViews가 음 높이·볼륨을 맞춘다
+                    var spin = go.AddComponent<AudioSource>();
+                    spin.clip = def.spinSound;
+                    spin.loop = true;
+                    spin.playOnAwake = false;
+                    spin.volume = 0f;
+                    spin.spatialBlend = 0f;
+                    t.SpinAudio = spin;
+                }
+                if (def.fireSound != null && def.fireSoundLoop)
+                {
+                    // 반복 발사음 (화염방사): 타워 모델에 붙여 둔다. 쏘는 동안 TickViews가 켜고 끈다
+                    var audio = go.AddComponent<AudioSource>();
+                    audio.clip = def.fireSound;
+                    audio.loop = true;
+                    audio.playOnAwake = false;
+                    audio.volume = 0f;
+                    audio.spatialBlend = 0f;
+                    t.LoopAudio = audio;
+                }
                 go.SetActive(false);
                 TowerViewsCreated++;
             }
             return t;
+        }
+
+        static Transform FindChild(Transform root, string name)
+        {
+            if (root.name == name)
+                return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var found = FindChild(root.GetChild(i), name);
+                if (found != null)
+                    return found;
+            }
+            return null;
         }
 
         // 움직이는 부품 단위로 메시를 합쳐 렌더러 수를 줄인다 (종류별 템플릿은 처음 1번만 만든다).
@@ -383,6 +486,8 @@ namespace TowerDefence
             tower.State = TowerState.Idle;
             tower.Locked = MonsterHandle.None;
             tower.Parts?.SetMerged(false);
+            tower.LoopAudio?.Stop(); // 철거 연출 동안은 조용히
+            tower.SpinAudio?.Stop();
             demolishing.Add(tower);
         }
 
@@ -396,10 +501,30 @@ namespace TowerDefence
             t.FireAnimTime = -1f;
             t.FireAnim?.Restore();
             t.SpinUp = 0f;
+            t.Heat = 0f;
+            t.OverheatTime = 0f;
+            t.FocusTarget = MonsterHandle.None;
+            t.FocusTime = 0f;
             t.SpinLoopTime = 0f;
             t.SpinPosed = false;
             t.SpinLoopAnim?.Restore();
             t.SpinUpAnim?.Restore();
+            if (t.LoopAudio != null)
+            {
+                t.LoopAudio.Stop();
+                t.LoopAudio.volume = 0f;
+            }
+            if (t.SpinAudio != null)
+            {
+                t.SpinAudio.Stop();
+                t.SpinAudio.volume = 0f;
+            }
+            if (t.SpinBarrel != null)
+            {
+                t.BarrelAngle = 0f;
+                t.SpinBarrel.localRotation = t.BarrelRest;
+            }
+            t.LastFireTime = -10f;
             t.BuildAnim?.Restore();      // 다음에 꺼낼 때 기본 자세에서 시작
             t.Parts?.SetMerged(true);
             if (t.View != null)

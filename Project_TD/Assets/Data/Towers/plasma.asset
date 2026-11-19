@@ -18,15 +18,31 @@ MonoBehaviour:
     \uC815\uBA74 \uC77C\uC9C1\uC120\uC73C\uB85C \uC3E9\uB2C8\uB2E4. \uD5E4\uB4DC\uAC00
     \uB3CC\uC9C0 \uC54A\uACE0, \uBC14\uB77C\uBCF4\uB294 \uBC29\uD5A5 3\uCE78 \uC704\uC758
     \uC801\uC744 \uBAA8\uB450 \uD0DC\uC6C1\uB2C8\uB2E4."
-  buildCost: 50
+  buildCost: 180
   damage: 1
   interval: 0.2
   bonusTrait: 
   bonusMultiplier: 1
+  status:
+    kind: 0
+    hitsPerStack: 1
+    procStacks: 3
+    procDamageRatio: 0
+    cooldown: 0
+    stunSec: 1
+    stunBonusTrait: 
+    stunBonusSec: 1
+    dotPerStack: 0.001
+    dotMax: 0.2
+    dotInterval: 1
+    splashRadius: 0
+    splashMaxTargets: 5
+    fxPrefab: {fileID: 0}
   burstCount: 1
   burstGap: 0.12
   chargeTime: 0
   range: 3
+  frontWidth: 0
   lockMode: 0
   targetRule: 0
   typePriority: []
@@ -35,13 +51,18 @@ MonoBehaviour:
   upgradeTo: []
   tier: 2
   unlockFloor: 1
-  showInPalette: 1
+  unlockPrice: 3
+  showInPalette: 0
   spinUpTime: 0
   spinUpStartInterval: 0.6
   spinUpClip: {fileID: 0}
   spinLoopClip: {fileID: 0}
+  overheatAfter: 0
+  overheatRest: 3
+  focusBonusPerSec: 0
   fieldRadius: 0
   fieldDuration: 3
+  fieldDamageBonus: 0
   fieldSlow: 0.6
   fieldFxPrefab: {fileID: 0}
   fieldFxRadius: 1.6
@@ -49,13 +70,26 @@ MonoBehaviour:
   pulseSpeed: 6
   coneAngle: 0
   coneLength: 3
+  coneWholeArea: 0
+  maxTargets: 0
   viewPrefab: {fileID: 3012913805388466912, guid: d3abac98b6cec714f80dd49778bfd576, type: 3}
+  icon: {fileID: 2800000, guid: 142d4144dd47d8f4eb7f6e5fed894469, type: 3}
   viewScale: 0.3
   projectilePrefab: {fileID: 0}
   projectileScale: 1
   projectileModelForward: {x: 0, y: 0, z: 1}
   projectileTurnSpeed: 720
   muzzleFxPrefab: {fileID: 8995873622197977097, guid: f42de701755c0914d91477d2d7dbfe02, type: 3}
+  fireSound: {fileID: 0}
+  fireSoundLoop: 0
+  fireVolume: 0.5
+  firePitchRange: {x: 0.94, y: 1.06}
+  spinSound: {fileID: 0}
+  spinVolume: 0.3
+  spinSoundShotsPerSec: 5
+  spinBarrel: 
+  barrelCount: 6
+  spinBarrelAxis: {x: 0, y: -1, z: 0}
   coneFxReach: 3
   buildClip: {fileID: -623603649343465320, guid: 4019cc3e1fd05fc45860afc2c8c5d1a8, type: 3}
   chargeClip: {fileID: 0}

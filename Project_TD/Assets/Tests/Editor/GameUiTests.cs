@@ -82,7 +82,7 @@ namespace TowerDefence.Tests
         }
 
         [Test]
-        public void BottomButtons_FromListData_UpgradeDisabledWithTooltip()
+        public void BottomButtons_FromListData_UpgradeOpensTechTree()
         {
             Assert.AreEqual(config.ui.bottomButtons.Length, Find("BottomBar").GetComponentsInChildren<Button>(true).Length);
             foreach (var entry in config.ui.bottomButtons)
@@ -93,8 +93,7 @@ namespace TowerDefence.Tests
 
             ui.HandleStateChanged(new StateChange(GameState.Break, 1, 0));
             Assert.IsTrue(ui.Hud.IsButtonInteractable("build"));
-            Assert.IsFalse(ui.Hud.IsButtonInteractable("upgrade"), "업그레이드 회색 비활성 (GDD 5-5)");
-            Assert.AreEqual("준비 중", Find("BottomBar/Tooltip_upgrade").GetComponentInChildren<Text>().text);
+            Assert.AreEqual(config.upgradeEnabled, ui.Hud.IsButtonInteractable("upgrade"), "업그레이드 = 테크트리 창 (upgradeEnabled일 때 켜짐)");
         }
 
         [Test]

@@ -17,12 +17,22 @@ namespace TowerDefence
         BuildController build;
         GameFlow flow;
         Camera camera;
+        LobbyView lobby; // 게임 시작 전(Ready) 도시 화면 (씬에 없으면 null: 기존처럼 맵 위 안내 문구만)
+        PlayerState player; // 공학연구소: 해금 여부 조회와 [해금] 요청만
+        readonly LabView lab = new LabView(); // 로비 공학연구소 핀 → 2단계 이상 타워 해금 창
+        readonly FactoryView factory = new FactoryView(); // 로비 반도체 공장 핀 → 모든 타워 기본 스탯 강화 창
+        string resultText = ""; // 결과창 문구 (판 끝 M1반도체 지급 줄을 덧붙이려고 기억)
+        TowerDef popupDef;
+        RectTransform placingLabel; // 지금 놓는 타워 이름 (포인터 옆에 따라다님)
+        Text placingText;
+        RectTransform canvasRect;
 
         RectTransform tooltip;
         readonly ConfirmPopup popup = new ConfirmPopup();
         readonly TowerPaletteView palette = new TowerPaletteView();
         readonly TowerInfoView info = new TowerInfoView();
         readonly TowerDragView dragView = new TowerDragView();
+        readonly TechTreeView tree = new TechTreeView(); // 하단 [타워 업그레이드]: 테크트리 창 (게임은 멈추지 않음)
         bool dragOverlay; // 일반 상태에서 타워를 옮기는 동안만 켠 오버레이
 
         GameState state = GameState.Ready;
@@ -40,13 +50,15 @@ namespace TowerDefence
         public TowerInfoView Info => info;
 
         public void Init(GameData data, Canvas canvas, Board board, BuildController build, GameFlow flow, Camera camera,
-            MapGenerator mapRenderer, CameraController cameraRig)
+            MapGenerator mapRenderer, CameraController cameraRig, LobbyView lobby = null, PlayerState player = null)
         {
+            this.player = player;
             this.data = data;
             this.board = board;
             this.build = build;
             this.flow = flow;
             this.camera = camera;
+            this.lobby = lobby;
             var config = data.Config;
 
             Map.Init(mapRenderer, cameraRig, board, config != null ? config.ui : null);
@@ -56,6 +68,8 @@ namespace TowerDefence
             if (canvas == null)
                 return;
             SetupScaler(canvas);
+            if (lobby != null)
+                lobby.Init(canvas, camera); // HUD보다 먼저: 핀이 시작 안내 문구 아래에 그려진다
             Hud.Init(canvas, config != null ? config.finalFloor : 0,
                 flow.StartNow, flow.RequestRestart,
                 config != null ? config.ui.bottomButtons : null, HandleBottomButton,
@@ -73,6 +87,32 @@ namespace TowerDefence
             palette.Init(canvas.transform, BuildableTowers(), HandleSlotClicked, build.BeginNewTowerDrag);
             PaletteSlider.RegisterAppear(palette.Root, ExitDirection.Down);
             info.Init(canvas.transform, HideInfo);
+            tree.Init(canvas.transform, data, palette.GetIcon, build.ChooseUpgrade, build.SellTechTreeTower, build.CloseTechTree);
+            if (player != null)
+            {
+                tree.LabUnlocked = player.IsTowerUnlocked;
+                tree.CostMod = player.ApplyCost;
+                palette.CostOf = def => player.ApplyCost(def.buildCost);
+                palette.RefreshCosts();
+                factory.Init(canvas.transform, player, data.Config);
+                // 공학연구소 창: 로비(Ready)에서 핀을 누르면 열린다. HUD 위에 그린다
+                lab.Init(canvas.transform, data, palette.GetIcon, player.IsTowerUnlocked, def => player.TryUnlockTower(def));
+                lab.SetChips(player.M1Chips);
+                if (lobby != null)
+                    lobby.StartClicked += () =>
+                    {
+                        if (state == GameState.Ready && !lab.Visible && !factory.Visible)
+                            flow.RequestStartGame(); // 요청만 (상태 전환은 GameFlow)
+                    };
+                if (lobby != null)
+                    lobby.PinClicked += action =>
+                    {
+                        if (action == LobbyView.LabAction && state == GameState.Ready)
+                            lab.Show();
+                        else if (action == LobbyView.FactoryAction && state == GameState.Ready)
+                            factory.Show();
+                    };
+            }
 
             // 툴팁·확인 팝업은 HUD 위에 그린다 (나중에 만든 것이 위)
             tooltip = BasicUi.Rect("BlockedTooltip", canvas.transform, Vector2.zero, new Vector2(0.5f, 0f), Vector2.zero, new Vector2(300, 46));
@@ -81,6 +121,14 @@ namespace TowerDefence
             BasicUi.Label(tooltip, BlockedTooltipText, 24, TextAnchor.MiddleCenter, new Color(1f, 0.75f, 0.75f));
             tooltip.gameObject.SetActive(false);
             popup.Init(canvas.transform, build.ConfirmPopup, build.CancelPopup);
+
+            // 지금 설치하는 타워 이름: 포인터 오른쪽 위에 따라다닌다 (건축·재건축 모드, 끌어서 놓는 중)
+            canvasRect = (RectTransform)canvas.transform;
+            placingLabel = BasicUi.Rect("PlacingName", canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), Vector2.zero, new Vector2(360f, 44f));
+            BasicUi.OwnCanvas(placingLabel);
+            BasicUi.Panel(placingLabel, new Color(0.04f, 0.05f, 0.07f, 0.82f)).raycastTarget = false;
+            placingText = BasicUi.Label(placingLabel, "", 24, TextAnchor.MiddleCenter, new Color(1f, 0.88f, 0.55f));
+            placingLabel.gameObject.SetActive(false);
         }
 
         // 새 판: 팝업·패널·오버레이를 처음 상태로, HUD에 시작 값.
@@ -96,6 +144,9 @@ namespace TowerDefence
             PaletteSlider.SnapIn();
             HideInfo();
             palette.RefreshAfford(cash);
+            tree.Show(default);
+            tree.SetCash(cash);
+            tree.SetFloor(run.Floor);
             dragOverlay = false;
             Hud.HideResult();
             Hud.HideBanner();
@@ -111,7 +162,15 @@ namespace TowerDefence
             Panels.Tick(dt);
             PaletteSlider.Tick(dt);
             Map.Tick(dt);
+            if (lobby != null)
+                lobby.Tick(dt);
             dragView.Tick(dt, build.HasDragPoint, build.DragPoint); // 끌고 있는 타워가 포인터를 따라 공중에 떠 있다
+            if (placingLabel != null && placingLabel.gameObject.activeSelf)
+            {
+                var pointer = UnityEngine.InputSystem.Pointer.current;
+                if (pointer != null && RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, pointer.position.ReadValue(), null, out var local))
+                    placingLabel.anchoredPosition = local + new Vector2(28f, 30f);
+            }
         }
 
         // --- 이벤트 구독 (GDD 8-4) ---
@@ -122,15 +181,17 @@ namespace TowerDefence
             int waves = data.Config != null ? LevelRules.GetWaveCount(data.Config, e.Floor) : 0;
             Hud.SetFloor(e.Floor);
             Hud.SetWave(e.Wave, waves);
+            tree.SetFloor(e.Floor); // 진화 해금 층
 
             bool playing = e.State == GameState.Break || e.State == GameState.Wave || e.State == GameState.FloorTransition;
             Hud.SetHudVisible(e.State != GameState.Ready);
-            Hud.SetStartPromptVisible(e.State == GameState.Ready);
+            Hud.SetStartPromptVisible(e.State == GameState.Ready && lobby == null); // 로비가 있으면 [방어 시작] 버튼으로 시작
             Hud.SetBottomBarVisible(playing);
             Hud.SetButtonInteractable("build", e.State == GameState.Break || e.State == GameState.Wave);
             Map.SetPathPreviewWanted(e.State == GameState.Ready || e.State == GameState.Break); // 라운드 시작 전 몬스터 경로 미리보기
             Hud.SetButtonInteractable("upgrade", data.Config != null && data.Config.upgradeEnabled); // GDD 5-5: 지금은 비활성
             Hud.SetStartNowVisible(e.State == GameState.Break);
+            SetLobbyVisible(e.State == GameState.Ready);
 
             switch (e.State)
             {
@@ -147,11 +208,13 @@ namespace TowerDefence
                     break;
                 case GameState.GameOver:
                     Hud.SetTimerText("");
-                    Hud.ShowResult($"게임 오버\n도달 층: {e.Floor}층");
+                    resultText = $"게임 오버\n도달 층: {e.Floor}층";
+                    Hud.ShowResult(resultText);
                     break;
                 case GameState.GameClear:
                     Hud.SetTimerText("");
-                    Hud.ShowResult($"게임 클리어!\n도달 층: {e.Floor}층, 남은 체력: {hp}");
+                    resultText = $"게임 클리어!\n도달 층: {e.Floor}층, 남은 체력: {hp}";
+                    Hud.ShowResult(resultText);
                     break;
                 case GameState.Ready:
                     Hud.HideResult();
@@ -171,6 +234,7 @@ namespace TowerDefence
             cash = e.Cash;
             Hud.SetCash(cash);
             palette.RefreshAfford(cash);
+            tree.SetCash(cash);
             if (popupKind == PopupKind.Build)
                 RefreshAfford(); // 웨이브 중 처치 캐시로 [설치]가 다시 켜질 수 있다
         }
@@ -203,7 +267,8 @@ namespace TowerDefence
         public void HandleRecoveryChanged(RecoveryChange e)
         {
             var def = e.Def;
-            Hud.SetRecoveryCount(def, e.Count, () => build.OpenRecoveryPopup(def));
+            Hud.SetRecoveryCount(def, e.Count, () => build.OpenRecoveryPopup(def), palette.GetIcon(def), build.BeginRecoveryDrag);
+            RefreshPlacingLabel(); // 재건축·이어서 설치: 남은 개수
         }
 
         // 만료(70% 반환) 또는 게임오버 소멸: 목록과 패널 제거.
@@ -218,6 +283,41 @@ namespace TowerDefence
             if (waiting)
                 Hud.ShowBanner("다음 맵 준비 중…");
         }
+
+        // 지금 놓는 타워 이름 (상태가 바뀔 때만 글자를 다시 쓴다)
+        void RefreshPlacingLabel()
+        {
+            if (placingLabel == null)
+                return;
+            TowerDef def = null;
+            string text = null;
+            switch (build.Drag)
+            {
+                case DragKind.NewTower:
+                    def = dragDef; text = $"{dragDef?.displayName} 설치"; break;
+                case DragKind.Recovery:
+                    def = dragDef;
+                    int left = build.RecoveryCountOf(dragDef);
+                    text = build.IsCarrying ? $"{dragDef?.displayName} 이어서 설치 (남은 {left}개) · 클릭해 놓기 · ESC 그만" : $"{dragDef?.displayName} 재건축 (남은 {left}개)";
+                    break;
+                case DragKind.MoveTower:
+                    def = dragDef; text = $"{dragDef?.displayName} 이동"; break;
+                default:
+                    if (build.Mode == BuildMode.Build && build.ModeDef != null) { def = build.ModeDef; text = $"{def.displayName} 설치"; }
+                    else if (build.Mode == BuildMode.Rebuild && build.ModeDef != null) { def = build.ModeDef; text = $"{def.displayName} 재건축 (남은 {build.RecoveryCountOf(def)}개)"; }
+                    break;
+            }
+            bool show = def != null;
+            if (show)
+            {
+                placingText.text = text;
+                placingLabel.sizeDelta = new Vector2(Mathf.Max(220f, placingText.preferredWidth + 36f), 44f);
+            }
+            if (placingLabel.gameObject.activeSelf != show)
+                placingLabel.gameObject.SetActive(show);
+        }
+
+        TowerDef dragDef;
 
         public void HandleModeChanged(BuildModeChange e)
         {
@@ -240,6 +340,7 @@ namespace TowerDefence
                 PaletteSlider.SlideIn();
                 HideInfo();
             }
+            RefreshPlacingLabel();
         }
 
         // 드래그 시작·끝: 들고 있는 타워 표시. 일반 상태에서 타워를 옮기는 동안에도 설치 가능 칸 오버레이를 보여 준다
@@ -247,6 +348,13 @@ namespace TowerDefence
         public void HandleDragChanged(TowerDrag e)
         {
             dragView.Handle(e);
+            if (e.Def != dragDef || e.Kind == DragKind.None)
+            {
+                dragDef = e.Kind == DragKind.None ? null : e.Def;
+                RefreshPlacingLabel();
+            }
+            else if (e.Kind == DragKind.Recovery)
+                RefreshPlacingLabel(); // 이어서 설치: 남은 개수
             bool dragging = e.Kind != DragKind.None;
             if (dragging && build.Mode == BuildMode.None && !dragOverlay)
             {
@@ -268,6 +376,7 @@ namespace TowerDefence
             info.Show(def, palette.GetIcon(def));
             palette.SetSelected(def);
             build.SelectBuildDef(def);
+            RefreshPlacingLabel();
         }
 
         void HideInfo()
@@ -283,6 +392,14 @@ namespace TowerDefence
         }
 
         public void HandleSelectionChanged(CellSelection e) => Map.SetSelected(e.HasCell, e.Cell);
+
+        // 테크트리 창 열기·닫기·고른 타워 (BuildController.TechTreeChanged).
+        public void HandleTechTreeChanged(TechTreeChange e)
+        {
+            tree.Show(e);
+            if (e.Open)
+                HideInfo();
+        }
 
         public void HandlePopupRequested(PopupRequest e)
         {
@@ -302,9 +419,10 @@ namespace TowerDefence
                     break;
                 case PopupKind.Upgrade:
                     popupCost = e.Amount;
+                    popupDef = e.Def;
                     popupUnlockFloor = e.Def.unlockFloor;
-                    popup.Show($"{e.From.displayName} → {e.Def.displayName}\n진화 비용 {e.Amount} 캐시 · 초당 피해 {Dps(e.From):0.#} → {Dps(e.Def):0.#}",
-                        "진화", $"판매 (+{e.Refund})");
+                    popup.Show($"{e.From.displayName} → {e.Def.displayName}\n{(e.Amount == 0 ? "진화 무료" : $"진화 비용 {e.Amount} 캐시")} · 초당 피해 {Dps(e.From):0.#} → {Dps(e.Def):0.#}",
+                        "진화", "취소");
                     RefreshAfford();
                     break;
                 default:
@@ -323,8 +441,11 @@ namespace TowerDefence
                         build.EnterBuildMode(data.Towers[0]); // 타워 종류가 2개 이상이 되면 종류 선택 단계 추가 (GDD 5-7)
                     break;
                 case "upgrade":
-                    if (data.Config != null && data.Config.upgradeEnabled)
-                        Hud.ShowBanner("진화할 타워를 클릭하세요");
+                    // 테크트리 창 열기/닫기 (게임은 그대로 진행)
+                    if (build.IsTechTreeOpen)
+                        build.CloseTechTree();
+                    else
+                        build.OpenTechTree(null);
                     break;
             }
         }
@@ -332,6 +453,11 @@ namespace TowerDefence
         // 캐시 부족: [설치]·[진화] 비활성 + "캐시가 부족합니다". 진화는 해금 층 전이면 "N층부터 진화 가능".
         void RefreshAfford()
         {
+            if (popupKind == PopupKind.Upgrade && player != null && !player.IsTowerUnlocked(popupDef))
+            {
+                popup.SetLeftEnabled(false, "공학연구소에서 해금해야 진화 가능");
+                return;
+            }
             if (popupKind == PopupKind.Upgrade && flow.Floor < popupUnlockFloor)
             {
                 popup.SetLeftEnabled(false, $"{popupUnlockFloor}층부터 진화 가능");
@@ -339,6 +465,17 @@ namespace TowerDefence
             }
             bool afford = cash >= popupCost;
             popup.SetLeftEnabled(afford, afford ? "" : NotEnoughCashText);
+        }
+
+        // 공학연구소 진행이 바뀜 (해금, 판 끝 M1반도체 지급).
+        public void HandleMetaChanged(MetaChange e)
+        {
+            lab.SetChips(e.M1Chips);
+            factory.Refresh();
+            palette.RefreshCosts();  // 설치 비용 할인 단계가 바뀌었을 수 있다
+            tree.SetCash(cash);      // 해금 상태·진화 비용이 바뀌었을 수 있다 (열려 있으면 다시 칠함)
+            if (state == GameState.GameOver || state == GameState.GameClear)
+                Hud.ShowResult($"{resultText}\nM1반도체 +{e.Granted}개 (보유 {e.M1Chips}개) · 작은 반도체 +{e.SmallGranted}개 (보유 {e.SmallChips}개)\n로비의 공학연구소·반도체 공장에서 사용");
         }
 
         // 층 클리어 아이템 안내.
@@ -368,6 +505,27 @@ namespace TowerDefence
             if (show && camera != null)
                 tooltip.position = camera.WorldToScreenPoint(board.CellToWorld(cell) + Vector3.up * 0.6f);
             tooltip.gameObject.SetActive(show);
+        }
+
+        // 로비: Ready에서만 도시 화면. 게임이 시작되면 도시를 끄고, 맵 타일이 솟아오르는 연출을 그때 다시 보여 준다
+        // (Ready 동안 맵은 로비 카메라 뒤에서 이미 올라와 있으므로).
+        void SetLobbyVisible(bool visible)
+        {
+            if (!visible)
+            {
+                lab.Hide();
+                factory.Hide();
+            }
+            if (lobby == null || lobby.IsShown == visible)
+                return;
+            if (visible)
+            {
+                lobby.Show();
+                return;
+            }
+            lobby.Hide();
+            if (board.Map != null)
+                Map.Rebuild(board.Map);
         }
 
         static void SetupScaler(Canvas canvas)

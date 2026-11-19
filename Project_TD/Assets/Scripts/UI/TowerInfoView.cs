@@ -76,7 +76,9 @@ namespace TowerDefence
             sb.AppendLine($"공격 간격   {def.interval:0.##}초 (초당 {def.damage * shots / Mathf.Max(0.01f, def.interval):0.##} 피해)");
             if (!string.IsNullOrEmpty(def.bonusTrait) && def.bonusMultiplier != 1f)
                 sb.AppendLine($"상성        {TraitName(def.bonusTrait)} 몬스터 {def.bonusMultiplier:0.##}배 피해");
-            if (def.attackType == AttackType.Line)
+            if (def.frontWidth > 0)
+                sb.AppendLine($"사거리      바로 앞 한 줄 {def.frontWidth}칸 (앞 왼쪽·정면·앞 오른쪽)");
+            else if (def.attackType == AttackType.Line)
                 sb.AppendLine($"사거리      정면 일직선 {def.range}칸 (헤드 고정)");
             else if (def.attackType == AttackType.Cone)
                 sb.AppendLine($"사거리      {def.coneLength:0.#}칸 부채꼴 {def.coneAngle:0}° (앞쪽 180° 안)");
@@ -84,6 +86,19 @@ namespace TowerDefence
                 sb.AppendLine($"사거리      반지름 {def.pulseRadius:0.#}칸 반원 (앞쪽, 닿는 적 모두)");
             else
                 sb.AppendLine($"사거리      {def.range}칸 (앞쪽 {side}×{def.range})");
+            if (def.coneWholeArea)
+                sb.AppendLine($"공격 범위   발사구에서 {def.coneLength:0.#}칸 부채꼴 {def.coneAngle:0}° (사거리 칸은 인식 범위)");
+            if (def.maxTargets > 0)
+                sb.AppendLine($"최대 대상   한 번에 {def.maxTargets}마리 (가까운 순)");
+            if (def.fieldRadius > 0f && def.fieldDamageBonus > 0f)
+                sb.AppendLine($"나노필드    반지름 {def.fieldRadius:0.#}칸 {def.fieldDuration:0.#}초 · 감속 {def.fieldSlow * 100f:0}% · 받는 피해 +{def.fieldDamageBonus * 100f:0}%");
+            if (def.overheatAfter > 0f)
+                sb.AppendLine($"과열        예열 {def.spinUpTime:0.#}초 → 최고 연사 {def.overheatAfter:0.#}초 → {def.overheatRest:0.#}초 휴식");
+            if (def.focusBonusPerSec > 0f)
+                sb.AppendLine($"집중 사격   같은 대상을 계속 쏘면 1초마다 한 발 +{def.focusBonusPerSec:0.##}");
+            string status = StatusText(def.status);
+            if (status != null)
+                sb.AppendLine($"이상효과    {status}" + (def.status.splashRadius > 0f ? $" (주변 {def.status.splashRadius:0.#}칸으로 번짐, 최대 {def.status.splashMaxTargets}마리)" : ""));
             sb.AppendLine("방향        설치할 때 R키로 회전 · G키로 사거리 표시");
             sb.AppendLine($"공격 방식   {AttackName(def)}");
             sb.AppendLine($"대상 선택   {RuleName(def.targetRule)}");
@@ -93,7 +108,42 @@ namespace TowerDefence
             return sb.ToString().TrimEnd();
         }
 
-        static string AttackName(TowerDef def)
+        // 이상효과 한 줄 설명 (StatusEffect 값으로)
+        static string StatusText(StatusEffect s)
+        {
+            if (s == null)
+                return null;
+            switch (s.kind)
+            {
+                case StatusKind.Burn: return $"화상: {s.hitsPerStack}번 맞으면 1스택, {s.procStacks}스택에 공격력 {s.procDamageRatio * 100f:0}% 추가 피해 (쿨타임 {s.cooldown:0.#}초)";
+                case StatusKind.Dust: return $"분진: {s.procStacks}스택에 공격력 {s.procDamageRatio * 100f:0}% 폭발 피해 (쿨타임 {s.cooldown:0.#}초)";
+                case StatusKind.Phosphorus: return $"백린: 스택당 초당 공격력 {s.dotPerStack * 100f:0.#}% (최대 {s.dotMax * 100f:0}%)";
+                case StatusKind.Frost: return $"얼음: 서리 {s.procStacks}스택에 {s.stunSec:0.#}초 정지{BonusText(s)}";
+                case StatusKind.Static: return $"감전: 정전기 {s.procStacks}스택에 {s.stunSec:0.#}초 정지{BonusText(s)}";
+                default: return null;
+            }
+        }
+
+        static string BonusText(StatusEffect s) =>
+            string.IsNullOrEmpty(s.stunBonusTrait) ? "" : $" ({TraitName(s.stunBonusTrait)} +{s.stunBonusSec:0.#}초)";
+
+        // 테크트리 칸용 짧은 이름 (" · 얼음")
+        public static string StatusShortName(StatusEffect s)
+        {
+            if (s == null)
+                return "";
+            switch (s.kind)
+            {
+                case StatusKind.Burn: return " · 화상";
+                case StatusKind.Dust: return " · 분진";
+                case StatusKind.Phosphorus: return " · 백린";
+                case StatusKind.Frost: return " · 얼음";
+                case StatusKind.Static: return " · 감전";
+                default: return "";
+            }
+        }
+
+        public static string AttackName(TowerDef def)
         {
             switch (def.attackType)
             {
@@ -111,6 +161,7 @@ namespace TowerDefence
             switch (trait)
             {
                 case "mechanical": return "기계";
+                case "biological": return "생물";
                 case "flying": return "비행";
                 default: return trait;
             }

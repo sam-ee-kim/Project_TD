@@ -20,6 +20,14 @@ namespace TowerDefence
         public float IdleTime;       // 남은 제자리 대기 시간 (스폰 직후 Idle). 0보다 크면 움직이지 않는다
         public MonsterView View;     // 표시 (모델 + 애니메이션 상태머신). 표시가 없으면 null
 
+        // 이상효과 (StatusEffect). 스폰 때 모두 0
+        public int BurnHits, BurnStacks; public float BurnReadyAt;   // 화상: 맞은 횟수, 스택, 다시 쌓이는 시각
+        public int DustStacks; public float DustReadyAt;              // 분진
+        public int PhosStacks; public float PhosDamage, PhosTimer;    // 백린: 스택, 기준 공격력, 다음 틱까지
+        public StatusEffect PhosEffect;
+        public int FrostStacks, StaticStacks;                         // 서리·정전기
+        public float StunTime;                                        // 남은 정지 시간 (얼음·감전). 0보다 크면 움직이지 않는다
+
         public MonsterHandle Handle => new MonsterHandle(Index, Generation);
     }
 }

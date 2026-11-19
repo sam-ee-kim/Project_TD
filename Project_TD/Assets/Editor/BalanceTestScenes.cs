@@ -116,7 +116,11 @@ namespace TowerDefence.EditorTools
         static void SetUpgrade(string id, string next)
         {
             var def = AssetDatabase.LoadAssetAtPath<TowerDef>($"{TowerFolder}/{id}.asset");
-            def.upgradeTo = new[] { next };
+            // 테크트리 갈래(냉기·전기·미니건 등)는 그대로 두고 테스트 단계(gun2·flame2)만 덧붙인다
+            var list = new System.Collections.Generic.List<string>(def.upgradeTo ?? new string[0]);
+            if (!list.Contains(next))
+                list.Add(next);
+            def.upgradeTo = list.ToArray();
             def.tier = 1;
             def.unlockFloor = 1;
             EditorUtility.SetDirty(def);

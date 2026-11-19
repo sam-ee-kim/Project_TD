@@ -15,5 +15,6 @@ namespace TowerDefence
         public List<Vector2Int> Junctions;
         public List<List<Vector2Int>> MonsterPaths; // 스폰별 "스폰 → 출구" 전체 칸 목록 = 경로 칸 번호의 기준
         public int Seed;                            // 재현용
+        public float[] SpawnWeights;                // 스타트 지점별 랜덤 배치 가중치 (null = 번갈아). 맵 제작 씬에서 정한다
     }
 }

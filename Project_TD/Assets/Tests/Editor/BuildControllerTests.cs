@@ -314,6 +314,35 @@ namespace TowerDefence.Tests
         }
 
         [Test]
+        public void RecoveryDrag_IconSlot_DropRebuildsForFree()
+        {
+            towers.RecoveryChanged += ui.HandleRecoveryChanged;
+            towers.Build(SiteA, basic);
+            towers.MoveAllTowersToRecovery(2); // 맵 교체처럼 회수 목록으로
+            Assert.AreEqual(1, towers.GetRecoveryCount(basic));
+            var slot = canvasGo.transform.Find("RecoveryPanel/Recovery_basic");
+            Assert.IsNotNull(slot, "회수 목록 아이콘 칸");
+            Assert.IsNotNull(slot.GetComponent<TowerSlot>(), "건축 목록처럼 끌 수 있다");
+            int cash = player.Cash;
+
+            build.BeginRecoveryDrag(basic);
+            Assert.AreEqual(DragKind.Recovery, build.Drag);
+            build.PointAt(true, PathCell);
+            Assert.IsFalse(build.HasPreview, "경로 칸에는 못 놓는다");
+            build.PointAt(true, SiteB);
+            build.Drop();
+
+            Assert.AreEqual(DragKind.None, build.Drag);
+            Assert.AreEqual(basic, towers.GetTowerAt(SiteB).Def, "놓은 칸에 재건축");
+            Assert.AreEqual(0, towers.GetRecoveryCount(basic), "목록에서 1개 차감");
+            Assert.AreEqual(cash, player.Cash, "재건축은 무료");
+            Assert.IsFalse(slot.gameObject.activeSelf, "다 쓰면 칸이 숨는다");
+
+            build.BeginRecoveryDrag(basic);
+            Assert.AreEqual(DragKind.None, build.Drag, "남은 게 없으면 끌 수 없다");
+        }
+
+        [Test]
         public void MoveDrag_ToEmptySite_MovesTowerForFree()
         {
             towers.Build(SiteA, basic);
@@ -336,7 +365,7 @@ namespace TowerDefence.Tests
             for (int i = 0; i < board.GetPathLength(0); i++)
             {
                 var c = board.GetPathCell(0, i);
-                bool inRange = Mathf.Max(Mathf.Abs(c.x - SiteB.x), Mathf.Abs(c.y - SiteB.y)) <= basic.range;
+                bool inRange = TowerFacing.InArea(basic, tower.Facing, c.x - SiteB.x, c.y - SiteB.y);
                 Assert.AreEqual(inRange, tower.CoversCell[board.CellId(c)], $"경로 칸 {i}");
             }
         }

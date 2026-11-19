@@ -128,7 +128,7 @@ namespace TowerDefence.Tests
 
         void SetUpGame(MapData map)
         {
-            basic = AssetDatabase.LoadAssetAtPath<TowerDef>("Assets/Data/Towers/basic.asset");
+            basic = TestAssets.SquareBasicCopy(); // 정사각형 사거리 2 (합류 지점 양쪽 경로를 함께 덮는지 보는 테스트)
             var normal = TestAssets.NoIdleCopy("Assets/Data/Monsters/normal.asset");
             var data = new GameData();
             data.Init(config, rules, new[] { normal }, new[] { basic });

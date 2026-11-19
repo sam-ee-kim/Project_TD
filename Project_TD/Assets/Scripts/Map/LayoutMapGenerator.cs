@@ -37,7 +37,8 @@ namespace TowerDefence
             };
         }
 
-        static MapData Convert(MapLayout layout, int seed)
+        // 생성기 결과 → 게임 맵 데이터 (규칙 조절 씬처럼 생성기를 직접 돌릴 때도 쓴다).
+        public static MapData Convert(MapLayout layout, int seed)
         {
             int n = layout.Size;
             var spawns = new Vector2Int[layout.SpawnCount];

@@ -14,6 +14,9 @@ namespace TowerDefence
         {
             get
             {
+                // 게임에 넣은 한글 글꼴 (Resources/Fonts/NotoSansKR-Regular.otf, SIL OFL). 실행하는 컴퓨터에 한글 글꼴이 없어도 글자가 나온다
+                if (font == null)
+                    font = Resources.Load<Font>("Fonts/NotoSansKR-Regular");
                 if (font == null)
                     font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Arial" }, 28);
                 return font;

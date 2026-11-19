@@ -20,6 +20,7 @@ namespace TowerDefence
         [SerializeField] Canvas canvas;
         [SerializeField] MapGenerator mapRenderer;      // 3D 맵 표시 (타일이 아래에서 솟아오름)
         [SerializeField] CameraController cameraRig;    // 탑다운/탑 카메라 (Tab, WASD)
+        [SerializeField] LobbyView lobby;               // 로비 도시 화면 (Ready). 없으면 맵 위 안내 문구만
 
         [Header("디버그")]
         [Tooltip("켜면 생성기 대신 고정 7×7 테스트 맵을 쓴다 (생성기 연결 전후 비교용).")]
@@ -30,6 +31,17 @@ namespace TowerDefence
         [SerializeField] int debugStartCash;
         [Tooltip("테스트용(임시): 0보다 크면 모든 몬스터 체력을 이 값으로. 데이터 에셋은 바꾸지 않는다.")]
         [SerializeField] int debugMonsterHp;
+        [Tooltip("맵 생성 테스트 씬(Test_MapGen): 게임 대신 F키 랜덤 맵 생성만 한다.")]
+        [SerializeField] bool mapGenTestMode;
+        MapGenTestScene mapGenTest;
+        [Tooltip("맵 생성 규칙 조절 씬(Test_MapGenRules): 게임 대신 생성 규칙 값을 바꿔 가며 맵만 만든다.")]
+        [SerializeField] bool mapGenRulesMode;
+        MapGenRulesScene mapGenRulesScene;
+        [Tooltip("맵 제작 · 레벨 테스트 씬(Test_MapBuilder): 타일을 놓아 맵을 만들고, 그 맵으로 실제 게임을 돌려 본다.")]
+        [SerializeField] bool mapBuilderMode;
+        MapBuilderScene mapBuilder;
+        [Tooltip("시작 화면 씬(Test_TitleScreen): 게임 대신 타이틀 반복 애니메이션만 돌린다.")]
+        [SerializeField] TitleScreenView titleScreen;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [Header("스트레스 테스트 (에디터·개발 빌드 전용)")]
@@ -60,10 +72,37 @@ namespace TowerDefence
 
         void Awake()
         {
+            if (titleScreen != null)
+            {
+                // 시작 화면: 몬스터 행진·타워 발사·폭발 반복 (게임 모듈은 만들지 않는다)
+                titleScreen.Init();
+                return;
+            }
+            if (mapGenRulesMode)
+            {
+                // 맵 생성 규칙 조절: 맵 표시·카메라·규칙 패널만 (게임 모듈은 만들지 않는다)
+                mapGenRulesScene = new MapGenRulesScene();
+                mapGenRulesScene.Init(config, mapGenRules, mapRenderer, cameraRig, canvas);
+                return;
+            }
+            if (mapGenTestMode)
+            {
+                // 맵 생성 테스트: 맵 표시·카메라만 (게임 모듈은 만들지 않는다)
+                mapGenTest = new MapGenTestScene();
+                mapGenTest.Init(config, mapGenRules, mapRenderer, cameraRig, canvas);
+                return;
+            }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (stressTest != null)
                 stressTest.ApplyTo(ref config, ref monsterDefs, ref towerDefs, ref debugStartCash, ref debugMonsterHp, ref useFixedTestMap);
 #endif
+            if (mapBuilderMode)
+            {
+                // 맵 제작 씬: 판 설정(층·웨이브 표·넥서스 체력)을 바꿔 쓰므로 런타임 복사본을 만든다 (에셋은 그대로)
+                config = Instantiate(config);
+                mapBuilder = new MapBuilderScene();
+            }
+
             // 1) 생성 (1번)
             data = new GameData();
             flow = new GameFlow();
@@ -77,11 +116,14 @@ namespace TowerDefence
 
             // 2) 주입 (데이터 → 조회·계산·흐름 → 게임 시스템 → 입력·표현)
             data.Init(config, mapGenRules, monsterDefs, towerDefs);
-            IMapGenerator generator = useFixedTestMap ? new FixedTestMapGenerator() : (IMapGenerator)new LayoutMapGenerator();
-            maps.Init(data, generator, new LayoutMapValidator());
+            IMapGenerator generator = mapBuilder != null ? mapBuilder
+                : useFixedTestMap ? new FixedTestMapGenerator() : (IMapGenerator)new LayoutMapGenerator();
+            maps.Init(data, generator, mapBuilder != null ? null : new LayoutMapValidator()); // 직접 만든 맵은 생성 규칙 검사를 하지 않는다
             maps.SeedOverride = debugRunSeed;
             board.Init(data);
             player.Init(data);
+            string metaPath = System.IO.Path.Combine(Application.persistentDataPath, "meta.json");
+            player.InitMeta(MetaProgress.Load(metaPath), metaPath); // 공학연구소: M1반도체·해금 타워 (판을 넘어 남음)
             var monsterRoot = new GameObject("Monsters").transform; // 몬스터 표시 오브젝트 부모 (풀, 스크립트 없음)
             monsters.Init(data, board, monsterRoot);
             monsters.DebugHpOverride = debugMonsterHp;
@@ -89,7 +131,8 @@ namespace TowerDefence
             towers.Init(data, board, monsters, player, towerRoot);
             flow.Init(data, maps, board, monsters, towers);
             build.Init(data, flow, board, towers, player, mainCamera);
-            ui.Init(data, canvas, board, build, flow, mainCamera, mapRenderer, cameraRig);
+            build.ClickAnywhereToStart = lobby == null; // 로비(도시 화면)가 있으면 우측 하단 [방어 시작]으로만 시작
+            ui.Init(data, canvas, board, build, flow, mainCamera, mapRenderer, cameraRig, lobby, player);
 
             // 3) 이벤트 구독 (1번, GDD 8-4)
             flow.StateChanged += ui.HandleStateChanged;
@@ -107,6 +150,8 @@ namespace TowerDefence
             player.HpChanged += ui.HandleHpChanged;
             player.HpChanged += flow.HandleHpChanged;
             player.Defeated += flow.HandleDefeated;
+            flow.StateChanged += player.HandleStateChanged; // 판 끝 → M1반도체 (ui.HandleStateChanged가 결과창을 먼저 띄운 뒤)
+            player.MetaChanged += ui.HandleMetaChanged;
             towers.TowerChanged += board.HandleTowerChanged;
             towers.TowerChanged += ui.HandleTowerChanged;
             towers.RecoveryChanged += ui.HandleRecoveryChanged;
@@ -121,12 +166,19 @@ namespace TowerDefence
             build.DragChanged += ui.HandleDragChanged;
             build.PreviewChanged += ui.HandlePreviewChanged;
             build.RangeDisplayChanged += ui.HandleRangeDisplayChanged;
+            build.TechTreeChanged += ui.HandleTechTreeChanged;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (stressTest != null)
                 stress = new StressTestDriver(stressTest, data, flow, maps, board, monsters, towers);
 #endif
 
+            if (mapBuilder != null)
+            {
+                // 편집부터: 판은 [테스트 시작]을 누를 때 시작한다
+                mapBuilder.Init(config, data, flow, player, ui, mapRenderer, cameraRig, canvas, mainCamera, StartNewRun);
+                return;
+            }
             StartNewRun();
         }
 
@@ -155,6 +207,32 @@ namespace TowerDefence
         void Update()
         {
             float dt = Time.deltaTime;
+            if (titleScreen != null)
+            {
+                titleScreen.Tick(dt);
+                if (titleScreen.ReadyToLeave)
+                {
+                    var next = titleScreen.NextScene;
+                    titleScreen = null; // 한 번만
+                    UnityEngine.SceneManagement.SceneManager.LoadScene(next); // 시작 화면 → 로비(게임 씬)
+                }
+                return;
+            }
+            if (mapGenRulesScene != null)
+            {
+                mapGenRulesScene.Tick(dt);
+                return;
+            }
+            if (mapBuilder != null && !mapBuilder.Testing)
+            {
+                mapBuilder.Tick(dt); // 맵 편집 중: 게임 모듈은 멈춰 둔다
+                return;
+            }
+            if (mapGenTest != null)
+            {
+                mapGenTest.Tick(dt);
+                return;
+            }
             using var frame = UpdateMarker.Auto();
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -192,6 +270,7 @@ namespace TowerDefence
                 towers.TickViews(dt);
             }
             ui.Tick(dt);
+            mapBuilder?.TickTesting(dt);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             stress?.EndFrame();                // 측정 기록·자동 진행 (스트레스 테스트일 때만)

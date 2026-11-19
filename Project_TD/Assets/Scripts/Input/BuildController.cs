@@ -67,6 +67,7 @@ namespace TowerDefence
         None,
         NewTower,  // 타워 목록 아이콘을 끌어 맵에 놓으면 설치
         MoveTower, // 설치된 타워를 끌어 빈 부지로 이동
+        Recovery,  // 회수 목록 아이콘을 끌어 맵에 놓으면 무료 재건축 (목록에서 1개 차감)
     }
 
     // 드래그 상태가 바뀌었을 때 (시작, 가리키는 칸 변경, 끝). Kind = None이면 끝.
@@ -105,6 +106,23 @@ namespace TowerDefence
             Cell = cell;
             Def = def;
             Facing = facing;
+        }
+    }
+
+    // 테크트리 창 (하단 [타워 업그레이드] 또는 진화할 수 있는 타워 클릭). 게임은 멈추지 않는다.
+    //   Tower   = 진화할 타워를 골라 둔 상태 (창에서 갈래를 누르면 바로 확인 팝업)
+    //   Picking = 창에서 갈래를 먼저 고르고 맵에서 진화할 타워를 기다리는 중
+    public readonly struct TechTreeChange
+    {
+        public readonly bool Open;
+        public readonly TowerInstance Tower;
+        public readonly TowerDef Picking;
+
+        public TechTreeChange(bool open, TowerInstance tower, TowerDef picking)
+        {
+            Open = open;
+            Tower = tower;
+            Picking = picking;
         }
     }
 
@@ -149,6 +167,7 @@ namespace TowerDefence
         public event Action<TowerDrag> DragChanged;           // → GameUI (미리보기 타워, 오버레이)
         public event Action<PlacementPreview> PreviewChanged; // → GameUI (놓을 타워 방향, 사거리 미리보기)
         public event Action<RangeDisplayChange> RangeDisplayChanged; // → GameUI (G키 사거리 그리드)
+        public event Action<TechTreeChange> TechTreeChanged;  // → GameUI (테크트리 창)
 
         static readonly Plane Ground = new Plane(Vector3.up, Vector3.zero);
 
@@ -168,9 +187,19 @@ namespace TowerDefence
         TowerInstance sellTarget;
         TowerDef recoveryDef; // 회수 팝업 대상 종류
         TowerInstance upgradeTarget; // 진화 팝업 대상
+        TowerDef upgradeDef;         // 진화 팝업: 고른 갈래
+
+        // 테크트리 창
+        bool treeOpen;
+        TowerInstance treeTower;     // 창에서 진화할 타워 (없으면 갈래를 먼저 고른다)
+        TowerDef pickUpgrade;        // 갈래를 먼저 골랐다: 맵에서 진화할 타워를 클릭하면 확인 팝업
+        public bool IsTechTreeOpen => treeOpen;
+        public TowerInstance TechTreeTower => treeTower;
+        public TowerDef PickingUpgrade => pickUpgrade;
 
         // 드래그
         DragKind dragKind;
+        bool carrying; // 회수 타워를 하나 놓은 뒤 남은 것을 계속 들고 있는 중 (클릭할 때마다 설치, ESC·우클릭·UI 클릭 = 그만)
         TowerDef dragDef;
         TowerInstance dragTower;
         TowerInstance pressedTower; // 타워를 누른 채 아직 칸을 벗어나지 않음 (떼면 클릭, 칸을 옮기면 이동 드래그)
@@ -184,6 +213,8 @@ namespace TowerDefence
         public Vector2Int SelectedCell { get; private set; }
         public PopupKind Popup { get; private set; } = PopupKind.None;
         public DragKind Drag => dragKind;
+        public bool IsCarrying => carrying;
+        public int RecoveryCountOf(TowerDef def) => towers.GetRecoveryCount(def); // 표시용 조회
         public bool HasDragPoint { get; private set; }
         public int PlacementFacing { get; private set; } // 놓을 타워 방향 (TowerFacing)
         public bool ShowRanges { get; private set; }     // G키 사거리 그리드
@@ -212,9 +243,12 @@ namespace TowerDefence
             pressedTower = null;
             ExitMode();
             ClosePopup();
+            CloseTechTree();
             if (ShowRanges)
                 ToggleRanges();
         }
+
+        public bool ClickAnywhereToStart { get; set; } = true; // GameLoop: 로비가 있으면 false
 
         // 입력 처리. GameLoop가 1단계(GameFlow.Tick) 직전에 부른다.
         public void Tick(float dt)
@@ -225,7 +259,8 @@ namespace TowerDefence
             // Ready: 화면 아무 곳이나 클릭(터치 포함) → 게임 시작. 시작 버튼은 없다 (GDD 2-1).
             if (flow.State == GameState.Ready)
             {
-                if (pointer != null && pointer.press.wasPressedThisFrame)
+                // 로비가 없는 씬(테스트 씬)만 화면 아무 곳 클릭 → 시작. 로비가 있으면 [방어 시작] 버튼(GameUI)으로만 시작
+                if (ClickAnywhereToStart && pointer != null && pointer.press.wasPressedThisFrame && !(EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()))
                     flow.RequestStartGame();
                 return;
             }
@@ -233,10 +268,16 @@ namespace TowerDefence
             // BuildMode를 나가는 방법은 ESC 하나 (우클릭 없음). 일반 상태에서는 열린 팝업(판매·회수)을 닫는다.
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
-                if (Mode != BuildMode.None)
+                if (dragKind != DragKind.None)
+                    CancelDrag();          // 들고 있던 타워 내려놓기 (이어서 설치 중이면 그만)
+                else if (Mode != BuildMode.None)
                     ExitMode();
                 else if (Popup != PopupKind.None)
                     ClosePopup();
+                else if (pickUpgrade != null)
+                    SetTree(true, treeTower, null); // 갈래 고르기 취소 (창은 그대로)
+                else if (treeOpen)
+                    CloseTechTree();
             }
 
             // G: 사거리 그리드 켜기/끄기 (설치된 타워 전부)
@@ -265,9 +306,23 @@ namespace TowerDefence
             PointAt(hasCell, cell);
 
             // 드래그 중: 손을 떼는 곳에 놓는다 (UI 위·맵 밖이면 취소).
+            // 이어서 설치 중(carrying): 누를 때마다 그 칸에 하나씩 놓는다. UI를 누르거나 우클릭하면 그만
             if (dragKind != DragKind.None)
             {
-                if (pointer.press.wasReleasedThisFrame)
+                if (carrying)
+                {
+                    var mouse = Mouse.current;
+                    if (mouse != null && mouse.rightButton.wasPressedThisFrame)
+                        CancelDrag();
+                    else if (pointer.press.wasPressedThisFrame)
+                    {
+                        if (overUi)
+                            CancelDrag();
+                        else
+                            Drop();
+                    }
+                }
+                else if (pointer.press.wasReleasedThisFrame)
                     Drop();
                 return;
             }
@@ -325,17 +380,24 @@ namespace TowerDefence
 
             if (Mode == BuildMode.None)
             {
-                // 일반 상태: 설치된 타워 클릭 → 판매 팝업 (GDD 5-8). 테크트리가 켜져 있고 다음 단계가 있으면 진화 팝업
+                // 일반 상태: 설치된 타워 클릭 → 판매 팝업 (GDD 5-8).
+                // 테크트리가 켜져 있고 진화 갈래가 있으면 테크트리 창 (그 타워를 골라 둔 채). 창에서 갈래를 먼저 골랐으면 바로 확인 팝업
                 var tower = towers.GetTowerAt(cell);
                 if (tower == null)
                     return;
-                var next = towers.GetUpgrade(tower.Def);
-                if (next != null)
+                if (pickUpgrade != null)
                 {
-                    upgradeTarget = tower;
-                    Popup = PopupKind.Upgrade;
-                    PopupRequested?.Invoke(new PopupRequest(PopupKind.Upgrade, cell, next, towers.GetUpgradeCost(tower.Def, next),
-                        tower.Def, towers.GetSellRefund(tower.Def)));
+                    if (towers.IsUpgradeOption(tower.Def, pickUpgrade))
+                    {
+                        var to = pickUpgrade;
+                        SetTree(true, tower, null);
+                        OpenUpgradePopup(tower, to);
+                    }
+                    return; // 다른 종류 타워는 무시 (창이 갈래를 안내한다)
+                }
+                if (towers.GetUpgrade(tower.Def) != null)
+                {
+                    OpenTechTree(tower);
                     return;
                 }
                 sellTarget = tower;
@@ -350,7 +412,7 @@ namespace TowerDefence
             SelectedCell = cell;
             SelectionChanged?.Invoke(new CellSelection(true, cell));
             UpdatePreview();
-            OpenPopup(PopupKind.Build, cell, modeDef, Mode == BuildMode.Rebuild ? 0 : modeDef.buildCost);
+            OpenPopup(PopupKind.Build, cell, modeDef, Mode == BuildMode.Rebuild ? 0 : towers.GetBuildCost(modeDef));
         }
 
         // 타워 목록 아이콘 클릭: 칸 클릭 → 확인 팝업으로 지을 타워를 바꾼다 (정보 표시는 GameUI).
@@ -377,6 +439,19 @@ namespace TowerDefence
             StartDrag(DragKind.NewTower);
         }
 
+        // 회수 목록 아이콘을 끌기 시작 (일반 상태): 빈 부지에 놓으면 그 자리에 무료 재건축.
+        public void BeginRecoveryDrag(TowerDef def)
+        {
+            if (def == null || !CanInteract || dragKind != DragKind.None || Popup != PopupKind.None || Mode != BuildMode.None
+                || towers.GetRecoveryCount(def) == 0)
+                return;
+            CloseTechTree();
+            ClearSelection();
+            dragDef = def;
+            dragTower = null;
+            StartDrag(DragKind.Recovery);
+        }
+
         // 설치된 타워를 끌기 시작: 빈 부지에 놓으면 이동 (캐시 변화 없음).
         public void BeginMoveDrag(TowerInstance tower)
         {
@@ -393,10 +468,28 @@ namespace TowerDefence
         {
             if (dragKind == DragKind.None)
                 return;
+            if (dragKind == DragKind.Recovery)
+            {
+                bool placed = HasHover && CanDropAt(HoverCell) && towers.RequestRebuild(dragDef, HoverCell, PlacementFacing); // 캐시 없음, 회수 목록에서 1개 차감
+                // 같은 종류가 남아 있으면 다시 끌지 않고 이어서 설치 (놓을 수 없는 칸을 눌러도 계속 들고 있다)
+                if (towers.GetRecoveryCount(dragDef) > 0 && (placed || carrying))
+                {
+                    carrying = true;
+                    RaiseDrag();
+                    if (HasHover)
+                        HoverChanged?.Invoke(new CellHover(true, HoverCell, CanDropAt(HoverCell)));
+                    UpdatePreview();
+                    return;
+                }
+                EndDrag();
+                return;
+            }
             if (HasHover && CanDropAt(HoverCell))
             {
                 if (dragKind == DragKind.NewTower)
                     towers.Build(HoverCell, dragDef, PlacementFacing); // 캐시·부지 최종 판정은 TowerManager
+                else if (dragKind == DragKind.Recovery)
+                    towers.RequestRebuild(dragDef, HoverCell, PlacementFacing); // 캐시 없음, 회수 목록에서 1개 차감
                 else
                     towers.Move(dragTower, HoverCell, PlacementFacing); // 제자리면 방향만 바뀐다 (같으면 그대로)
             }
@@ -415,7 +508,9 @@ namespace TowerDefence
             switch (dragKind)
             {
                 case DragKind.NewTower:
-                    return board.IsBuildable(cell) && player.CanAfford(dragDef.buildCost);
+                    return board.IsBuildable(cell) && player.CanAfford(towers.GetBuildCost(dragDef));
+                case DragKind.Recovery:
+                    return board.IsBuildable(cell) && towers.GetRecoveryCount(dragDef) > 0;
                 case DragKind.MoveTower:
                     return cell == dragTower.Cell || board.IsBuildable(cell);
                 default:
@@ -449,6 +544,7 @@ namespace TowerDefence
 
         void EndDrag()
         {
+            carrying = false;
             dragKind = DragKind.None;
             dragDef = null;
             dragTower = null;
@@ -467,7 +563,70 @@ namespace TowerDefence
         {
             if (def == null || !CanInteract || Popup == PopupKind.Sell)
                 return;
+            CloseTechTree();
             SetMode(BuildMode.Build, def);
+        }
+
+        // --- 테크트리 창 ---
+
+        // 하단 [타워 업그레이드](tower = null) 또는 진화할 수 있는 타워 클릭. 이미 열려 있으면 고른 타워만 바꾼다.
+        public void OpenTechTree(TowerInstance tower)
+        {
+            if (!CanInteract || data.Config == null || !data.Config.upgradeEnabled || Mode != BuildMode.None)
+                return;
+            if (Popup != PopupKind.None)
+                ClosePopup();
+            SetTree(true, tower, null);
+        }
+
+        public void CloseTechTree()
+        {
+            if (!treeOpen && treeTower == null && pickUpgrade == null)
+                return;
+            if (Popup == PopupKind.Upgrade)
+                ClosePopup();
+            SetTree(false, null, null);
+        }
+
+        // 창에서 진화 갈래 클릭: 고른 타워가 있으면 확인 팝업, 없으면 맵에서 그 종류 타워를 클릭하기를 기다린다.
+        public void ChooseUpgrade(TowerDef to)
+        {
+            if (!treeOpen || to == null || Popup != PopupKind.None || !CanInteract)
+                return;
+            if (treeTower != null && towers.GetTowerAt(treeTower.Cell) != treeTower)
+                treeTower = null; // 그새 팔렸거나 회수됨
+            if (treeTower != null && towers.IsUpgradeOption(treeTower.Def, to))
+            {
+                OpenUpgradePopup(treeTower, to);
+                return;
+            }
+            SetTree(true, null, to);
+        }
+
+        // 창의 [판매]: 고른 타워 판매 확인 팝업.
+        public void SellTechTreeTower()
+        {
+            if (treeTower == null || Popup != PopupKind.None || towers.GetTowerAt(treeTower.Cell) != treeTower)
+                return;
+            sellTarget = treeTower;
+            OpenPopup(PopupKind.Sell, treeTower.Cell, treeTower.Def, towers.GetSellRefund(treeTower.Def));
+        }
+
+        void OpenUpgradePopup(TowerInstance tower, TowerDef to)
+        {
+            upgradeTarget = tower;
+            upgradeDef = to;
+            Popup = PopupKind.Upgrade;
+            PopupRequested?.Invoke(new PopupRequest(PopupKind.Upgrade, tower.Cell, to, towers.GetUpgradeCost(tower.Def, to),
+                tower.Def, towers.GetSellRefund(tower.Def)));
+        }
+
+        void SetTree(bool open, TowerInstance tower, TowerDef picking)
+        {
+            treeOpen = open;
+            treeTower = open ? tower : null;
+            pickUpgrade = open ? picking : null;
+            TechTreeChanged?.Invoke(new TechTreeChange(treeOpen, treeTower, pickUpgrade));
         }
 
         // 회수 목록 [재건축] → Rebuild 모드. 오버레이·선택·확인 팝업은 Build와 같고, 확정 시 캐시 없이 목록에서 1개 차감.
@@ -492,6 +651,8 @@ namespace TowerDefence
         // TowerManager.RecoveryExpired 구독: 목록이 사라지면 재건축 모드와 회수 팝업을 닫는다.
         public void HandleRecoveryExpired(RecoveryExpire e)
         {
+            if (dragKind == DragKind.Recovery)
+                CancelDrag();
             if (Mode == BuildMode.Rebuild)
                 ExitMode();
             if (Popup == PopupKind.Recovery)
@@ -530,13 +691,19 @@ namespace TowerDefence
             }
             else if (Popup == PopupKind.Sell)
             {
+                bool fromTree = sellTarget != null && sellTarget == treeTower;
                 towers.Sell(sellTarget);
                 ClosePopup();
+                if (fromTree)
+                    SetTree(true, null, null); // 판 타워는 창에서 내린다
             }
             else if (Popup == PopupKind.Upgrade)
             {
-                towers.Upgrade(upgradeTarget); // 해금·캐시 최종 판정은 TowerManager
+                var tower = upgradeTarget;
+                var to = upgradeDef;
                 ClosePopup();
+                if (towers.Upgrade(tower, to)) // 해금·캐시 최종 판정은 TowerManager
+                    CloseTechTree();
             }
             else if (Popup == PopupKind.Recovery)
             {
@@ -557,14 +724,7 @@ namespace TowerDefence
             }
             if (Popup == PopupKind.Upgrade)
             {
-                // [판매] → 판매 확인 팝업으로
-                var tower = upgradeTarget;
-                ClosePopup();
-                if (tower != null && towers.GetTowerAt(tower.Cell) == tower)
-                {
-                    sellTarget = tower;
-                    OpenPopup(PopupKind.Sell, tower.Cell, tower.Def, towers.GetSellRefund(tower.Def));
-                }
+                ClosePopup(); // [취소]: 테크트리 창은 그대로 (다른 갈래를 고를 수 있다)
                 return;
             }
             ClearSelection();
@@ -580,6 +740,7 @@ namespace TowerDefence
             pressedTower = null;
             ExitMode();
             ClosePopup();
+            CloseTechTree();
         }
 
         // 화면 좌표 → 바닥 칸. 맵 밖이면 false.
@@ -681,6 +842,7 @@ namespace TowerDefence
             sellTarget = null;
             recoveryDef = null;
             upgradeTarget = null;
+            upgradeDef = null;
             if (Popup == PopupKind.None)
                 return;
             Popup = PopupKind.None;

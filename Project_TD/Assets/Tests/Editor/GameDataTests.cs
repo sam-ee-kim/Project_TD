@@ -51,9 +51,10 @@ public class GameDataTests
 
         var basic = Load<TowerDef>("Assets/Data/Towers/basic.asset");
         Assert.AreEqual(50, basic.buildCost);
-        Assert.AreEqual(1f, basic.damage);
+        Assert.AreEqual(1.5f, basic.damage); // 단일 대상 +50%
         Assert.AreEqual(1f, basic.interval);
-        Assert.AreEqual(2, basic.range);
+        Assert.AreEqual(1, basic.range);
+        Assert.AreEqual(3, basic.frontWidth); // 사거리 = 바로 앞 한 줄 3칸
         Assert.AreEqual(TargetLock.Lock, basic.lockMode);
         Assert.AreEqual(TargetRule.First, basic.targetRule);
         Assert.AreEqual(0, basic.typePriority.Length);

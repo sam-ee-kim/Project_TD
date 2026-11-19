@@ -70,6 +70,7 @@ namespace TowerDefence
             Quaternion.AngleAxis(Yaw(facing) - restYaw, Vector3.up) * baseRotation;
 
         // 사거리 모양 판정 (설치 칸 기준 dx, dy). 범위 표시와 타겟팅 칸 계산이 같은 규칙을 쓴다.
+        //   frontWidth > 0: 바로 앞 한 줄의 가운데 frontWidth칸 (기본·화염방사: 앞 왼쪽·정면·앞 오른쪽 3칸)
         //   Line          : 바라보는 방향 일직선 1~range칸
         //   Cone / Pulse  : 원 (칸 중심 거리 ≤ 길이 + 반 칸) 중 앞쪽
         //   그 밖         : 정사각형 (체비쇼프 거리 ≤ range) 중 앞쪽
@@ -80,6 +81,11 @@ namespace TowerDefence
             int ahead = dx * dir.x + dy * dir.y;
             if (ahead <= 0)
                 return false;
+            if (def.frontWidth > 0)
+            {
+                int side = dx * dir.y - dy * dir.x; // 바라보는 방향의 옆 성분
+                return ahead == 1 && Mathf.Abs(side) <= def.frontWidth / 2;
+            }
             switch (def.attackType)
             {
                 case AttackType.Line:

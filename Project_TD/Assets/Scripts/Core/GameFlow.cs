@@ -34,6 +34,9 @@ namespace TowerDefence
         RunState run;
 
         readonly WaveSpawn[] waveBuffer = new WaveSpawn[8]; // 웨이브 구성표 (할당 없이 재사용)
+        readonly WaveSpawn[] arrangedBuffer = new WaveSpawn[24]; // 스타트 지점별로 나눈 구성표 (줄 × 스타트 3곳)
+        readonly System.Random spawnOrderRng = new System.Random(); // 웨이브마다 순서대로/동시 고르기
+        public SpawnOrder LastSpawnOrder { get; private set; } // 이번 웨이브의 출현 방식 (표시·테스트용)
         float breakRemaining;
         float transitionRemaining;
         int shownSecond = -1;
@@ -177,7 +180,11 @@ namespace TowerDefence
             run.Wave++;
             run.TotalWaveIndex++;
             int lines = LevelRules.GetWaveComposition(data.Config, run.Floor, run.Wave, run.TotalWaveIndex, waveBuffer);
-            monsters.BeginWave(waveBuffer, lines);
+            // 스타트가 2곳 이상이면 스타트마다 나눠 순서대로(67%) 또는 두 곳 동시(체력 −10%)로
+            lines = LevelRules.ArrangeSpawns(data.Config, waveBuffer, lines, board.PathCount, spawnOrderRng.NextDouble(), spawnOrderRng.NextDouble(),
+                arrangedBuffer, out var order);
+            LastSpawnOrder = order;
+            monsters.BeginWave(arrangedBuffer, lines);
             SetState(GameState.Wave);
         }
 

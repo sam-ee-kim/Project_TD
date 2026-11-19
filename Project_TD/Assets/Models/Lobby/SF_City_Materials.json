@@ -1,0 +1,618 @@
+{
+ "materials": {
+  "City_LotPaving": {
+   "base": [
+    0.3,
+    0.3,
+    0.31,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.8,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Fab_CleanPanel": {
+   "base": [
+    0.9,
+    0.91,
+    0.93,
+    1.0
+   ],
+   "metallic": 0.1,
+   "roughness": 0.25,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Fab_GlowViolet": {
+   "base": [
+    0.5,
+    0.2,
+    1.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.3,
+   "emission": [
+    0.55,
+    0.25,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 3.5,
+   "alpha": 1.0
+  },
+  "Fab_UtilityGrey": {
+   "base": [
+    0.28,
+    0.3,
+    0.33,
+    1.0
+   ],
+   "metallic": 0.4,
+   "roughness": 0.45,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Fab_WaferSilicon": {
+   "base": [
+    0.25,
+    0.3,
+    0.45,
+    1.0
+   ],
+   "metallic": 1.0,
+   "roughness": 0.08,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Filler_Beige": {
+   "base": [
+    0.62,
+    0.58,
+    0.5,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.6,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Filler_BlueGrey": {
+   "base": [
+    0.3,
+    0.34,
+    0.4,
+    1.0
+   ],
+   "metallic": 0.3,
+   "roughness": 0.45,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Filler_ConcreteLight": {
+   "base": [
+    0.55,
+    0.55,
+    0.56,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.6,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Filler_ConcreteWarm": {
+   "base": [
+    0.5,
+    0.47,
+    0.43,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.6,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Filler_GreyDark": {
+   "base": [
+    0.2,
+    0.21,
+    0.23,
+    1.0
+   ],
+   "metallic": 0.2,
+   "roughness": 0.5,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Filler_RoofUnits": {
+   "base": [
+    0.33,
+    0.33,
+    0.34,
+    1.0
+   ],
+   "metallic": 0.5,
+   "roughness": 0.5,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Filler_WindowLit": {
+   "base": [
+    0.4,
+    0.35,
+    0.25,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.3,
+   "emission": [
+    1.0,
+    0.78,
+    0.5,
+    1.0
+   ],
+   "emissionStrength": 0.8,
+   "alpha": 1.0
+  },
+  "Lab_AccentOrange": {
+   "base": [
+    0.9,
+    0.32,
+    0.04,
+    1.0
+   ],
+   "metallic": 0.3,
+   "roughness": 0.4,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Lab_DarkMetal": {
+   "base": [
+    0.06,
+    0.065,
+    0.075,
+    1.0
+   ],
+   "metallic": 0.9,
+   "roughness": 0.35,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Lab_Glass": {
+   "base": [
+    0.02,
+    0.05,
+    0.08,
+    1.0
+   ],
+   "metallic": 0.6,
+   "roughness": 0.05,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Lab_GlowCyan": {
+   "base": [
+    0.0,
+    0.6,
+    1.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.3,
+   "emission": [
+    0.0,
+    0.65,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 12.0,
+   "alpha": 1.0
+  },
+  "Lab_GlowOrange": {
+   "base": [
+    1.0,
+    0.4,
+    0.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.3,
+   "emission": [
+    1.0,
+    0.35,
+    0.0,
+    1.0
+   ],
+   "emissionStrength": 10.0,
+   "alpha": 1.0
+  },
+  "Lab_Steel": {
+   "base": [
+    0.45,
+    0.47,
+    0.5,
+    1.0
+   ],
+   "metallic": 1.0,
+   "roughness": 0.25,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Lab_WhitePanel": {
+   "base": [
+    0.82,
+    0.84,
+    0.86,
+    1.0
+   ],
+   "metallic": 0.2,
+   "roughness": 0.3,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Signal_Green": {
+   "base": [
+    0.1,
+    1.0,
+    0.4,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.3,
+   "emission": [
+    0.1,
+    1.0,
+    0.4,
+    1.0
+   ],
+   "emissionStrength": 15.0,
+   "alpha": 1.0
+  },
+  "Signal_Red": {
+   "base": [
+    1.0,
+    0.05,
+    0.02,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.3,
+   "emission": [
+    1.0,
+    0.05,
+    0.02,
+    1.0
+   ],
+   "emissionStrength": 15.0,
+   "alpha": 1.0
+  },
+  "Street_Asphalt": {
+   "base": [
+    0.035,
+    0.037,
+    0.04,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.75,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Street_Curb": {
+   "base": [
+    0.6,
+    0.6,
+    0.62,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.6,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Street_Ground": {
+   "base": [
+    0.07,
+    0.075,
+    0.08,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.9,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Street_PaintWhite": {
+   "base": [
+    0.85,
+    0.85,
+    0.85,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.5,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Street_PaintYellow": {
+   "base": [
+    0.9,
+    0.62,
+    0.05,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.5,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Street_Paving": {
+   "base": [
+    0.42,
+    0.42,
+    0.43,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.7,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "Street_PavingJoint": {
+   "base": [
+    0.25,
+    0.25,
+    0.26,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.8,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "WH_Cladding": {
+   "base": [
+    0.55,
+    0.58,
+    0.62,
+    1.0
+   ],
+   "metallic": 0.6,
+   "roughness": 0.35,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "WH_ContainerTeal": {
+   "base": [
+    0.05,
+    0.35,
+    0.4,
+    1.0
+   ],
+   "metallic": 0.5,
+   "roughness": 0.45,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "WH_ContainerWhite": {
+   "base": [
+    0.75,
+    0.76,
+    0.78,
+    1.0
+   ],
+   "metallic": 0.4,
+   "roughness": 0.45,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "WH_Rubber": {
+   "base": [
+    0.015,
+    0.015,
+    0.015,
+    1.0
+   ],
+   "metallic": 0.0,
+   "roughness": 0.85,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "WH_SolarPanel": {
+   "base": [
+    0.02,
+    0.04,
+    0.12,
+    1.0
+   ],
+   "metallic": 0.8,
+   "roughness": 0.15,
+   "emission": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "alpha": 1.0
+  },
+  "City_GroundBaked": {
+   "base": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "metallic": 0,
+   "roughness": 0.85,
+   "emission": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "emissionStrength": 0,
+   "alpha": 1,
+   "texture": "Assets/Art/Lobby/LobbyCity_Ground.png"
+  }
+ },
+ "triangles": 276212
+}

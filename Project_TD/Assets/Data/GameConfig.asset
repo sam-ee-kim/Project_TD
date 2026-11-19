@@ -17,14 +17,16 @@ MonoBehaviour:
   startCash: 100
   nexusHp: 20
   finalFloor: 10
-  upgradeEnabled: 0
+  upgradeEnabled: 1
+  upgradeFree: 1
+  labUnlock: 1
   sellRefundRate: 0.7
   recoveryRefundRate: 0.7
   rules:
     mapTierEveryFloors: 2
     mapBaseSize: 7
     mapGrowPerTier: 2
-    mapMaxSize: 15
+    mapMaxSize: 11
     maxComplexity: 5
     baseWaves: 1
     waveIncreaseEveryFloors: 2
@@ -45,9 +47,9 @@ MonoBehaviour:
     tankerIntervalSec: 3
     hpMapScale:
     - 1
-    - 1.6
-    - 2.6
-    - 4
+    - 1.8
+    - 3
+    - 4.4
     - 6
     hpComplexityScale:
     - 1
@@ -58,6 +60,9 @@ MonoBehaviour:
     hpSecondFloorScale: 1.25
     hpPerWave: 0.08
     hpRoundStep: 0.5
+    spawnSequentialChance: 0.67
+    spawnSequentialGapSec: 2
+    simultaneousHpMul: 0.9
   mapPool:
     mapsPerTier: 1
     prefetchNextTier: 1
@@ -82,7 +87,7 @@ MonoBehaviour:
       disabledTooltip: 
     - id: upgrade
       label: "\uD0C0\uC6CC \uC5C5\uADF8\uB808\uC774\uB4DC"
-      enabled: 0
+      enabled: 1
       disabledTooltip: "\uC900\uBE44 \uC911"
   cashLog:
     enabled: 0
@@ -92,4 +97,10 @@ MonoBehaviour:
     enabled: 0
     damagePerItem: 0.1
     speedPerItem: 0.08
+  factory:
+    enabled: 1
+    perLevel: 0.05
+    maxLevel: 5
+    levelCosts: 0100000002000000030000000400000005000000
+    chipsPerFloor: 2
   waves: []

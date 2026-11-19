@@ -24,7 +24,7 @@ MonoBehaviour:
     mapTierEveryFloors: 2
     mapBaseSize: 7
     mapGrowPerTier: 2
-    mapMaxSize: 15
+    mapMaxSize: 11
     maxComplexity: 5
     baseWaves: 1
     waveIncreaseEveryFloors: 2

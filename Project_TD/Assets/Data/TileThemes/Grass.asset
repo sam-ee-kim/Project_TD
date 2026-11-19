@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75dab95560563534c93219b8bbda3938, type: 3}
+  m_Name: Grass
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TileTheme
+  displayName: "\uD480\uBC2D"
+  pathTile: {fileID: 919132149155446097, guid: 3829b36c2e80f2a4e8ad93a40e1a91e0, type: 3}
+  buildableTile: {fileID: 919132149155446097, guid: a130c6f356cb360449862e55a3470798, type: 3}
+  blockedTiles:
+  - {fileID: 919132149155446097, guid: e9af47c1a4209144a92c963faa2c83ae, type: 3}
+  - {fileID: 919132149155446097, guid: 12efc45e42ff80e4d8a1b98705c9b827, type: 3}
+  - {fileID: 919132149155446097, guid: c3d9fac8fe9c39a4ebbbcaae6197d1e5, type: 3}
+  - {fileID: 919132149155446097, guid: 6940b527aebfd804a8773a6dd9c274e7, type: 3}
+  - {fileID: 919132149155446097, guid: 28909e1a7d3a12c43b4209a9a8d3c1a1, type: 3}
+  - {fileID: 919132149155446097, guid: 57899d7bd0119164ea0eafee0874418e, type: 3}
+  - {fileID: 919132149155446097, guid: 7ab6b8272ec46004486dd2a7abf03cd1, type: 3}
+  - {fileID: 919132149155446097, guid: ca9638e1cb6063d4eb4de4f4bd4f2977, type: 3}
+  - {fileID: 919132149155446097, guid: fb14ce41a714c2044a0f3c2c409f6a43, type: 3}
+  - {fileID: 919132149155446097, guid: e9fde95bfd0e3214994948c13b38d91a, type: 3}

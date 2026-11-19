@@ -29,8 +29,19 @@ namespace TowerDefence
                 var t = placed[i];
                 if (t.State == TowerState.Building)
                     continue;                     // 건축 연출이 끝나야 공격 (TickViews가 끝낸다)
+                if (t.OverheatTime > 0f)
+                {
+                    // 과열 휴식: 쏘지 않고 총열이 식는다 (예열이 내려가 휴식 뒤 예열부터). 대상 고정·집중 스택은 그대로
+                    t.OverheatTime -= dt;
+                    t.SpinUp = Mathf.Max(0f, t.SpinUp - 2f * dt / Mathf.Max(0.01f, t.Def.spinUpTime));
+                    t.Cooldown = 0f;
+                    t.BurstLeft = 0;
+                    continue;
+                }
                 if (t.Def.spinUpTime > 0f)
                     TickSpinUp(t, dt);
+                if (t.Def.focusBonusPerSec > 0f)
+                    TickFocus(t, dt);
                 t.Cooldown -= dt;
                 if (t.BurstLeft > 0)
                     TickBurst(t, dt);
@@ -47,6 +58,11 @@ namespace TowerDefence
                 }
 
                 var target = GetTarget(t);
+                if (t.Def.focusBonusPerSec > 0f && !target.IsNone && target != t.FocusTarget)
+                {
+                    t.FocusTarget = target; // 집중 사격: 대상을 잡은 순간부터 센다
+                    t.FocusTime = 0f;
+                }
                 if (target.IsNone)
                 {
                     t.State = TowerState.Idle;
@@ -164,7 +180,39 @@ namespace TowerDefence
             bool firing = t.State != TowerState.Idle && !t.Locked.IsNone;
             float rate = 1f / t.Def.spinUpTime;
             t.SpinUp = Mathf.Clamp01(t.SpinUp + (firing ? rate : -2f * rate) * dt);
+            if (t.Def.overheatAfter <= 0f)
+                return;
+            // 과열: 최고 연사로 overheatAfter초 쏘면 overheatRest초 휴식. 쉬는 동안(대상 없음)에는 열이 같은 속도로 식는다
+            if (firing && t.SpinUp >= 1f)
+            {
+                t.Heat += dt;
+                if (t.Heat >= t.Def.overheatAfter)
+                {
+                    t.Heat = 0f;
+                    t.OverheatTime = t.Def.overheatRest;
+                }
+            }
+            else if (!firing)
+            {
+                t.Heat = Mathf.Max(0f, t.Heat - dt);
+            }
         }
+
+        // 집중 사격 (미니건): 고정 대상이 그대로면 시간을 쌓고, 대상이 죽거나 바뀌면 0부터. 예열은 건드리지 않는다.
+        void TickFocus(TowerInstance t, float dt)
+        {
+            if (t.Locked.IsNone || t.Locked != t.FocusTarget || !monsters.IsValid(t.Locked) || monsters.Get(t.Locked).State != MonsterState.Alive)
+            {
+                t.FocusTarget = MonsterHandle.None; // 대상이 죽거나 바뀜: 새 대상을 잡는 순간부터 다시 센다
+                t.FocusTime = 0f;
+                return;
+            }
+            t.FocusTime += dt;
+        }
+
+        // 집중 스택 피해: 1초마다 focusBonusPerSec (같은 대상일 때만).
+        static float FocusBonus(TowerInstance t, MonsterHandle target) =>
+            t.Def.focusBonusPerSec > 0f && target == t.FocusTarget ? t.Def.focusBonusPerSec * Mathf.Floor(t.FocusTime + 1e-3f) : 0f;
 
         // 차지 진행: 대상이 사라지면 사거리 안 다른 대상으로 이어 가고(차지 유지), 없으면 Idle. 다 차면 발사.
         void TickCharge(TowerInstance t, float dt)
@@ -259,6 +307,8 @@ namespace TowerDefence
                         t.SpinPosed = false;
                     }
                 }
+                if (t.SpinBarrel != null)
+                    TickBarrel(t, dt);
                 if (t.FireAnim != null && t.FireAnimTime >= 0f)
                 {
                     // 발사 연출 (나노: 발사구 셀이 차례로 열리고 발사대가 밀린다)
@@ -271,6 +321,10 @@ namespace TowerDefence
                         t.FireAnimTime = -1f;
                     }
                 }
+                if (t.LoopAudio != null)
+                    TickLoopAudio(t, dt);
+                if (t.SpinAudio != null)
+                    TickSpinAudio(t);
                 if (t.Aim == null)
                     continue;
                 t.Aim.TickRecoil(dt);
@@ -316,7 +370,7 @@ namespace TowerDefence
         void SpawnField(TowerDef def, Vector3 ground)
         {
             ground.y = 0f;
-            monsters.AddSlowField(ground, def.fieldRadius, def.fieldSlow, def.fieldDuration);
+            monsters.AddSlowField(ground, def.fieldRadius, def.fieldSlow, def.fieldDuration, def.fieldDamageBonus);
             if (!fieldViews.TryGetValue(def, out var ring))
                 return;
             int i = ring.Next;
@@ -481,9 +535,94 @@ namespace TowerDefence
         }
 
         // 발사: Projectile이면 투사체에 {핸들, 피해 값 복사본, 속도}, Hitscan이면 즉시 피해.
+        // --- 발사음 ---
+        // 한 발짜리(듀얼샷)는 공용 AudioSource 몇 개를 돌려 쓴다 (동시에 많이 쏘면 가장 오래된 소리 자리에). 반복음(화염방사)은 타워마다.
+        const int ShotVoices = 12;
+        const float LoopHoldSec = 0.3f;  // 마지막 발사 뒤 이만큼은 반복음 유지 (0.2초 간격 틱 사이가 끊기지 않게)
+        const float LoopFadeSec = 0.15f;
+        AudioSource[] shotVoices;
+        int nextShotVoice;
+
+        void InitAudio()
+        {
+            if (viewRoot == null)
+                return;
+            var go = new GameObject("TowerShotAudio");
+            go.transform.SetParent(viewRoot, false);
+            shotVoices = new AudioSource[ShotVoices];
+            for (int i = 0; i < ShotVoices; i++)
+            {
+                var a = go.AddComponent<AudioSource>();
+                a.playOnAwake = false;
+                a.spatialBlend = 0f;
+                shotVoices[i] = a;
+            }
+        }
+
+        void PlayFireSound(TowerInstance t)
+        {
+            var def = t.Def;
+            t.LastFireTime = viewTime;
+            if (def.fireSound == null || def.fireSoundLoop || shotVoices == null)
+                return;
+            var voice = shotVoices[nextShotVoice];
+            nextShotVoice = (nextShotVoice + 1) % shotVoices.Length;
+            voice.pitch = Random.Range(def.firePitchRange.x, def.firePitchRange.y);
+            voice.PlayOneShot(def.fireSound, def.fireVolume);
+        }
+
+        // 반복음: 최근에 쐈으면 켜고(서서히 커짐), 쉬면 줄어들며 끈다. TickViews에서 타워마다.
+        void TickLoopAudio(TowerInstance t, float dt)
+        {
+            var audio = t.LoopAudio;
+            bool firing = viewTime - t.LastFireTime < LoopHoldSec && t.State != TowerState.Building;
+            float target = firing ? t.Def.fireVolume : 0f;
+            audio.volume = Mathf.MoveTowards(audio.volume, target, t.Def.fireVolume * dt / LoopFadeSec);
+            if (target > 0f && !audio.isPlaying)
+            {
+                audio.time = Random.Range(0f, audio.clip.length * 0.9f); // 타워마다 다른 위치부터 (겹쳐도 똑같이 들리지 않게)
+                audio.Play();
+            }
+            else if (audio.volume <= 0f && audio.isPlaying)
+                audio.Stop();
+        }
+
+        // 총열 회전 (미니건): 클립 대신 직접 돌린다. 초당 발사 수 × (360° ÷ 총열 수) — 한 발에 총열 한 칸.
+        // 예열 중엔 발사 간격이 길어 느리게, 최고 연사(초당 16발)면 초당 960°, 연사 아이템으로 빨라지면 더 빨리. 식으면 멈춘 자리에 선다.
+        void TickBarrel(TowerInstance t, float dt)
+        {
+            var def = t.Def;
+            if (t.SpinUp > 0f)
+            {
+                float shotsPerSec = 1f / Mathf.Max(0.01f, GetInterval(t));
+                t.BarrelAngle = Mathf.Repeat(t.BarrelAngle + 360f / Mathf.Max(1, def.barrelCount) * shotsPerSec * dt, 360f);
+            }
+            // 예열 클립이 총열을 덮어쓰거나 기본 자세로 되돌려도 매 프레임 지금 각도로 다시 놓는다
+            t.SpinBarrel.localRotation = t.BarrelRest * Quaternion.AngleAxis(t.BarrelAngle, def.spinBarrelAxis);
+        }
+
+        // 총열 회전음: 예열 정도(SpinUp)를 그대로 따라간다. 돌기 시작하면 낮고 작게, 다 돌면 높고 크게, 식으면 내려가며 꺼진다.
+        void TickSpinAudio(TowerInstance t)
+        {
+            var audio = t.SpinAudio;
+            float k = t.SpinUp;
+            if (k <= 0.001f)
+            {
+                if (audio.isPlaying)
+                    audio.Stop();
+                return;
+            }
+            var def = t.Def;
+            audio.pitch = Mathf.Clamp(1f / (GetInterval(t) * Mathf.Max(0.01f, def.spinSoundShotsPerSec)), 0.1f, 3f); // 회전음 1박 = 총열 한 칸 = 한 발
+            audio.volume = def.spinVolume * (0.35f + 0.65f * k);
+            if (!audio.isPlaying)
+                audio.Play();
+        }
+
         void Fire(TowerInstance t, MonsterHandle target)
         {
-            var info = new DamageInfo(GetDamage(t.Def), DamageType.Normal, t.Def.bonusTrait, t.Def.bonusMultiplier); // 화력 아이템 반영, 속성 상성
+            PlayFireSound(t);
+            var info = new DamageInfo(GetDamage(t.Def) + FocusBonus(t, target), DamageType.Normal, t.Def.bonusTrait, t.Def.bonusMultiplier, t.Def.status); // 화력 아이템, 집중 스택, 속성 상성, 이상효과
             if (t.Def.attackType == AttackType.Pulse)
             {
                 // 전자파 방출: 타워 발밑에서 원형으로 퍼진다 (이펙트도 바닥 가까이)
@@ -506,6 +645,15 @@ namespace TowerDefence
                 {
                     t.Aim.Fire(out var origin, out var direction);
                     PlayMuzzleFx(t.Def, origin, direction);
+                    if (t.Def.coneWholeArea)
+                    {
+                        // 불길은 발사구에서 헤드가 향한 쪽(대상)으로 나간다
+                        center = new Vector3(origin.x, 0f, origin.z);
+                        var aimDir = monsters.GetGroundPoint(monsters.Get(target)) - center;
+                        aimDir.y = 0f;
+                        if (aimDir.sqrMagnitude > 1e-6f)
+                            forward = aimDir.normalized;
+                    }
                 }
                 ApplyCone(t, center, forward, info);
                 return;
@@ -589,25 +737,50 @@ namespace TowerDefence
             }
         }
 
+        // 부채꼴 안 몬스터 (가까운 순 maxTargets마리까지). 후보 칸 = 공격 범위(coneWholeArea) 또는 인식 범위.
+        // 먼저 모두 모은 뒤 피해를 준다 (피해 도중 죽은 몬스터가 칸 목록에서 빠져도 순서가 흔들리지 않게). 고정 크기 버퍼라 할당 없음.
+        const int MaxConeHits = 64;
+        readonly MonsterHandle[] coneHits = new MonsterHandle[MaxConeHits];
+        readonly float[] coneDist = new float[MaxConeHits];
+
         void ApplyCone(TowerInstance t, Vector3 center, Vector3 forward, in DamageInfo info)
         {
             float length = t.Def.coneLength;
             float halfAngle = t.Def.coneAngle * 0.5f;
-            var covered = t.Covered;
-            for (int c = 0; c < covered.Length; c++)
+            var cells = t.Def.coneWholeArea && t.AttackCells != null ? t.AttackCells : t.Covered;
+            int n = 0;
+            for (int c = 0; c < cells.Length && n < MaxConeHits; c++)
             {
-                var bucket = board.MonstersAt(covered[c]);
-                for (int k = bucket.Count - 1; k >= 0; k--)
+                var bucket = board.MonstersAt(cells[c]);
+                for (int k = 0; k < bucket.Count && n < MaxConeHits; k++)
                 {
-                    if (k >= bucket.Count)
-                        continue;
                     var h = bucket[k];
                     var m = monsters.Get(h);
                     if (m == null || m.State != MonsterState.Alive)
                         continue;
-                    if (InCone(monsters.GetGroundPoint(m) - center, forward, length, halfAngle, ConeHitRadius))
-                        monsters.ApplyDamage(h, info);
+                    var offset = monsters.GetGroundPoint(m) - center;
+                    if (!InCone(offset, forward, length, halfAngle, ConeHitRadius))
+                        continue;
+                    offset.y = 0f;
+                    coneHits[n] = h;
+                    coneDist[n] = offset.sqrMagnitude;
+                    n++;
                 }
+            }
+            int cap = t.Def.maxTargets > 0 ? Mathf.Min(t.Def.maxTargets, n) : n;
+            for (int i = 0; i < cap; i++)
+            {
+                if (cap < n)
+                {
+                    // 가까운 순으로 앞에서부터 고른다 (선택 정렬, 상위 cap개만)
+                    int best = i;
+                    for (int j = i + 1; j < n; j++)
+                        if (coneDist[j] < coneDist[best])
+                            best = j;
+                    (coneHits[i], coneHits[best]) = (coneHits[best], coneHits[i]);
+                    (coneDist[i], coneDist[best]) = (coneDist[best], coneDist[i]);
+                }
+                monsters.ApplyDamage(coneHits[i], info);
             }
         }
 
@@ -685,7 +858,30 @@ namespace TowerDefence
         {
             public Transform[] Roots;
             public ParticleSystem[] Systems; // 루트 시스템 (Play(true)로 자식까지)
+            public ParticleSystem[][] All;   // 상태 이펙트만: 자식까지 전부 (재생 속도를 정지 시간에 맞춘다)
             public int Next;
+        }
+
+        // --- 얼음·감전 표시 (MonsterManager.Stunned) ---
+        // 이펙트 프리팹은 1초짜리로 만들고, 정지 시간이 길면(생물 얼음·기계 감전 2초) 그만큼 느리게 재생한다.
+        readonly Dictionary<GameObject, MuzzleFxRing> statusFx = new Dictionary<GameObject, MuzzleFxRing>();
+
+        void HandleStunned(MonsterStunned e)
+        {
+            if (e.Effect == null || e.Effect.fxPrefab == null || !statusFx.TryGetValue(e.Effect.fxPrefab, out var ring))
+                return;
+            int i = ring.Next;
+            ring.Next = (i + 1) % ring.Roots.Length;
+            ring.Roots[i].SetPositionAndRotation(e.Position, Quaternion.identity);
+            float speed = 1f / Mathf.Max(0.1f, e.Duration);
+            var systems = ring.All[i];
+            for (int k = 0; k < systems.Length; k++)
+            {
+                var main = systems[k].main;
+                main.simulationSpeed = speed;
+            }
+            ring.Systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ring.Systems[i].Play(true);
         }
 
         readonly Dictionary<TowerDef, MuzzleFxRing> muzzleFx = new Dictionary<TowerDef, MuzzleFxRing>();
@@ -726,6 +922,15 @@ namespace TowerDefence
                     chargeFx.Add(def, CreateFxRing(def.chargeFxPrefab, def.id + "_ChargeFx", count, 1f));
                 if (def.hitFxPrefab != null)
                     hitFx.Add(def, CreateFxRing(def.hitFxPrefab, def.id + "_HitFx", count, 1f));
+                var stunFx = def.status != null ? def.status.fxPrefab : null;
+                if (stunFx != null && !statusFx.ContainsKey(stunFx))
+                {
+                    var ring = CreateFxRing(stunFx, def.id + "_StatusFx", count, 1f);
+                    ring.All = new ParticleSystem[ring.Roots.Length][];
+                    for (int i = 0; i < ring.Roots.Length; i++)
+                        ring.All[i] = ring.Roots[i].GetComponentsInChildren<ParticleSystem>(true); // 생성 때 1번만
+                    statusFx.Add(stunFx, ring);
+                }
             }
         }
 
@@ -747,6 +952,7 @@ namespace TowerDefence
         void InitProjectilePools()
         {
             InitMuzzleFx();
+            InitAudio();
             if (viewRoot != null)
                 InitFieldViews(data.Config != null ? Mathf.Max(1, data.Config.performance.effectPoolPrewarm) : 16);
             int prewarm = data.Config != null ? data.Config.performance.projectilePoolPrewarm : 0;

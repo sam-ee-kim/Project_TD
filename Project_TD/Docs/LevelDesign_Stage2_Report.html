@@ -1,0 +1,1094 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>레벨디자인 2단계 보고서</title><style>
+:root{--bg:#fcfcfb;--ink:#0b0b0b;--dim:#52514e;--line:#e3e1dc;--panel:#f3f2ee;--s1:#2a78d6;--s2:#eb6834;--heat:42,120,214}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1a19;--ink:#f0efec;--dim:#c3c2b7;--line:#3a3935;--panel:#242422;--s1:#3987e5;--s2:#d95926;--heat:57,135,229}}
+:root[data-theme="dark"]{--bg:#1a1a19;--ink:#f0efec;--dim:#c3c2b7;--line:#3a3935;--panel:#242422;--s1:#3987e5;--s2:#d95926;--heat:57,135,229}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 "Pretendard","Malgun Gothic",system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 16px 80px}h1{font-size:26px;margin:0 0 6px}h2{font-size:20px;margin:40px 0 10px;border-top:1px solid var(--line);padding-top:18px}
+.lead{color:var(--dim)}.note{color:var(--dim);font-size:13px}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px}
+figure.chart{margin:0;background:var(--panel);border-radius:10px;padding:12px 14px}figcaption{font-weight:700;margin-bottom:4px}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--dim);margin-bottom:4px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+svg{width:100%;height:auto;display:block}svg text{fill:var(--dim);font-size:11px;font-family:inherit}svg .cat{fill:var(--ink)}
+.grid{stroke:var(--line);stroke-width:1}.base{stroke:var(--dim);stroke-width:1}.sep{stroke:var(--line);stroke-dasharray:3 3}.link{stroke:var(--dim);stroke-width:1.5;opacity:.5}
+.ring{stroke:var(--panel);stroke-width:2}.hit:hover path,.hit:hover circle{opacity:.8}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{border-bottom:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600}td.r,th.r{text-align:right}
+table.heat td{text-align:right;background:rgba(var(--heat),var(--a));font-variant-numeric:tabular-nums}
+pre.map{margin:0;font:12px/1.15 Consolas,"Malgun Gothic",monospace;letter-spacing:1px}
+.btn{position:fixed;right:14px;top:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer}
+</style></head><body><button class="btn" onclick="var r=document.documentElement,d=r.dataset.theme||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.dataset.theme=d=='dark'?'light':'dark'">밝게/어둡게</button><main>
+<h1>레벨디자인 2단계 (9×9) · 타워 수치 조정 전·후 비교</h1>
+<p class="lead">조정 전 = 1차 조정 뒤 수치 (1단계 보고서의 조정 후).</p>
+<p class="lead">컨셉 맵 50종 × 타워 조합. 타워 6개, 몬스터 체력 = 기본 × 3.5, 몬스터 수 배율 ×1 → ×1.5 → ×2 → ×3 → ×4 → ×6 → ×8 → ×12 → ×16 → ×24 → ×32. 점수 = 넥서스 피해가 20에 닿기 전까지 버틴 가장 큰 배율.</p>
+<h2>수치 조정 내역</h2><div class="tw"><table><thead><tr><th>타워</th><th>항목</th><th>조정 전</th><th>조정 후</th><th>메모</th></tr></thead><tbody>
+<tr><td>EMP</td><td>파동 피해</td><td>1</td><td>2</td><td>단독으로도 몬스터를 조금 잡게. 기계 몬스터 2배 상성은 그대로</td></tr>
+<tr><td>나노봇</td><td>나노필드 취약</td><td>없음</td><td>필드 안 몬스터가 받는 모든 타워 피해 +20%</td><td>CC와 화력 타워를 섞는 조합 유도</td></tr>
+<tr><td>그 밖</td><td>-</td><td>-</td><td>1차 조정 값 그대로</td><td>플라즈마·화염 계열은 바꾸지 않음 (결정대로)</td></tr>
+</tbody></table></div><h2>그래프</h2><div class="charts"><figure class="chart"><figcaption>컨셉 조합 점수 (버틴 몬스터 수 배율, 맵 10개 평균)</figcaption>
+<div class="legend"><span><i style="background:var(--s1)"></i>조정 전</span><span><i style="background:var(--s2)"></i>조정 후</span></div>
+<svg viewBox="0 0 760 300" role="img" aria-label="컨셉 조합 점수 (버틴 몬스터 수 배율, 맵 10개 평균)">
+<line class="grid" x1="52" x2="744" y1="242.0" y2="242.0"/><text class="ax" x="46" y="246.0" text-anchor="end">×0</text>
+<line class="grid" x1="52" x2="744" y1="188.0" y2="188.0"/><text class="ax" x="46" y="192.0" text-anchor="end">×8</text>
+<line class="grid" x1="52" x2="744" y1="134.0" y2="134.0"/><text class="ax" x="46" y="138.0" text-anchor="end">×16</text>
+<line class="grid" x1="52" x2="744" y1="80.0" y2="80.0"/><text class="ax" x="46" y="84.0" text-anchor="end">×24</text>
+<line class="grid" x1="52" x2="744" y1="26.0" y2="26.0"/><text class="ax" x="46" y="30.0" text-anchor="end">×32</text>
+<g class="hit"><rect x="92.2" y="26" width="30.0" height="216" fill="transparent"/><path d="M94.2,242.0 V30.0 Q94.2,26.0 98.2,26.0 H116.2 Q120.2,26.0 120.2,30.0 V242.0 Z" fill="var(--s1)"/><title>A 플라즈마 회랑 · 조정 전: ×32</title></g>
+<g class="hit"><rect x="120.2" y="26" width="30.0" height="216" fill="transparent"/><path d="M122.2,242.0 V30.0 Q122.2,26.0 126.2,26.0 H144.2 Q148.2,26.0 148.2,30.0 V242.0 Z" fill="var(--s2)"/><title>A 플라즈마 회랑 · 조정 후: ×32</title></g>
+<text class="cat" x="121.2" y="260" text-anchor="middle">A 플라즈마 회랑</text>
+<g class="hit"><rect x="230.6" y="26" width="30.0" height="216" fill="transparent"/><path d="M232.6,242.0 V235.5 Q232.6,231.5 236.6,231.5 H254.6 Q258.6,231.5 258.6,235.5 V242.0 Z" fill="var(--s1)"/><title>B 화염·CC 소용돌이 · 조정 전: ×1.55</title></g>
+<g class="hit"><rect x="258.6" y="26" width="30.0" height="216" fill="transparent"/><path d="M260.6,242.0 V229.1 Q260.6,225.1 264.6,225.1 H282.6 Q286.6,225.1 286.6,229.1 V242.0 Z" fill="var(--s2)"/><title>B 화염·CC 소용돌이 · 조정 후: ×2.5</title></g>
+<text class="cat" x="259.6" y="260" text-anchor="middle">B 화염·CC 소용돌이</text>
+<g class="hit"><rect x="369.0" y="26" width="30.0" height="216" fill="transparent"/><path d="M371.0,242.0 V236.9 Q371.0,232.9 375.0,232.9 H393.0 Q397.0,232.9 397.0,236.9 V242.0 Z" fill="var(--s1)"/><title>C 2열 진지 · 조정 전: ×1.35</title></g>
+<g class="hit"><rect x="397.0" y="26" width="30.0" height="216" fill="transparent"/><path d="M399.0,242.0 V232.2 Q399.0,228.2 403.0,228.2 H421.0 Q425.0,228.2 425.0,232.2 V242.0 Z" fill="var(--s2)"/><title>C 2열 진지 · 조정 후: ×2.05</title></g>
+<text class="cat" x="398.0" y="260" text-anchor="middle">C 2열 진지</text>
+<g class="hit"><rect x="507.4" y="26" width="30.0" height="216" fill="transparent"/><path d="" fill="var(--s1)"/><title>D 급습 단거리 · 조정 전: ×0</title></g>
+<g class="hit"><rect x="535.4" y="26" width="30.0" height="216" fill="transparent"/><path d="" fill="var(--s2)"/><title>D 급습 단거리 · 조정 후: ×0</title></g>
+<text class="cat" x="536.4" y="260" text-anchor="middle">D 급습 단거리</text>
+<g class="hit"><rect x="645.8" y="26" width="30.0" height="216" fill="transparent"/><path d="M647.8,242.0 V219.0 Q647.8,215.0 651.8,215.0 H669.8 Q673.8,215.0 673.8,219.0 V242.0 Z" fill="var(--s1)"/><title>E 정예 사냥 · 조정 전: ×4</title></g>
+<g class="hit"><rect x="673.8" y="26" width="30.0" height="216" fill="transparent"/><path d="M675.8,242.0 V219.0 Q675.8,215.0 679.8,215.0 H697.8 Q701.8,215.0 701.8,219.0 V242.0 Z" fill="var(--s2)"/><title>E 정예 사냥 · 조정 후: ×4</title></g>
+<text class="cat" x="674.8" y="260" text-anchor="middle">E 정예 사냥</text>
+<line class="base" x1="52" x2="744" y1="242" y2="242"/></svg>
+</figure>
+<figure class="chart"><figcaption>비컨셉 조합 점수 (같은 단계 타워로 바꿔 끼움)</figcaption>
+<div class="legend"><span><i style="background:var(--s1)"></i>조정 전</span><span><i style="background:var(--s2)"></i>조정 후</span></div>
+<svg viewBox="0 0 760 300" role="img" aria-label="비컨셉 조합 점수 (같은 단계 타워로 바꿔 끼움)">
+<line class="grid" x1="52" x2="744" y1="242.0" y2="242.0"/><text class="ax" x="46" y="246.0" text-anchor="end">×0</text>
+<line class="grid" x1="52" x2="744" y1="188.0" y2="188.0"/><text class="ax" x="46" y="192.0" text-anchor="end">×8</text>
+<line class="grid" x1="52" x2="744" y1="134.0" y2="134.0"/><text class="ax" x="46" y="138.0" text-anchor="end">×16</text>
+<line class="grid" x1="52" x2="744" y1="80.0" y2="80.0"/><text class="ax" x="46" y="84.0" text-anchor="end">×24</text>
+<line class="grid" x1="52" x2="744" y1="26.0" y2="26.0"/><text class="ax" x="46" y="30.0" text-anchor="end">×32</text>
+<g class="hit"><rect x="92.2" y="26" width="30.0" height="216" fill="transparent"/><path d="M94.2,242.0 V227.8 Q94.2,223.8 98.2,223.8 H116.2 Q120.2,223.8 120.2,227.8 V242.0 Z" fill="var(--s1)"/><title>A 플라즈마 회랑 · 조정 전: ×2.7</title></g>
+<g class="hit"><rect x="120.2" y="26" width="30.0" height="216" fill="transparent"/><path d="M122.2,242.0 V224.4 Q122.2,220.4 126.2,220.4 H144.2 Q148.2,220.4 148.2,224.4 V242.0 Z" fill="var(--s2)"/><title>A 플라즈마 회랑 · 조정 후: ×3.2</title></g>
+<text class="cat" x="121.2" y="260" text-anchor="middle">A 플라즈마 회랑</text>
+<g class="hit"><rect x="230.6" y="26" width="30.0" height="216" fill="transparent"/><path d="M232.6,242.0 V239.2 Q232.6,235.2 236.6,235.2 H254.6 Q258.6,235.2 258.6,239.2 V242.0 Z" fill="var(--s1)"/><title>B 화염·CC 소용돌이 · 조정 전: ×1</title></g>
+<g class="hit"><rect x="258.6" y="26" width="30.0" height="216" fill="transparent"/><path d="M260.6,242.0 V239.2 Q260.6,235.2 264.6,235.2 H282.6 Q286.6,235.2 286.6,239.2 V242.0 Z" fill="var(--s2)"/><title>B 화염·CC 소용돌이 · 조정 후: ×1</title></g>
+<text class="cat" x="259.6" y="260" text-anchor="middle">B 화염·CC 소용돌이</text>
+<g class="hit"><rect x="369.0" y="26" width="30.0" height="216" fill="transparent"/><path d="M371.0,242.0 V242.0 Q371.0,240.7 372.4,240.7 H395.6 Q397.0,240.7 397.0,242.0 V242.0 Z" fill="var(--s1)"/><title>C 2열 진지 · 조정 전: ×0.2</title></g>
+<g class="hit"><rect x="397.0" y="26" width="30.0" height="216" fill="transparent"/><path d="M399.0,242.0 V242.0 Q399.0,240.7 400.4,240.7 H423.6 Q425.0,240.7 425.0,242.0 V242.0 Z" fill="var(--s2)"/><title>C 2열 진지 · 조정 후: ×0.2</title></g>
+<text class="cat" x="398.0" y="260" text-anchor="middle">C 2열 진지</text>
+<g class="hit"><rect x="507.4" y="26" width="30.0" height="216" fill="transparent"/><path d="M509.4,242.0 V191.7 Q509.4,187.7 513.4,187.7 H531.4 Q535.4,187.7 535.4,191.7 V242.0 Z" fill="var(--s1)"/><title>D 급습 단거리 · 조정 전: ×8.05</title></g>
+<g class="hit"><rect x="535.4" y="26" width="30.0" height="216" fill="transparent"/><path d="M537.4,242.0 V191.7 Q537.4,187.7 541.4,187.7 H559.4 Q563.4,187.7 563.4,191.7 V242.0 Z" fill="var(--s2)"/><title>D 급습 단거리 · 조정 후: ×8.05</title></g>
+<text class="cat" x="536.4" y="260" text-anchor="middle">D 급습 단거리</text>
+<g class="hit"><rect x="645.8" y="26" width="30.0" height="216" fill="transparent"/><path d="M647.8,242.0 V104.2 Q647.8,100.2 651.8,100.2 H669.8 Q673.8,100.2 673.8,104.2 V242.0 Z" fill="var(--s1)"/><title>E 정예 사냥 · 조정 전: ×21</title></g>
+<g class="hit"><rect x="673.8" y="26" width="30.0" height="216" fill="transparent"/><path d="M675.8,242.0 V104.2 Q675.8,100.2 679.8,100.2 H697.8 Q701.8,100.2 701.8,104.2 V242.0 Z" fill="var(--s2)"/><title>E 정예 사냥 · 조정 후: ×21</title></g>
+<text class="cat" x="674.8" y="260" text-anchor="middle">E 정예 사냥</text>
+<line class="base" x1="52" x2="744" y1="242" y2="242"/></svg>
+</figure>
+<figure class="chart"><figcaption>타워별 점수 (같은 타워 6개, 맵 50개 평균)</figcaption>
+<div class="legend"><span><i style="background:var(--s1)"></i>조정 전</span><span><i style="background:var(--s2)"></i>조정 후</span></div>
+<svg viewBox="0 0 760 300" role="img" aria-label="타워별 점수 (같은 타워 6개, 맵 50개 평균)">
+<line class="grid" x1="52" x2="744" y1="242.0" y2="242.0"/><text class="ax" x="46" y="246.0" text-anchor="end">×0</text>
+<line class="grid" x1="52" x2="744" y1="188.0" y2="188.0"/><text class="ax" x="46" y="192.0" text-anchor="end">×8</text>
+<line class="grid" x1="52" x2="744" y1="134.0" y2="134.0"/><text class="ax" x="46" y="138.0" text-anchor="end">×16</text>
+<line class="grid" x1="52" x2="744" y1="80.0" y2="80.0"/><text class="ax" x="46" y="84.0" text-anchor="end">×24</text>
+<line class="grid" x1="52" x2="744" y1="26.0" y2="26.0"/><text class="ax" x="46" y="30.0" text-anchor="end">×32</text>
+<g class="hit"><rect x="58.0" y="26" width="26.5" height="216" fill="transparent"/><path d="M60.0,242.0 V242.0 Q60.0,239.8 62.2,239.8 H80.3 Q82.5,239.8 82.5,242.0 V242.0 Z" fill="var(--s1)"/><title>듀얼샷 · 조정 전: ×0.32</title></g>
+<g class="hit"><rect x="82.5" y="26" width="26.5" height="216" fill="transparent"/><path d="M84.5,242.0 V242.0 Q84.5,239.8 86.6,239.8 H104.7 Q106.9,239.8 106.9,242.0 V242.0 Z" fill="var(--s2)"/><title>듀얼샷 · 조정 후: ×0.32</title></g>
+<text class="cat" x="83.5" y="260" text-anchor="middle">듀얼샷</text>
+<g class="hit"><rect x="120.9" y="26" width="26.5" height="216" fill="transparent"/><path d="M122.9,242.0 V231.4 Q122.9,227.4 126.9,227.4 H141.4 Q145.4,227.4 145.4,231.4 V242.0 Z" fill="var(--s1)"/><title>화염방사 · 조정 전: ×2.17</title></g>
+<g class="hit"><rect x="145.4" y="26" width="26.5" height="216" fill="transparent"/><path d="M147.4,242.0 V231.4 Q147.4,227.4 151.4,227.4 H165.8 Q169.8,227.4 169.8,231.4 V242.0 Z" fill="var(--s2)"/><title>화염방사 · 조정 후: ×2.17</title></g>
+<text class="cat" x="146.4" y="260" text-anchor="middle">화염방사</text>
+<g class="hit"><rect x="183.8" y="26" width="26.5" height="216" fill="transparent"/><path d="" fill="var(--s1)"/><title>EMP · 조정 전: ×0</title></g>
+<g class="hit"><rect x="208.3" y="26" width="26.5" height="216" fill="transparent"/><path d="M210.3,242.0 V185.1 Q210.3,181.1 214.3,181.1 H228.7 Q232.7,181.1 232.7,185.1 V242.0 Z" fill="var(--s2)"/><title>EMP · 조정 후: ×9.02</title></g>
+<text class="cat" x="209.3" y="260" text-anchor="middle">EMP</text>
+<g class="hit"><rect x="246.7" y="26" width="26.5" height="216" fill="transparent"/><path d="M248.7,242.0 V242.0 Q248.7,241.2 249.5,241.2 H270.4 Q271.2,241.2 271.2,242.0 V242.0 Z" fill="var(--s1)"/><title>나노봇 · 조정 전: ×0.12</title></g>
+<g class="hit"><rect x="271.2" y="26" width="26.5" height="216" fill="transparent"/><path d="M273.2,242.0 V242.0 Q273.2,240.8 274.4,240.8 H294.4 Q295.6,240.8 295.6,242.0 V242.0 Z" fill="var(--s2)"/><title>나노봇 · 조정 후: ×0.18</title></g>
+<text class="cat" x="272.2" y="260" text-anchor="middle">나노봇</text>
+<g class="hit"><rect x="309.6" y="26" width="26.5" height="216" fill="transparent"/><path d="M311.6,242.0 V240.7 Q311.6,236.7 315.6,236.7 H330.1 Q334.1,236.7 334.1,240.7 V242.0 Z" fill="var(--s1)"/><title>번개 · 조정 전: ×0.78</title></g>
+<g class="hit"><rect x="334.1" y="26" width="26.5" height="216" fill="transparent"/><path d="M336.1,242.0 V240.7 Q336.1,236.7 340.1,236.7 H354.5 Q358.5,236.7 358.5,240.7 V242.0 Z" fill="var(--s2)"/><title>번개 · 조정 후: ×0.78</title></g>
+<text class="cat" x="335.1" y="260" text-anchor="middle">번개</text>
+<g class="hit"><rect x="372.5" y="26" width="26.5" height="216" fill="transparent"/><path d="M374.5,242.0 V236.4 Q374.5,232.4 378.5,232.4 H393.0 Q397.0,232.4 397.0,236.4 V242.0 Z" fill="var(--s1)"/><title>냉기 · 조정 전: ×1.42</title></g>
+<g class="hit"><rect x="397.0" y="26" width="26.5" height="216" fill="transparent"/><path d="M399.0,242.0 V236.4 Q399.0,232.4 403.0,232.4 H417.5 Q421.5,232.4 421.5,236.4 V242.0 Z" fill="var(--s2)"/><title>냉기 · 조정 후: ×1.42</title></g>
+<text class="cat" x="398.0" y="260" text-anchor="middle">냉기</text>
+<g class="hit"><rect x="435.5" y="26" width="26.5" height="216" fill="transparent"/><path d="M437.5,242.0 V233.8 Q437.5,229.8 441.5,229.8 H455.9 Q459.9,229.8 459.9,233.8 V242.0 Z" fill="var(--s1)"/><title>전기 · 조정 전: ×1.81</title></g>
+<g class="hit"><rect x="459.9" y="26" width="26.5" height="216" fill="transparent"/><path d="M461.9,242.0 V233.8 Q461.9,229.8 465.9,229.8 H480.4 Q484.4,229.8 484.4,233.8 V242.0 Z" fill="var(--s2)"/><title>전기 · 조정 후: ×1.81</title></g>
+<text class="cat" x="460.9" y="260" text-anchor="middle">전기</text>
+<g class="hit"><rect x="498.4" y="26" width="26.5" height="216" fill="transparent"/><path d="M500.4,242.0 V225.9 Q500.4,221.9 504.4,221.9 H518.8 Q522.8,221.9 522.8,225.9 V242.0 Z" fill="var(--s1)"/><title>미니건 · 조정 전: ×2.98</title></g>
+<g class="hit"><rect x="522.8" y="26" width="26.5" height="216" fill="transparent"/><path d="M524.8,242.0 V225.9 Q524.8,221.9 528.8,221.9 H543.3 Q547.3,221.9 547.3,225.9 V242.0 Z" fill="var(--s2)"/><title>미니건 · 조정 후: ×2.98</title></g>
+<text class="cat" x="523.8" y="260" text-anchor="middle">미니건</text>
+<g class="hit"><rect x="561.3" y="26" width="26.5" height="216" fill="transparent"/><path d="M563.3,242.0 V55.1 Q563.3,51.1 567.3,51.1 H581.7 Q585.7,51.1 585.7,55.1 V242.0 Z" fill="var(--s1)"/><title>플라즈마 · 조정 전: ×28.28</title></g>
+<g class="hit"><rect x="585.7" y="26" width="26.5" height="216" fill="transparent"/><path d="M587.7,242.0 V55.1 Q587.7,51.1 591.7,51.1 H606.2 Q610.2,51.1 610.2,55.1 V242.0 Z" fill="var(--s2)"/><title>플라즈마 · 조정 후: ×28.28</title></g>
+<text class="cat" x="586.7" y="260" text-anchor="middle">플라즈마</text>
+<g class="hit"><rect x="624.2" y="26" width="26.5" height="216" fill="transparent"/><path d="M626.2,242.0 V197.3 Q626.2,193.3 630.2,193.3 H644.6 Q648.6,193.3 648.6,197.3 V242.0 Z" fill="var(--s1)"/><title>분진 · 조정 전: ×7.22</title></g>
+<g class="hit"><rect x="648.6" y="26" width="26.5" height="216" fill="transparent"/><path d="M650.6,242.0 V197.3 Q650.6,193.3 654.6,193.3 H669.1 Q673.1,193.3 673.1,197.3 V242.0 Z" fill="var(--s2)"/><title>분진 · 조정 후: ×7.22</title></g>
+<text class="cat" x="649.6" y="260" text-anchor="middle">분진</text>
+<g class="hit"><rect x="687.1" y="26" width="26.5" height="216" fill="transparent"/><path d="M689.1,242.0 V192.0 Q689.1,188.0 693.1,188.0 H707.5 Q711.5,188.0 711.5,192.0 V242.0 Z" fill="var(--s1)"/><title>백린 · 조정 전: ×8</title></g>
+<g class="hit"><rect x="711.5" y="26" width="26.5" height="216" fill="transparent"/><path d="M713.5,242.0 V192.0 Q713.5,188.0 717.5,188.0 H732.0 Q736.0,188.0 736.0,192.0 V242.0 Z" fill="var(--s2)"/><title>백린 · 조정 후: ×8</title></g>
+<text class="cat" x="712.5" y="260" text-anchor="middle">백린</text>
+<line class="base" x1="52" x2="744" y1="242" y2="242"/></svg>
+</figure></div><figure class="chart"><figcaption>맵별 타워 파워량: 컨셉 조합이 ×1 웨이브에서 준 피해 총량</figcaption>
+<div class="legend"><span><i style="background:var(--s1)"></i>조정 전</span><span><i style="background:var(--s2)"></i>조정 후</span></div>
+<svg viewBox="0 0 760 260" role="img" aria-label="맵별 타워 파워량: 컨셉 조합이 ×1 웨이브에서 준 피해 총량">
+<line class="grid" x1="52" x2="744" y1="196.0" y2="196.0"/><text class="ax" x="46" y="200.0" text-anchor="end">0</text>
+<line class="grid" x1="52" x2="744" y1="153.5" y2="153.5"/><text class="ax" x="46" y="157.5" text-anchor="end">276</text>
+<line class="grid" x1="52" x2="744" y1="111.0" y2="111.0"/><text class="ax" x="46" y="115.0" text-anchor="end">551</text>
+<line class="grid" x1="52" x2="744" y1="68.5" y2="68.5"/><text class="ax" x="46" y="72.5" text-anchor="end">827</text>
+<line class="grid" x1="52" x2="744" y1="26.0" y2="26.0"/><text class="ax" x="46" y="30.0" text-anchor="end">1102</text>
+<g class="hit"><rect x="52.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="58.9" x2="58.9" y1="87.0" y2="87.0" class="link"/><circle cx="58.9" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="58.9" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A01: 조정 전 707 → 조정 후 707</title></g>
+<text class="cat" x="58.9" y="214" text-anchor="start">S2_A01</text>
+<g class="hit"><rect x="65.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="72.8" x2="72.8" y1="87.0" y2="87.0" class="link"/><circle cx="72.8" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="72.8" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A02: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="79.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="86.6" x2="86.6" y1="87.0" y2="87.0" class="link"/><circle cx="86.6" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="86.6" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A03: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="93.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="100.4" x2="100.4" y1="87.0" y2="87.0" class="link"/><circle cx="100.4" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="100.4" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A04: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="107.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="114.3" x2="114.3" y1="87.0" y2="87.0" class="link"/><circle cx="114.3" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="114.3" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A05: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="121.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="128.1" x2="128.1" y1="87.0" y2="87.0" class="link"/><circle cx="128.1" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="128.1" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A06: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="135.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="142.0" x2="142.0" y1="87.0" y2="87.0" class="link"/><circle cx="142.0" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="142.0" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A07: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="148.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="155.8" x2="155.8" y1="87.0" y2="87.0" class="link"/><circle cx="155.8" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="155.8" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A08: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="162.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="169.6" x2="169.6" y1="87.0" y2="87.0" class="link"/><circle cx="169.6" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="169.6" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A09: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="176.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="183.5" x2="183.5" y1="87.0" y2="87.0" class="link"/><circle cx="183.5" cy="87.0" r="4" fill="var(--s1)" class="ring"/><circle cx="183.5" cy="87.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A10: 조정 전 707 → 조정 후 707</title></g>
+<g class="hit"><rect x="190.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="197.3" x2="197.3" y1="44.3" y2="34.1" class="link"/><circle cx="197.3" cy="44.3" r="4" fill="var(--s1)" class="ring"/><circle cx="197.3" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B01: 조정 전 984 → 조정 후 1050</title></g>
+<text class="cat" x="197.3" y="214" text-anchor="start">S2_B01</text>
+<g class="hit"><rect x="204.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="211.2" x2="211.2" y1="34.1" y2="34.1" class="link"/><circle cx="211.2" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="211.2" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B02: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="218.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="225.0" x2="225.0" y1="34.1" y2="34.1" class="link"/><circle cx="225.0" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="225.0" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B03: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="231.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="238.8" x2="238.8" y1="34.1" y2="34.1" class="link"/><circle cx="238.8" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="238.8" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B04: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="245.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="252.7" x2="252.7" y1="34.1" y2="34.1" class="link"/><circle cx="252.7" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="252.7" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B05: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="259.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="266.5" x2="266.5" y1="34.1" y2="34.1" class="link"/><circle cx="266.5" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="266.5" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B06: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="273.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="280.4" x2="280.4" y1="34.1" y2="34.1" class="link"/><circle cx="280.4" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="280.4" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B07: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="287.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="294.2" x2="294.2" y1="34.1" y2="34.1" class="link"/><circle cx="294.2" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="294.2" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B08: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="301.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="308.0" x2="308.0" y1="34.1" y2="34.1" class="link"/><circle cx="308.0" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="308.0" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B09: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="315.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="321.9" x2="321.9" y1="34.1" y2="34.1" class="link"/><circle cx="321.9" cy="34.1" r="4" fill="var(--s1)" class="ring"/><circle cx="321.9" cy="34.1" r="4" fill="var(--s2)" class="ring"/><title>S2_B10: 조정 전 1050 → 조정 후 1050</title></g>
+<g class="hit"><rect x="328.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="335.7" x2="335.7" y1="47.0" y2="47.0" class="link"/><circle cx="335.7" cy="47.0" r="4" fill="var(--s1)" class="ring"/><circle cx="335.7" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C01: 조정 전 966 → 조정 후 966</title></g>
+<text class="cat" x="335.7" y="214" text-anchor="start">S2_C01</text>
+<g class="hit"><rect x="342.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="349.6" x2="349.6" y1="47.0" y2="47.0" class="link"/><circle cx="349.6" cy="47.0" r="4" fill="var(--s1)" class="ring"/><circle cx="349.6" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C02: 조정 전 966 → 조정 후 966</title></g>
+<g class="hit"><rect x="356.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="363.4" x2="363.4" y1="47.0" y2="47.0" class="link"/><circle cx="363.4" cy="47.0" r="4" fill="var(--s1)" class="ring"/><circle cx="363.4" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C03: 조정 전 966 → 조정 후 966</title></g>
+<g class="hit"><rect x="370.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="377.2" x2="377.2" y1="47.0" y2="47.0" class="link"/><circle cx="377.2" cy="47.0" r="4" fill="var(--s1)" class="ring"/><circle cx="377.2" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C04: 조정 전 966 → 조정 후 966</title></g>
+<g class="hit"><rect x="384.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="391.1" x2="391.1" y1="47.0" y2="47.0" class="link"/><circle cx="391.1" cy="47.0" r="4" fill="var(--s1)" class="ring"/><circle cx="391.1" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C05: 조정 전 966 → 조정 후 966</title></g>
+<g class="hit"><rect x="398.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="404.9" x2="404.9" y1="47.0" y2="47.0" class="link"/><circle cx="404.9" cy="47.0" r="4" fill="var(--s1)" class="ring"/><circle cx="404.9" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C06: 조정 전 966 → 조정 후 966</title></g>
+<g class="hit"><rect x="411.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="418.8" x2="418.8" y1="47.0" y2="47.0" class="link"/><circle cx="418.8" cy="47.0" r="4" fill="var(--s1)" class="ring"/><circle cx="418.8" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C07: 조정 전 966 → 조정 후 966</title></g>
+<g class="hit"><rect x="425.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="432.6" x2="432.6" y1="51.4" y2="47.0" class="link"/><circle cx="432.6" cy="51.4" r="4" fill="var(--s1)" class="ring"/><circle cx="432.6" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C08: 조정 전 938 → 조정 후 966</title></g>
+<g class="hit"><rect x="439.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="446.4" x2="446.4" y1="47.1" y2="47.0" class="link"/><circle cx="446.4" cy="47.1" r="4" fill="var(--s1)" class="ring"/><circle cx="446.4" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C09: 조정 전 966 → 조정 후 966</title></g>
+<g class="hit"><rect x="453.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="460.3" x2="460.3" y1="49.2" y2="47.0" class="link"/><circle cx="460.3" cy="49.2" r="4" fill="var(--s1)" class="ring"/><circle cx="460.3" cy="47.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C10: 조정 전 952 → 조정 후 966</title></g>
+<g class="hit"><rect x="467.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="474.1" x2="474.1" y1="151.7" y2="151.7" class="link"/><circle cx="474.1" cy="151.7" r="4" fill="var(--s1)" class="ring"/><circle cx="474.1" cy="151.7" r="4" fill="var(--s2)" class="ring"/><title>S2_D01: 조정 전 288 → 조정 후 288</title></g>
+<text class="cat" x="474.1" y="214" text-anchor="start">S2_D01</text>
+<g class="hit"><rect x="481.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="488.0" x2="488.0" y1="149.9" y2="149.9" class="link"/><circle cx="488.0" cy="149.9" r="4" fill="var(--s1)" class="ring"/><circle cx="488.0" cy="149.9" r="4" fill="var(--s2)" class="ring"/><title>S2_D02: 조정 전 299 → 조정 후 299</title></g>
+<g class="hit"><rect x="494.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="501.8" x2="501.8" y1="162.5" y2="162.5" class="link"/><circle cx="501.8" cy="162.5" r="4" fill="var(--s1)" class="ring"/><circle cx="501.8" cy="162.5" r="4" fill="var(--s2)" class="ring"/><title>S2_D03: 조정 전 217 → 조정 후 217</title></g>
+<g class="hit"><rect x="508.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="515.6" x2="515.6" y1="149.0" y2="149.0" class="link"/><circle cx="515.6" cy="149.0" r="4" fill="var(--s1)" class="ring"/><circle cx="515.6" cy="149.0" r="4" fill="var(--s2)" class="ring"/><title>S2_D04: 조정 전 304 → 조정 후 304</title></g>
+<g class="hit"><rect x="522.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="529.5" x2="529.5" y1="158.0" y2="158.0" class="link"/><circle cx="529.5" cy="158.0" r="4" fill="var(--s1)" class="ring"/><circle cx="529.5" cy="158.0" r="4" fill="var(--s2)" class="ring"/><title>S2_D05: 조정 전 246 → 조정 후 246</title></g>
+<g class="hit"><rect x="536.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="543.3" x2="543.3" y1="151.7" y2="151.7" class="link"/><circle cx="543.3" cy="151.7" r="4" fill="var(--s1)" class="ring"/><circle cx="543.3" cy="151.7" r="4" fill="var(--s2)" class="ring"/><title>S2_D06: 조정 전 288 → 조정 후 288</title></g>
+<g class="hit"><rect x="550.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="557.2" x2="557.2" y1="150.0" y2="150.0" class="link"/><circle cx="557.2" cy="150.0" r="4" fill="var(--s1)" class="ring"/><circle cx="557.2" cy="150.0" r="4" fill="var(--s2)" class="ring"/><title>S2_D07: 조정 전 298 → 조정 후 298</title></g>
+<g class="hit"><rect x="564.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="571.0" x2="571.0" y1="161.3" y2="161.3" class="link"/><circle cx="571.0" cy="161.3" r="4" fill="var(--s1)" class="ring"/><circle cx="571.0" cy="161.3" r="4" fill="var(--s2)" class="ring"/><title>S2_D08: 조정 전 225 → 조정 후 225</title></g>
+<g class="hit"><rect x="577.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="584.8" x2="584.8" y1="156.4" y2="156.4" class="link"/><circle cx="584.8" cy="156.4" r="4" fill="var(--s1)" class="ring"/><circle cx="584.8" cy="156.4" r="4" fill="var(--s2)" class="ring"/><title>S2_D09: 조정 전 256 → 조정 후 256</title></g>
+<g class="hit"><rect x="591.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="598.7" x2="598.7" y1="156.4" y2="156.4" class="link"/><circle cx="598.7" cy="156.4" r="4" fill="var(--s1)" class="ring"/><circle cx="598.7" cy="156.4" r="4" fill="var(--s2)" class="ring"/><title>S2_D10: 조정 전 256 → 조정 후 256</title></g>
+<g class="hit"><rect x="605.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="612.5" x2="612.5" y1="94.5" y2="94.5" class="link"/><circle cx="612.5" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="612.5" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E01: 조정 전 658 → 조정 후 658</title></g>
+<text class="cat" x="612.5" y="214" text-anchor="start">S2_E01</text>
+<g class="hit"><rect x="619.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="626.4" x2="626.4" y1="94.5" y2="94.5" class="link"/><circle cx="626.4" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="626.4" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E02: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="633.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="640.2" x2="640.2" y1="94.5" y2="94.5" class="link"/><circle cx="640.2" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="640.2" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E03: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="647.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="654.0" x2="654.0" y1="94.5" y2="94.5" class="link"/><circle cx="654.0" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="654.0" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E04: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="661.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="667.9" x2="667.9" y1="94.5" y2="94.5" class="link"/><circle cx="667.9" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="667.9" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E05: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="674.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="681.7" x2="681.7" y1="94.5" y2="94.5" class="link"/><circle cx="681.7" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="681.7" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E06: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="688.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="695.6" x2="695.6" y1="94.5" y2="94.5" class="link"/><circle cx="695.6" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="695.6" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E07: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="702.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="709.4" x2="709.4" y1="94.5" y2="94.5" class="link"/><circle cx="709.4" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="709.4" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E08: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="716.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="723.2" x2="723.2" y1="94.5" y2="94.5" class="link"/><circle cx="723.2" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="723.2" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E09: 조정 전 658 → 조정 후 658</title></g>
+<g class="hit"><rect x="730.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="737.1" x2="737.1" y1="94.5" y2="94.5" class="link"/><circle cx="737.1" cy="94.5" r="4" fill="var(--s1)" class="ring"/><circle cx="737.1" cy="94.5" r="4" fill="var(--s2)" class="ring"/><title>S2_E10: 조정 전 658 → 조정 후 658</title></g>
+<line class="sep" x1="190.4" x2="190.4" y1="26" y2="226"/>
+<line class="sep" x1="328.8" x2="328.8" y1="26" y2="226"/>
+<line class="sep" x1="467.2" x2="467.2" y1="26" y2="226"/>
+<line class="sep" x1="605.6" x2="605.6" y1="26" y2="226"/>
+<text class="cat" x="121.2" y="236" text-anchor="middle">A 플라즈마 회랑</text>
+<text class="cat" x="259.6" y="236" text-anchor="middle">B 화염·CC 소용돌이</text>
+<text class="cat" x="398.0" y="236" text-anchor="middle">C 2열 진지</text>
+<text class="cat" x="536.4" y="236" text-anchor="middle">D 급습 단거리</text>
+<text class="cat" x="674.8" y="236" text-anchor="middle">E 정예 사냥</text>
+<line class="base" x1="52" x2="744" y1="196" y2="196"/></svg>
+<p class="note">몬스터가 실제로 잃은 체력의 합입니다 (남은 체력보다 큰 피해는 남은 만큼만). 맵의 몬스터를 모두 잡으면 그 맵 몬스터 체력 총량에서 멈춥니다.</p>
+</figure>
+<figure class="chart"><figcaption>맵별 몬스터 소모량: 컨셉 조합이 ×1 웨이브에서 처치한 비율</figcaption>
+<div class="legend"><span><i style="background:var(--s1)"></i>조정 전</span><span><i style="background:var(--s2)"></i>조정 후</span></div>
+<svg viewBox="0 0 760 260" role="img" aria-label="맵별 몬스터 소모량: 컨셉 조합이 ×1 웨이브에서 처치한 비율">
+<line class="grid" x1="52" x2="744" y1="196.0" y2="196.0"/><text class="ax" x="46" y="200.0" text-anchor="end">0%</text>
+<line class="grid" x1="52" x2="744" y1="153.5" y2="153.5"/><text class="ax" x="46" y="157.5" text-anchor="end">25%</text>
+<line class="grid" x1="52" x2="744" y1="111.0" y2="111.0"/><text class="ax" x="46" y="115.0" text-anchor="end">50%</text>
+<line class="grid" x1="52" x2="744" y1="68.5" y2="68.5"/><text class="ax" x="46" y="72.5" text-anchor="end">75%</text>
+<line class="grid" x1="52" x2="744" y1="26.0" y2="26.0"/><text class="ax" x="46" y="30.0" text-anchor="end">100%</text>
+<g class="hit"><rect x="52.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="58.9" x2="58.9" y1="26.0" y2="26.0" class="link"/><circle cx="58.9" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="58.9" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A01: 조정 전 100% → 조정 후 100%</title></g>
+<text class="cat" x="58.9" y="214" text-anchor="start">S2_A01</text>
+<g class="hit"><rect x="65.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="72.8" x2="72.8" y1="26.0" y2="26.0" class="link"/><circle cx="72.8" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="72.8" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A02: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="79.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="86.6" x2="86.6" y1="26.0" y2="26.0" class="link"/><circle cx="86.6" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="86.6" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A03: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="93.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="100.4" x2="100.4" y1="26.0" y2="26.0" class="link"/><circle cx="100.4" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="100.4" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A04: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="107.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="114.3" x2="114.3" y1="26.0" y2="26.0" class="link"/><circle cx="114.3" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="114.3" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A05: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="121.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="128.1" x2="128.1" y1="26.0" y2="26.0" class="link"/><circle cx="128.1" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="128.1" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A06: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="135.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="142.0" x2="142.0" y1="26.0" y2="26.0" class="link"/><circle cx="142.0" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="142.0" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A07: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="148.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="155.8" x2="155.8" y1="26.0" y2="26.0" class="link"/><circle cx="155.8" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="155.8" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A08: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="162.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="169.6" x2="169.6" y1="26.0" y2="26.0" class="link"/><circle cx="169.6" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="169.6" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A09: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="176.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="183.5" x2="183.5" y1="26.0" y2="26.0" class="link"/><circle cx="183.5" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="183.5" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_A10: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="190.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="197.3" x2="197.3" y1="53.8" y2="26.0" class="link"/><circle cx="197.3" cy="53.8" r="4" fill="var(--s1)" class="ring"/><circle cx="197.3" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B01: 조정 전 84% → 조정 후 100%</title></g>
+<text class="cat" x="197.3" y="214" text-anchor="start">S2_B01</text>
+<g class="hit"><rect x="204.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="211.2" x2="211.2" y1="26.0" y2="26.0" class="link"/><circle cx="211.2" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="211.2" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B02: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="218.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="225.0" x2="225.0" y1="26.0" y2="26.0" class="link"/><circle cx="225.0" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="225.0" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B03: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="231.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="238.8" x2="238.8" y1="26.0" y2="26.0" class="link"/><circle cx="238.8" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="238.8" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B04: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="245.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="252.7" x2="252.7" y1="26.0" y2="26.0" class="link"/><circle cx="252.7" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="252.7" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B05: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="259.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="266.5" x2="266.5" y1="26.0" y2="26.0" class="link"/><circle cx="266.5" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="266.5" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B06: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="273.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="280.4" x2="280.4" y1="26.0" y2="26.0" class="link"/><circle cx="280.4" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="280.4" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B07: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="287.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="294.2" x2="294.2" y1="26.0" y2="26.0" class="link"/><circle cx="294.2" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="294.2" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B08: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="301.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="308.0" x2="308.0" y1="26.0" y2="26.0" class="link"/><circle cx="308.0" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="308.0" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B09: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="315.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="321.9" x2="321.9" y1="26.0" y2="26.0" class="link"/><circle cx="321.9" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="321.9" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_B10: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="328.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="335.7" x2="335.7" y1="26.0" y2="26.0" class="link"/><circle cx="335.7" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="335.7" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C01: 조정 전 100% → 조정 후 100%</title></g>
+<text class="cat" x="335.7" y="214" text-anchor="start">S2_C01</text>
+<g class="hit"><rect x="342.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="349.6" x2="349.6" y1="26.0" y2="26.0" class="link"/><circle cx="349.6" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="349.6" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C02: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="356.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="363.4" x2="363.4" y1="26.0" y2="26.0" class="link"/><circle cx="363.4" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="363.4" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C03: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="370.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="377.2" x2="377.2" y1="26.0" y2="26.0" class="link"/><circle cx="377.2" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="377.2" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C04: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="384.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="391.1" x2="391.1" y1="26.0" y2="26.0" class="link"/><circle cx="391.1" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="391.1" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C05: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="398.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="404.9" x2="404.9" y1="26.0" y2="26.0" class="link"/><circle cx="404.9" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="404.9" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C06: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="411.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="418.8" x2="418.8" y1="26.0" y2="26.0" class="link"/><circle cx="418.8" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="418.8" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C07: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="425.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="432.6" x2="432.6" y1="60.6" y2="26.0" class="link"/><circle cx="432.6" cy="60.6" r="4" fill="var(--s1)" class="ring"/><circle cx="432.6" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C08: 조정 전 80% → 조정 후 100%</title></g>
+<g class="hit"><rect x="439.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="446.4" x2="446.4" y1="28.9" y2="26.0" class="link"/><circle cx="446.4" cy="28.9" r="4" fill="var(--s1)" class="ring"/><circle cx="446.4" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C09: 조정 전 98% → 조정 후 100%</title></g>
+<g class="hit"><rect x="453.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="460.3" x2="460.3" y1="46.2" y2="26.0" class="link"/><circle cx="460.3" cy="46.2" r="4" fill="var(--s1)" class="ring"/><circle cx="460.3" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_C10: 조정 전 88% → 조정 후 100%</title></g>
+<g class="hit"><rect x="467.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="474.1" x2="474.1" y1="95.3" y2="95.3" class="link"/><circle cx="474.1" cy="95.3" r="4" fill="var(--s1)" class="ring"/><circle cx="474.1" cy="95.3" r="4" fill="var(--s2)" class="ring"/><title>S2_D01: 조정 전 59% → 조정 후 59%</title></g>
+<text class="cat" x="474.1" y="214" text-anchor="start">S2_D01</text>
+<g class="hit"><rect x="481.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="488.0" x2="488.0" y1="92.1" y2="92.1" class="link"/><circle cx="488.0" cy="92.1" r="4" fill="var(--s1)" class="ring"/><circle cx="488.0" cy="92.1" r="4" fill="var(--s2)" class="ring"/><title>S2_D02: 조정 전 61% → 조정 후 61%</title></g>
+<g class="hit"><rect x="494.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="501.8" x2="501.8" y1="111.0" y2="111.0" class="link"/><circle cx="501.8" cy="111.0" r="4" fill="var(--s1)" class="ring"/><circle cx="501.8" cy="111.0" r="4" fill="var(--s2)" class="ring"/><title>S2_D03: 조정 전 50% → 조정 후 50%</title></g>
+<g class="hit"><rect x="508.7" y="26" width="13.8" height="170" fill="transparent"/><line x1="515.6" x2="515.6" y1="92.1" y2="92.1" class="link"/><circle cx="515.6" cy="92.1" r="4" fill="var(--s1)" class="ring"/><circle cx="515.6" cy="92.1" r="4" fill="var(--s2)" class="ring"/><title>S2_D04: 조정 전 61% → 조정 후 61%</title></g>
+<g class="hit"><rect x="522.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="529.5" x2="529.5" y1="107.9" y2="107.9" class="link"/><circle cx="529.5" cy="107.9" r="4" fill="var(--s1)" class="ring"/><circle cx="529.5" cy="107.9" r="4" fill="var(--s2)" class="ring"/><title>S2_D05: 조정 전 52% → 조정 후 52%</title></g>
+<g class="hit"><rect x="536.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="543.3" x2="543.3" y1="95.3" y2="95.3" class="link"/><circle cx="543.3" cy="95.3" r="4" fill="var(--s1)" class="ring"/><circle cx="543.3" cy="95.3" r="4" fill="var(--s2)" class="ring"/><title>S2_D06: 조정 전 59% → 조정 후 59%</title></g>
+<g class="hit"><rect x="550.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="557.2" x2="557.2" y1="89.0" y2="89.0" class="link"/><circle cx="557.2" cy="89.0" r="4" fill="var(--s1)" class="ring"/><circle cx="557.2" cy="89.0" r="4" fill="var(--s2)" class="ring"/><title>S2_D07: 조정 전 63% → 조정 후 63%</title></g>
+<g class="hit"><rect x="564.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="571.0" x2="571.0" y1="123.6" y2="123.6" class="link"/><circle cx="571.0" cy="123.6" r="4" fill="var(--s1)" class="ring"/><circle cx="571.0" cy="123.6" r="4" fill="var(--s2)" class="ring"/><title>S2_D08: 조정 전 43% → 조정 후 43%</title></g>
+<g class="hit"><rect x="577.9" y="26" width="13.8" height="170" fill="transparent"/><line x1="584.8" x2="584.8" y1="107.9" y2="107.9" class="link"/><circle cx="584.8" cy="107.9" r="4" fill="var(--s1)" class="ring"/><circle cx="584.8" cy="107.9" r="4" fill="var(--s2)" class="ring"/><title>S2_D09: 조정 전 52% → 조정 후 52%</title></g>
+<g class="hit"><rect x="591.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="598.7" x2="598.7" y1="126.7" y2="126.7" class="link"/><circle cx="598.7" cy="126.7" r="4" fill="var(--s1)" class="ring"/><circle cx="598.7" cy="126.7" r="4" fill="var(--s2)" class="ring"/><title>S2_D10: 조정 전 41% → 조정 후 41%</title></g>
+<g class="hit"><rect x="605.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="612.5" x2="612.5" y1="26.0" y2="26.0" class="link"/><circle cx="612.5" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="612.5" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E01: 조정 전 100% → 조정 후 100%</title></g>
+<text class="cat" x="612.5" y="214" text-anchor="start">S2_E01</text>
+<g class="hit"><rect x="619.4" y="26" width="13.8" height="170" fill="transparent"/><line x1="626.4" x2="626.4" y1="26.0" y2="26.0" class="link"/><circle cx="626.4" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="626.4" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E02: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="633.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="640.2" x2="640.2" y1="26.0" y2="26.0" class="link"/><circle cx="640.2" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="640.2" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E03: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="647.1" y="26" width="13.8" height="170" fill="transparent"/><line x1="654.0" x2="654.0" y1="26.0" y2="26.0" class="link"/><circle cx="654.0" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="654.0" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E04: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="661.0" y="26" width="13.8" height="170" fill="transparent"/><line x1="667.9" x2="667.9" y1="26.0" y2="26.0" class="link"/><circle cx="667.9" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="667.9" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E05: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="674.8" y="26" width="13.8" height="170" fill="transparent"/><line x1="681.7" x2="681.7" y1="26.0" y2="26.0" class="link"/><circle cx="681.7" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="681.7" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E06: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="688.6" y="26" width="13.8" height="170" fill="transparent"/><line x1="695.6" x2="695.6" y1="26.0" y2="26.0" class="link"/><circle cx="695.6" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="695.6" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E07: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="702.5" y="26" width="13.8" height="170" fill="transparent"/><line x1="709.4" x2="709.4" y1="26.0" y2="26.0" class="link"/><circle cx="709.4" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="709.4" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E08: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="716.3" y="26" width="13.8" height="170" fill="transparent"/><line x1="723.2" x2="723.2" y1="26.0" y2="26.0" class="link"/><circle cx="723.2" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="723.2" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E09: 조정 전 100% → 조정 후 100%</title></g>
+<g class="hit"><rect x="730.2" y="26" width="13.8" height="170" fill="transparent"/><line x1="737.1" x2="737.1" y1="26.0" y2="26.0" class="link"/><circle cx="737.1" cy="26.0" r="4" fill="var(--s1)" class="ring"/><circle cx="737.1" cy="26.0" r="4" fill="var(--s2)" class="ring"/><title>S2_E10: 조정 전 100% → 조정 후 100%</title></g>
+<line class="sep" x1="190.4" x2="190.4" y1="26" y2="226"/>
+<line class="sep" x1="328.8" x2="328.8" y1="26" y2="226"/>
+<line class="sep" x1="467.2" x2="467.2" y1="26" y2="226"/>
+<line class="sep" x1="605.6" x2="605.6" y1="26" y2="226"/>
+<text class="cat" x="121.2" y="236" text-anchor="middle">A 플라즈마 회랑</text>
+<text class="cat" x="259.6" y="236" text-anchor="middle">B 화염·CC 소용돌이</text>
+<text class="cat" x="398.0" y="236" text-anchor="middle">C 2열 진지</text>
+<text class="cat" x="536.4" y="236" text-anchor="middle">D 급습 단거리</text>
+<text class="cat" x="674.8" y="236" text-anchor="middle">E 정예 사냥</text>
+<line class="base" x1="52" x2="744" y1="196" y2="196"/></svg>
+</figure><div class="charts"><figure class="chart"><figcaption>타워별 대미지표 (조정 후): 같은 타워 6개가 ×1 웨이브에서 준 피해 (컨셉별 맵 10개 평균)</figcaption><div class="tw"><table class="heat"><thead><tr><th></th><th>A 플라즈마 회랑</th><th>B 화염·CC 소용돌이</th><th>C 2열 진지</th><th>D 급습 단거리</th><th>E 정예 사냥</th></tr></thead><tbody>
+<tr><th>듀얼샷</th>
+<td style="--a:0.45" title="듀얼샷 · A 플라즈마 회랑: 534">534</td>
+<td style="--a:0.73" title="듀얼샷 · B 화염·CC 소용돌이: 944">944</td>
+<td style="--a:0.57" title="듀얼샷 · C 2열 진지: 715">715</td>
+<td style="--a:0.22" title="듀얼샷 · D 급습 단거리: 209">209</td>
+<td style="--a:0.49" title="듀얼샷 · E 정예 사냥: 601">601</td>
+</tr>
+<tr><th>화염방사</th>
+<td style="--a:0.56" title="화염방사 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="화염방사 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="화염방사 · C 2열 진지: 966">966</td>
+<td style="--a:0.32" title="화염방사 · D 급습 단거리: 356">356</td>
+<td style="--a:0.49" title="화염방사 · E 정예 사냥: 598">598</td>
+</tr>
+<tr><th>EMP</th>
+<td style="--a:0.56" title="EMP · A 플라즈마 회랑: 705">705</td>
+<td style="--a:0.80" title="EMP · B 화염·CC 소용돌이: 1043">1043</td>
+<td style="--a:0.74" title="EMP · C 2열 진지: 957">957</td>
+<td style="--a:0.34" title="EMP · D 급습 단거리: 385">385</td>
+<td style="--a:0.51" title="EMP · E 정예 사냥: 629">629</td>
+</tr>
+<tr><th>나노봇</th>
+<td style="--a:0.27" title="나노봇 · A 플라즈마 회랑: 273">273</td>
+<td style="--a:0.53" title="나노봇 · B 화염·CC 소용돌이: 657">657</td>
+<td style="--a:0.36" title="나노봇 · C 2열 진지: 405">405</td>
+<td style="--a:0.16" title="나노봇 · D 급습 단거리: 120">120</td>
+<td style="--a:0.42" title="나노봇 · E 정예 사냥: 491">491</td>
+</tr>
+<tr><th>번개</th>
+<td style="--a:0.46" title="번개 · A 플라즈마 회랑: 553">553</td>
+<td style="--a:0.79" title="번개 · B 화염·CC 소용돌이: 1042">1042</td>
+<td style="--a:0.60" title="번개 · C 2열 진지: 761">761</td>
+<td style="--a:0.14" title="번개 · D 급습 단거리: 93">93</td>
+<td style="--a:0.53" title="번개 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>냉기</th>
+<td style="--a:0.56" title="냉기 · A 플라즈마 회랑: 695">695</td>
+<td style="--a:0.80" title="냉기 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.70" title="냉기 · C 2열 진지: 901">901</td>
+<td style="--a:0.27" title="냉기 · D 급습 단거리: 284">284</td>
+<td style="--a:0.53" title="냉기 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>전기</th>
+<td style="--a:0.56" title="전기 · A 플라즈마 회랑: 706">706</td>
+<td style="--a:0.80" title="전기 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.71" title="전기 · C 2열 진지: 926">926</td>
+<td style="--a:0.21" title="전기 · D 급습 단거리: 185">185</td>
+<td style="--a:0.53" title="전기 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>미니건</th>
+<td style="--a:0.56" title="미니건 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="미니건 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="미니건 · C 2열 진지: 966">966</td>
+<td style="--a:0.36" title="미니건 · D 급습 단거리: 414">414</td>
+<td style="--a:0.53" title="미니건 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>플라즈마</th>
+<td style="--a:0.56" title="플라즈마 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="플라즈마 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.70" title="플라즈마 · C 2열 진지: 901">901</td>
+<td style="--a:0.36" title="플라즈마 · D 급습 단거리: 412">412</td>
+<td style="--a:0.53" title="플라즈마 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>분진</th>
+<td style="--a:0.56" title="분진 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="분진 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="분진 · C 2열 진지: 966">966</td>
+<td style="--a:0.34" title="분진 · D 급습 단거리: 384">384</td>
+<td style="--a:0.53" title="분진 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>백린</th>
+<td style="--a:0.56" title="백린 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="백린 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="백린 · C 2열 진지: 966">966</td>
+<td style="--a:0.37" title="백린 · D 급습 단거리: 417">417</td>
+<td style="--a:0.53" title="백린 · E 정예 사냥: 658">658</td>
+</tr>
+</tbody></table></div>
+</figure>
+<figure class="chart"><figcaption>타워별 대미지표 (조정 전)</figcaption><div class="tw"><table class="heat"><thead><tr><th></th><th>A 플라즈마 회랑</th><th>B 화염·CC 소용돌이</th><th>C 2열 진지</th><th>D 급습 단거리</th><th>E 정예 사냥</th></tr></thead><tbody>
+<tr><th>듀얼샷</th>
+<td style="--a:0.45" title="듀얼샷 · A 플라즈마 회랑: 534">534</td>
+<td style="--a:0.73" title="듀얼샷 · B 화염·CC 소용돌이: 944">944</td>
+<td style="--a:0.57" title="듀얼샷 · C 2열 진지: 715">715</td>
+<td style="--a:0.22" title="듀얼샷 · D 급습 단거리: 209">209</td>
+<td style="--a:0.49" title="듀얼샷 · E 정예 사냥: 601">601</td>
+</tr>
+<tr><th>화염방사</th>
+<td style="--a:0.56" title="화염방사 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="화염방사 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="화염방사 · C 2열 진지: 966">966</td>
+<td style="--a:0.32" title="화염방사 · D 급습 단거리: 356">356</td>
+<td style="--a:0.49" title="화염방사 · E 정예 사냥: 598">598</td>
+</tr>
+<tr><th>EMP</th>
+<td style="--a:0.44" title="EMP · A 플라즈마 회랑: 529">529</td>
+<td style="--a:0.55" title="EMP · B 화염·CC 소용돌이: 680">680</td>
+<td style="--a:0.59" title="EMP · C 2열 진지: 737">737</td>
+<td style="--a:0.26" title="EMP · D 급습 단거리: 269">269</td>
+<td style="--a:0.35" title="EMP · E 정예 사냥: 399">399</td>
+</tr>
+<tr><th>나노봇</th>
+<td style="--a:0.24" title="나노봇 · A 플라즈마 회랑: 229">229</td>
+<td style="--a:0.47" title="나노봇 · B 화염·CC 소용돌이: 571">571</td>
+<td style="--a:0.29" title="나노봇 · C 2열 진지: 310">310</td>
+<td style="--a:0.14" title="나노봇 · D 급습 단거리: 93">93</td>
+<td style="--a:0.38" title="나노봇 · E 정예 사냥: 436">436</td>
+</tr>
+<tr><th>번개</th>
+<td style="--a:0.46" title="번개 · A 플라즈마 회랑: 553">553</td>
+<td style="--a:0.79" title="번개 · B 화염·CC 소용돌이: 1042">1042</td>
+<td style="--a:0.60" title="번개 · C 2열 진지: 761">761</td>
+<td style="--a:0.14" title="번개 · D 급습 단거리: 93">93</td>
+<td style="--a:0.53" title="번개 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>냉기</th>
+<td style="--a:0.56" title="냉기 · A 플라즈마 회랑: 695">695</td>
+<td style="--a:0.80" title="냉기 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.70" title="냉기 · C 2열 진지: 901">901</td>
+<td style="--a:0.27" title="냉기 · D 급습 단거리: 284">284</td>
+<td style="--a:0.53" title="냉기 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>전기</th>
+<td style="--a:0.56" title="전기 · A 플라즈마 회랑: 706">706</td>
+<td style="--a:0.80" title="전기 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.71" title="전기 · C 2열 진지: 926">926</td>
+<td style="--a:0.21" title="전기 · D 급습 단거리: 185">185</td>
+<td style="--a:0.53" title="전기 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>미니건</th>
+<td style="--a:0.56" title="미니건 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="미니건 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="미니건 · C 2열 진지: 966">966</td>
+<td style="--a:0.36" title="미니건 · D 급습 단거리: 414">414</td>
+<td style="--a:0.53" title="미니건 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>플라즈마</th>
+<td style="--a:0.56" title="플라즈마 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="플라즈마 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.70" title="플라즈마 · C 2열 진지: 901">901</td>
+<td style="--a:0.36" title="플라즈마 · D 급습 단거리: 412">412</td>
+<td style="--a:0.53" title="플라즈마 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>분진</th>
+<td style="--a:0.56" title="분진 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="분진 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="분진 · C 2열 진지: 966">966</td>
+<td style="--a:0.34" title="분진 · D 급습 단거리: 384">384</td>
+<td style="--a:0.53" title="분진 · E 정예 사냥: 658">658</td>
+</tr>
+<tr><th>백린</th>
+<td style="--a:0.56" title="백린 · A 플라즈마 회랑: 707">707</td>
+<td style="--a:0.80" title="백린 · B 화염·CC 소용돌이: 1050">1050</td>
+<td style="--a:0.74" title="백린 · C 2열 진지: 966">966</td>
+<td style="--a:0.37" title="백린 · D 급습 단거리: 417">417</td>
+<td style="--a:0.53" title="백린 · E 정예 사냥: 658">658</td>
+</tr>
+</tbody></table></div>
+</figure>
+<figure class="chart"><figcaption>2종 조합 점수 (조정 후, 맵 50개 평균). 대각선 = 같은 타워 6개</figcaption><div class="tw"><table class="heat"><thead><tr><th></th><th>듀얼샷</th><th>화염방사</th><th>EMP</th><th>나노봇</th><th>번개</th><th>냉기</th><th>전기</th><th>미니건</th><th>플라즈마</th><th>분진</th><th>백린</th></tr></thead><tbody>
+<tr><th>듀얼샷</th>
+<td style="--a:0.09" title="듀얼샷 · 듀얼샷: ×0.3">×0.3</td>
+<td style="--a:0.12" title="듀얼샷 · 화염방사: ×1.4">×1.4</td>
+<td style="--a:0.11" title="듀얼샷 · EMP: ×1.1">×1.1</td>
+<td style="--a:0.09" title="듀얼샷 · 나노봇: ×0.3">×0.3</td>
+<td style="--a:0.10" title="듀얼샷 · 번개: ×0.6">×0.6</td>
+<td style="--a:0.11" title="듀얼샷 · 냉기: ×1.3">×1.3</td>
+<td style="--a:0.12" title="듀얼샷 · 전기: ×1.7">×1.7</td>
+<td style="--a:0.15" title="듀얼샷 · 미니건: ×2.6">×2.6</td>
+<td style="--a:0.66" title="듀얼샷 · 플라즈마: ×22.8">×22.8</td>
+<td style="--a:0.21" title="듀얼샷 · 분진: ×5">×5</td>
+<td style="--a:0.22" title="듀얼샷 · 백린: ×5.7">×5.7</td>
+</tr>
+<tr><th>화염방사</th>
+<td style="--a:0.12" title="화염방사 · 듀얼샷: ×1.4">×1.4</td>
+<td style="--a:0.14" title="화염방사 · 화염방사: ×2.2">×2.2</td>
+<td style="--a:0.16" title="화염방사 · EMP: ×3">×3</td>
+<td style="--a:0.13" title="화염방사 · 나노봇: ×1.8">×1.8</td>
+<td style="--a:0.12" title="화염방사 · 번개: ×1.6">×1.6</td>
+<td style="--a:0.12" title="화염방사 · 냉기: ×1.5">×1.5</td>
+<td style="--a:0.12" title="화염방사 · 전기: ×1.7">×1.7</td>
+<td style="--a:0.15" title="화염방사 · 미니건: ×2.9">×2.9</td>
+<td style="--a:0.70" title="화염방사 · 플라즈마: ×24.2">×24.2</td>
+<td style="--a:0.23" title="화염방사 · 분진: ×5.9">×5.9</td>
+<td style="--a:0.24" title="화염방사 · 백린: ×6.2">×6.2</td>
+</tr>
+<tr><th>EMP</th>
+<td style="--a:0.11" title="EMP · 듀얼샷: ×1.1">×1.1</td>
+<td style="--a:0.16" title="EMP · 화염방사: ×3">×3</td>
+<td style="--a:0.31" title="EMP · EMP: ×9">×9</td>
+<td style="--a:0.48" title="EMP · 나노봇: ×15.5">×15.5</td>
+<td style="--a:0.11" title="EMP · 번개: ×1.2">×1.2</td>
+<td style="--a:0.12" title="EMP · 냉기: ×1.5">×1.5</td>
+<td style="--a:0.13" title="EMP · 전기: ×1.9">×1.9</td>
+<td style="--a:0.16" title="EMP · 미니건: ×3.2">×3.2</td>
+<td style="--a:0.76" title="EMP · 플라즈마: ×26.8">×26.8</td>
+<td style="--a:0.27" title="EMP · 분진: ×7.6">×7.6</td>
+<td style="--a:0.33" title="EMP · 백린: ×9.8">×9.8</td>
+</tr>
+<tr><th>나노봇</th>
+<td style="--a:0.09" title="나노봇 · 듀얼샷: ×0.3">×0.3</td>
+<td style="--a:0.13" title="나노봇 · 화염방사: ×1.8">×1.8</td>
+<td style="--a:0.48" title="나노봇 · EMP: ×15.5">×15.5</td>
+<td style="--a:0.08" title="나노봇 · 나노봇: ×0.2">×0.2</td>
+<td style="--a:0.11" title="나노봇 · 번개: ×1.1">×1.1</td>
+<td style="--a:0.11" title="나노봇 · 냉기: ×1.3">×1.3</td>
+<td style="--a:0.13" title="나노봇 · 전기: ×1.8">×1.8</td>
+<td style="--a:0.15" title="나노봇 · 미니건: ×2.6">×2.6</td>
+<td style="--a:0.67" title="나노봇 · 플라즈마: ×23.2">×23.2</td>
+<td style="--a:0.19" title="나노봇 · 분진: ×4.2">×4.2</td>
+<td style="--a:0.24" title="나노봇 · 백린: ×6.2">×6.2</td>
+</tr>
+<tr><th>번개</th>
+<td style="--a:0.10" title="번개 · 듀얼샷: ×0.6">×0.6</td>
+<td style="--a:0.12" title="번개 · 화염방사: ×1.6">×1.6</td>
+<td style="--a:0.11" title="번개 · EMP: ×1.2">×1.2</td>
+<td style="--a:0.11" title="번개 · 나노봇: ×1.1">×1.1</td>
+<td style="--a:0.10" title="번개 · 번개: ×0.8">×0.8</td>
+<td style="--a:0.11" title="번개 · 냉기: ×1.4">×1.4</td>
+<td style="--a:0.12" title="번개 · 전기: ×1.6">×1.6</td>
+<td style="--a:0.15" title="번개 · 미니건: ×2.7">×2.7</td>
+<td style="--a:0.65" title="번개 · 플라즈마: ×22.4">×22.4</td>
+<td style="--a:0.21" title="번개 · 분진: ×5.1">×5.1</td>
+<td style="--a:0.23" title="번개 · 백린: ×5.8">×5.8</td>
+</tr>
+<tr><th>냉기</th>
+<td style="--a:0.11" title="냉기 · 듀얼샷: ×1.3">×1.3</td>
+<td style="--a:0.12" title="냉기 · 화염방사: ×1.5">×1.5</td>
+<td style="--a:0.12" title="냉기 · EMP: ×1.5">×1.5</td>
+<td style="--a:0.11" title="냉기 · 나노봇: ×1.3">×1.3</td>
+<td style="--a:0.11" title="냉기 · 번개: ×1.4">×1.4</td>
+<td style="--a:0.12" title="냉기 · 냉기: ×1.4">×1.4</td>
+<td style="--a:0.12" title="냉기 · 전기: ×1.7">×1.7</td>
+<td style="--a:0.15" title="냉기 · 미니건: ×2.7">×2.7</td>
+<td style="--a:0.62" title="냉기 · 플라즈마: ×21.1">×21.1</td>
+<td style="--a:0.17" title="냉기 · 분진: ×3.6">×3.6</td>
+<td style="--a:0.23" title="냉기 · 백린: ×6">×6</td>
+</tr>
+<tr><th>전기</th>
+<td style="--a:0.12" title="전기 · 듀얼샷: ×1.7">×1.7</td>
+<td style="--a:0.12" title="전기 · 화염방사: ×1.7">×1.7</td>
+<td style="--a:0.13" title="전기 · EMP: ×1.9">×1.9</td>
+<td style="--a:0.13" title="전기 · 나노봇: ×1.8">×1.8</td>
+<td style="--a:0.12" title="전기 · 번개: ×1.6">×1.6</td>
+<td style="--a:0.12" title="전기 · 냉기: ×1.7">×1.7</td>
+<td style="--a:0.13" title="전기 · 전기: ×1.8">×1.8</td>
+<td style="--a:0.15" title="전기 · 미니건: ×2.8">×2.8</td>
+<td style="--a:0.60" title="전기 · 플라즈마: ×20.3">×20.3</td>
+<td style="--a:0.17" title="전기 · 분진: ×3.7">×3.7</td>
+<td style="--a:0.24" title="전기 · 백린: ×6.1">×6.1</td>
+</tr>
+<tr><th>미니건</th>
+<td style="--a:0.15" title="미니건 · 듀얼샷: ×2.6">×2.6</td>
+<td style="--a:0.15" title="미니건 · 화염방사: ×2.9">×2.9</td>
+<td style="--a:0.16" title="미니건 · EMP: ×3.2">×3.2</td>
+<td style="--a:0.15" title="미니건 · 나노봇: ×2.6">×2.6</td>
+<td style="--a:0.15" title="미니건 · 번개: ×2.7">×2.7</td>
+<td style="--a:0.15" title="미니건 · 냉기: ×2.7">×2.7</td>
+<td style="--a:0.15" title="미니건 · 전기: ×2.8">×2.8</td>
+<td style="--a:0.16" title="미니건 · 미니건: ×3">×3</td>
+<td style="--a:0.60" title="미니건 · 플라즈마: ×20.4">×20.4</td>
+<td style="--a:0.16" title="미니건 · 분진: ×3.3">×3.3</td>
+<td style="--a:0.17" title="미니건 · 백린: ×3.7">×3.7</td>
+</tr>
+<tr><th>플라즈마</th>
+<td style="--a:0.66" title="플라즈마 · 듀얼샷: ×22.8">×22.8</td>
+<td style="--a:0.70" title="플라즈마 · 화염방사: ×24.2">×24.2</td>
+<td style="--a:0.76" title="플라즈마 · EMP: ×26.8">×26.8</td>
+<td style="--a:0.67" title="플라즈마 · 나노봇: ×23.2">×23.2</td>
+<td style="--a:0.65" title="플라즈마 · 번개: ×22.4">×22.4</td>
+<td style="--a:0.62" title="플라즈마 · 냉기: ×21.1">×21.1</td>
+<td style="--a:0.60" title="플라즈마 · 전기: ×20.3">×20.3</td>
+<td style="--a:0.60" title="플라즈마 · 미니건: ×20.4">×20.4</td>
+<td style="--a:0.80" title="플라즈마 · 플라즈마: ×28.3">×28.3</td>
+<td style="--a:0.72" title="플라즈마 · 분진: ×25.3">×25.3</td>
+<td style="--a:0.71" title="플라즈마 · 백린: ×24.9">×24.9</td>
+</tr>
+<tr><th>분진</th>
+<td style="--a:0.21" title="분진 · 듀얼샷: ×5">×5</td>
+<td style="--a:0.23" title="분진 · 화염방사: ×5.9">×5.9</td>
+<td style="--a:0.27" title="분진 · EMP: ×7.6">×7.6</td>
+<td style="--a:0.19" title="분진 · 나노봇: ×4.2">×4.2</td>
+<td style="--a:0.21" title="분진 · 번개: ×5.1">×5.1</td>
+<td style="--a:0.17" title="분진 · 냉기: ×3.6">×3.6</td>
+<td style="--a:0.17" title="분진 · 전기: ×3.7">×3.7</td>
+<td style="--a:0.16" title="분진 · 미니건: ×3.3">×3.3</td>
+<td style="--a:0.72" title="분진 · 플라즈마: ×25.3">×25.3</td>
+<td style="--a:0.26" title="분진 · 분진: ×7.2">×7.2</td>
+<td style="--a:0.27" title="분진 · 백린: ×7.6">×7.6</td>
+</tr>
+<tr><th>백린</th>
+<td style="--a:0.22" title="백린 · 듀얼샷: ×5.7">×5.7</td>
+<td style="--a:0.24" title="백린 · 화염방사: ×6.2">×6.2</td>
+<td style="--a:0.33" title="백린 · EMP: ×9.8">×9.8</td>
+<td style="--a:0.24" title="백린 · 나노봇: ×6.2">×6.2</td>
+<td style="--a:0.23" title="백린 · 번개: ×5.8">×5.8</td>
+<td style="--a:0.23" title="백린 · 냉기: ×6">×6</td>
+<td style="--a:0.24" title="백린 · 전기: ×6.1">×6.1</td>
+<td style="--a:0.17" title="백린 · 미니건: ×3.7">×3.7</td>
+<td style="--a:0.71" title="백린 · 플라즈마: ×24.9">×24.9</td>
+<td style="--a:0.27" title="백린 · 분진: ×7.6">×7.6</td>
+<td style="--a:0.28" title="백린 · 백린: ×8">×8</td>
+</tr>
+</tbody></table></div>
+</figure></div>
+<h2>컨셉별 결과 (조정 전 → 조정 후)</h2><div class="tw"><table><thead><tr><th>컨셉</th><th>의도한 조합</th><th class=r>컨셉</th><th class=r>비컨셉</th><th class=r>전체</th><th>모든 조합 중 의도한 조합 순위</th></tr></thead><tbody>
+<tr><td>A 플라즈마 회랑</td><td>플라즈마 · 플라즈마 · 플라즈마 · 나노봇 · 나노봇 · 나노봇</td><td class=r>×32 → <b>×32</b></td><td class=r>×2.7 → <b>×3.2</b></td><td class=r>×2.7 → <b>×3.2</b></td><td>나노봇 + 플라즈마: ×32 · 1위 / 561</td></tr>
+<tr><td>B 화염·CC 소용돌이</td><td>화염방사 · 화염방사 · 화염방사 · EMP · 나노봇 · 나노봇</td><td class=r>×1.55 → <b>×2.5</b></td><td class=r>×1 → <b>×1</b></td><td class=r>×1.6 → <b>×2.1</b></td><td>화염방사 + EMP + 나노봇: ×2.8 · 410위 / 561</td></tr>
+<tr><td>C 2열 진지</td><td>화염방사 · 화염방사 · 화염방사 · 나노봇 · 나노봇 · EMP</td><td class=r>×1.35 → <b>×2.05</b></td><td class=r>×0.2 → <b>×0.2</b></td><td class=r>×1.4 → <b>×2</b></td><td>화염방사 + EMP + 나노봇: ×2.55 · 320위 / 561</td></tr>
+<tr><td>D 급습 단거리</td><td>전기 · 전기 · 번개 · 번개 · 냉기 · 냉기</td><td class=r>×0 → <b>×0</b></td><td class=r>×8.05 → <b>×8.05</b></td><td class=r>×8.05 → <b>×8.05</b></td><td>번개 + 냉기 + 전기: ×0.3 · 514위 / 561</td></tr>
+<tr><td>E 정예 사냥</td><td>미니건 · 미니건 · 미니건 · 냉기 · 냉기 · 듀얼샷</td><td class=r>×4 → <b>×4</b></td><td class=r>×21 → <b>×21</b></td><td class=r>×7.4 → <b>×7.4</b></td><td>듀얼샷 + 냉기 + 미니건: ×3.8 · 327위 / 561</td></tr>
+</tbody></table></div><p class="note">순위는 조합 키(타워 종류) 기준입니다. 같은 종류 조합이라도 남은 칸은 AI가 채워 의도한 개수와 다를 수 있습니다.</p>
+<h2>확인한 점</h2><ol><li><b>EMP 피해 1 → 2는 효과가 컸습니다.</b> 같은 타워 6개 평균 ×0 → ×9이고, 경로가 접히거나 두 줄로 붙는 A·B·C 맵에서는 ×11~×15입니다. 체력 14(일반 4 × 3.5) 몬스터를 1.6초마다 2씩, 파동이 지나가는 모든 몬스터에게 주므로 &#x27;못 잡는 타워&#x27;에서 &#x27;물량을 깎는 타워&#x27;로 바뀌었습니다.</li><li><b>EMP + 나노봇이 플라즈마를 뺀 조합 중 1위가 됐습니다.</b> ×0.08 → ×15.5이고, C 2열 진지에서는 ×31.2입니다. 나노필드 안 피해 +20%와 감속이 EMP 파동을 여러 번 맞게 해, &#x27;CC는 조합으로 쓴다&#x27;는 의도가 수치로 나왔습니다.</li><li><b>화염 + CC도 올랐지만 아직 낮습니다.</b> 화염 + EMP ×1.9 → ×3.0, 화염 + 나노 ×1.65 → ×1.84. 의도한 조합은 B ×1.55 → ×2.5(561개 중 410위), C ×1.35 → ×2.05(320위)입니다. 화염방사 자체(같은 타워 6개 ×2.2)가 약해서 CC로 늘려도 바닥이 낮습니다.</li><li><b>플라즈마는 그대로라 계속 압도적입니다.</b> 같은 타워 6개 평균 ×28.3, 상위 조합은 여전히 플라즈마가 들어간 조합입니다.</li><li><b>D 급습 단거리는 2단계에서도 실패했습니다.</b> 전기·번개·냉기 조합 ×0 (514위). 경로 4~7칸을 빠른 몬스터가 지나가는 동안 단일 대상 타워는 다 잡지 못하고, 비컨셉(같은 단계의 범위·일직선 타워) ×8로 크게 집니다. 이 컨셉의 타워 조합을 다시 정해야 합니다.</li><li><b>E 정예 사냥은 분진이 미니건보다 강합니다.</b> 미니건 조합 ×4 vs 비컨셉 ×21. 분진 6개가 E 맵에서 ×12.9로 가장 강한데, 정예 웨이브의 우란탱크가 기계 속성이라 분진 +30% 상성과 폭발이 겹칩니다. 미니건이 정예를 맡게 하려면 정예 웨이브 구성(생물 정예 비중)이나 미니건 수치를 다시 봐야 합니다.</li><li><b>나노봇은 혼자서는 여전히 0에 가깝습니다.</b> 같은 타워 6개 ×0.2. 역할이 &#x27;다른 타워를 강하게 하는 CC&#x27;라 단독 점수는 낮은 게 의도에 맞고, EMP·백린과 섞였을 때(×15.5, ×6.2) 값을 합니다.</li></ol><h2>다음에 정할 것</h2><ul><li>플라즈마: 계속 그대로 둘지 (지금 모든 단계에서 1위 조합)</li><li>D 급습 컨셉: 전기·번개·냉기 대신 EMP + 나노처럼 짧은 경로를 한 번에 덮는 조합으로 바꿀지, 정지 발동을 1회로 낮출지</li><li>E 정예 컨셉: 정예 웨이브를 생물 정예(바스티온) 위주로 바꿀지, 미니건 집중 스택을 키울지 (0.2 → 0.4)</li><li>EMP: EMP + 나노 조합이 C에서 ×31로 강해서, 3단계(11×11)에서 너무 강해지는지 지켜볼지</li><li>이 수치로 3단계(11×11)로 넘어갈지</li></ul>
+<h2>컨셉별 최고 조합 (조정 후, 모든 경우의 수 중 상위 10)</h2><div class="charts">
+<figure class="chart"><figcaption>A 플라즈마 회랑</figcaption><table><tbody>
+<tr><td>1</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>2</td><td>듀얼샷 + 화염방사 + 나노봇 + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>3</td><td>듀얼샷 + 화염방사 + 번개 + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>4</td><td>듀얼샷 + 화염방사 + 냉기 + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>5</td><td>듀얼샷 + 화염방사 + 전기 + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>6</td><td>듀얼샷 + 화염방사 + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>7</td><td>듀얼샷 + 화염방사 + 플라즈마 + 분진</td><td class=r>×32</td></tr>
+<tr><td>8</td><td>듀얼샷 + 화염방사 + 플라즈마 + 백린</td><td class=r>×32</td></tr>
+<tr><td>9</td><td>듀얼샷 + EMP + 나노봇 + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>10</td><td>듀얼샷 + EMP + 번개 + 플라즈마</td><td class=r>×32</td></tr>
+</tbody></table></figure>
+<figure class="chart"><figcaption>B 화염·CC 소용돌이</figcaption><table><tbody>
+<tr><td>1</td><td>플라즈마</td><td class=r>×32</td></tr>
+<tr><td>2</td><td>EMP + 플라즈마 + 분진 + 백린</td><td class=r>×30</td></tr>
+<tr><td>3</td><td>EMP + 플라즈마 + 백린</td><td class=r>×30</td></tr>
+<tr><td>4</td><td>EMP + 플라즈마</td><td class=r>×29.6</td></tr>
+<tr><td>5</td><td>플라즈마 + 분진</td><td class=r>×29.4</td></tr>
+<tr><td>6</td><td>화염방사 + EMP + 나노봇 + 플라즈마</td><td class=r>×29.1</td></tr>
+<tr><td>7</td><td>듀얼샷 + EMP + 나노봇 + 플라즈마</td><td class=r>×28.9</td></tr>
+<tr><td>8</td><td>EMP + 나노봇 + 번개 + 플라즈마</td><td class=r>×28.9</td></tr>
+<tr><td>9</td><td>화염방사 + EMP + 플라즈마 + 백린</td><td class=r>×28.8</td></tr>
+<tr><td>10</td><td>EMP + 나노봇 + 플라즈마</td><td class=r>×28.8</td></tr>
+</tbody></table></figure>
+<figure class="chart"><figcaption>C 2열 진지</figcaption><table><tbody>
+<tr><td>1</td><td>EMP + 나노봇</td><td class=r>×31.2</td></tr>
+<tr><td>2</td><td>EMP + 나노봇 + 플라즈마</td><td class=r>×28.4</td></tr>
+<tr><td>3</td><td>플라즈마</td><td class=r>×25.6</td></tr>
+<tr><td>4</td><td>EMP + 플라즈마</td><td class=r>×22.4</td></tr>
+<tr><td>5</td><td>플라즈마 + 백린</td><td class=r>×22</td></tr>
+<tr><td>6</td><td>화염방사 + 플라즈마 + 백린</td><td class=r>×21.6</td></tr>
+<tr><td>7</td><td>EMP + 나노봇 + 플라즈마 + 백린</td><td class=r>×21.6</td></tr>
+<tr><td>8</td><td>EMP + 플라즈마 + 분진 + 백린</td><td class=r>×21.6</td></tr>
+<tr><td>9</td><td>EMP + 플라즈마 + 백린</td><td class=r>×21.6</td></tr>
+<tr><td>10</td><td>나노봇 + 플라즈마 + 백린</td><td class=r>×21.6</td></tr>
+</tbody></table></figure>
+<figure class="chart"><figcaption>D 급습 단거리</figcaption><table><tbody>
+<tr><td>1</td><td>EMP + 플라즈마 + 백린</td><td class=r>×20.6</td></tr>
+<tr><td>2</td><td>EMP + 나노봇 + 플라즈마</td><td class=r>×20.25</td></tr>
+<tr><td>3</td><td>플라즈마</td><td class=r>×19.8</td></tr>
+<tr><td>4</td><td>화염방사 + EMP + 플라즈마</td><td class=r>×19.6</td></tr>
+<tr><td>5</td><td>플라즈마 + 백린</td><td class=r>×18.4</td></tr>
+<tr><td>6</td><td>EMP + 플라즈마 + 분진</td><td class=r>×18</td></tr>
+<tr><td>7</td><td>플라즈마 + 분진</td><td class=r>×18</td></tr>
+<tr><td>8</td><td>EMP + 플라즈마</td><td class=r>×17.9</td></tr>
+<tr><td>9</td><td>화염방사 + 플라즈마</td><td class=r>×17.2</td></tr>
+<tr><td>10</td><td>나노봇 + 플라즈마 + 백린</td><td class=r>×17.2</td></tr>
+</tbody></table></figure>
+<figure class="chart"><figcaption>E 정예 사냥</figcaption><table><tbody>
+<tr><td>1</td><td>EMP + 플라즈마</td><td class=r>×32</td></tr>
+<tr><td>2</td><td>플라즈마</td><td class=r>×32</td></tr>
+<tr><td>3</td><td>EMP + 번개 + 플라즈마</td><td class=r>×29.1</td></tr>
+<tr><td>4</td><td>듀얼샷 + EMP + 플라즈마</td><td class=r>×29</td></tr>
+<tr><td>5</td><td>EMP + 나노봇 + 플라즈마</td><td class=r>×28.9</td></tr>
+<tr><td>6</td><td>EMP + 플라즈마 + 분진</td><td class=r>×28</td></tr>
+<tr><td>7</td><td>EMP + 플라즈마 + 분진 + 백린</td><td class=r>×27.8</td></tr>
+<tr><td>8</td><td>EMP + 플라즈마 + 백린</td><td class=r>×27.4</td></tr>
+<tr><td>9</td><td>번개 + 플라즈마</td><td class=r>×26.8</td></tr>
+<tr><td>10</td><td>플라즈마 + 분진</td><td class=r>×26.4</td></tr>
+</tbody></table></figure>
+</div>
+<h2>맵별 표 (조정 후, 컨셉 조합)</h2><div class="tw"><table><thead><tr><th>맵</th><th>모양</th><th class=r>경로</th><th class=r>부지</th><th class=r>점수 전→후</th><th class=r>파워량 전→후</th><th class=r>처치 전→후</th><th>최고 조합</th></tr></thead><tbody>
+<tr><td>S2_A01</td><td><pre class=map>♣♣♣♣♣♣♣N♣
+♣♣♣♣♣♣♣■♣
+♣□♣♣□♣♣■♣
+□■■■■■■■□
+♣■♣♣♣♣♣□♣
+♣■♣♣♣♣♣♣♣
+□■♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>15</td><td class=r>6</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A02</td><td><pre class=map>♣♣♣♣♣♣♣N♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣■□
+♣♣♣♣♣♣♣■♣
+♣□♣♣♣♣♣■♣
+□■■■■■■■□
+♣■♣♣□♣♣□♣
+♣■♣♣♣♣♣♣♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>15</td><td class=r>6</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A03</td><td><pre class=map>♣♣♣♣♣♣N♣♣
+♣♣□♣♣♣■♣♣
+♣□■■■■■□♣
+♣♣■□♣♣□♣♣
+♣♣■□♣♣♣♣♣
+♣♣■♣♣♣♣♣♣
+♣♣■♣♣♣♣♣♣
+♣♣■□♣♣♣♣♣
+♣♣S♣♣♣♣♣♣</pre></td><td class=r>13</td><td class=r>7</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A04</td><td><pre class=map>♣♣♣♣□□♣N♣
+♣♣♣□■■■■□
+♣♣♣♣■♣♣□♣
+♣□□□■♣♣♣♣
+□■■■■□♣♣♣
+♣■♣♣□♣♣♣♣
+□■♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>15</td><td class=r>12</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A05</td><td><pre class=map>♣♣♣♣♣♣♣N♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣□■♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣■♣
+♣□□♣♣□□■♣
+□■■■■■■■□
+♣■♣♣♣♣♣□♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>15</td><td class=r>8</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A06</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+♣■□♣♣♣♣♣♣
+♣■□♣♣□♣□♣
+□■■■■■■■□
+♣□♣♣♣♣♣■□
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣■□
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>15</td><td class=r>9</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A07</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣■□♣♣♣♣♣♣
+♣■□♣♣□♣□♣
+□■■■■■■■□
+♣□♣♣♣♣♣■□
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>15</td><td class=r>8</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A08</td><td><pre class=map>♣♣N♣♣♣♣♣♣
+♣♣■♣♣♣□♣♣
+♣□■■■■■□♣
+♣♣□□♣♣■♣♣
+♣♣♣♣♣♣■♣♣
+♣♣♣♣♣□■♣♣
+♣♣♣♣♣♣■♣♣
+♣♣♣♣♣♣■♣♣
+♣♣♣♣♣♣S♣♣</pre></td><td class=r>13</td><td class=r>6</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A09</td><td><pre class=map>♣N♣♣□♣♣♣♣
+□■■■■□♣♣♣
+♣□♣♣■♣♣♣♣
+♣♣♣♣■♣♣□♣
+♣♣♣□■■■■□
+♣♣♣♣□♣♣■♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣□■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>15</td><td class=r>9</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_A10</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣■□♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣■♣♣□♣♣□♣
+□■■■■■■■□
+♣□♣♣♣♣♣■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>15</td><td class=r>6</td><td class=r>×32 → ×32</td><td class=r>707 → 707</td><td class=r>56/56 → 56/56</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B01</td><td><pre class=map>♣♣♣♣♣♣♣N♣
+♣□♣♣♣♣□■♣
+♣■■■□■■■□
+♣■□■□■□♣♣
+♣■□■□■♣♣♣
+♣■□■□■♣♣♣
+□■□■□■♣♣♣
+♣■□■■■♣♣♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>25</td><td class=r>15</td><td class=r>×1 → ×1.5</td><td class=r>984 → 1050</td><td class=r>41/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B02</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣■■N
+♣□♣♣♣□■□♣
+♣■■■■■■♣♣
+♣■□□□□□♣♣
+♣■■■■■■♣♣
+♣□□□□□■□♣
+S■■■■■■♣♣
+♣♣♣□♣♣♣♣♣</pre></td><td class=r>25</td><td class=r>15</td><td class=r>×1.5 → ×2</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B03</td><td><pre class=map>♣♣♣♣♣♣♣N♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣■♣
+♣□♣♣♣♣♣■♣
+♣■■■■♣♣■□
+♣■□□■♣♣■♣
+♣■♣♣■□□■♣
+♣■♣♣■■■■♣
+♣S♣♣♣♣□♣♣</pre></td><td class=r>21</td><td class=r>7</td><td class=r>×1.5 → ×3</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + EMP + 나노봇 + 플라즈마 ×32</td></tr>
+<tr><td>S2_B04</td><td><pre class=map>♣♣♣□♣♣♣N♣
+♣■■■■♣♣■♣
+♣■□□■♣♣■♣
+□■♣♣■♣□■♣
+♣■♣♣■□♣■♣
+♣■♣♣■□□■♣
+♣■♣♣■■■■♣
+□■♣♣♣♣♣♣♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>25</td><td class=r>9</td><td class=r>×1.5 → ×2</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>플라즈마 ×32</td></tr>
+<tr><td>S2_B05</td><td><pre class=map>♣♣N♣♣♣♣♣♣
+♣♣■♣♣♣♣♣♣
+♣□■□♣♣♣♣♣
+♣♣■■■■■♣♣
+♣♣□□□□■♣♣
+♣♣■■■■■♣♣
+♣□■□♣♣♣♣♣
+♣♣■♣♣♣♣♣♣
+♣♣S♣♣♣♣♣♣</pre></td><td class=r>17</td><td class=r>8</td><td class=r>×1.5 → ×2</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B06</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+♣■□♣♣♣□♣♣
+♣■■■□■■■♣
+♣♣□■□■□■♣
+♣♣♣■□■□■♣
+♣♣♣■□■□■□
+♣♣♣■□■□■♣
+♣♣□■■■□■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>25</td><td class=r>15</td><td class=r>×3 → ×4</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B07</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+N■■♣♣♣♣♣♣
+♣□■□♣♣□♣♣
+♣□■■■■■■♣
+♣♣□□□□□■♣
+♣♣■■■■■■♣
+♣♣■□□□□□♣
+♣♣■■■■■■S
+♣♣♣♣♣♣♣♣♣</pre></td><td class=r>25</td><td class=r>14</td><td class=r>×1.5 → ×3</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B08</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+♣■♣♣♣♣♣♣♣
+□■♣♣♣♣♣♣♣
+♣■♣♣■■■■♣
+♣■♣♣■□□■♣
+♣■□□■□♣■♣
+□■■■■♣□■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>21</td><td class=r>8</td><td class=r>×1.5 → ×3</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B09</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+♣■♣□■■■■♣
+□■♣♣■□□■♣
+♣■♣♣■♣♣■♣
+♣■♣♣■♣♣■♣
+♣■□□■□♣■♣
+□■■■■♣□■♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>25</td><td class=r>9</td><td class=r>×1 → ×1.5</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_B10</td><td><pre class=map>♣♣♣♣♣♣N♣♣
+♣♣♣♣♣♣■□♣
+♣♣♣♣♣□■♣♣
+♣♣■■■■■♣♣
+♣♣■□□□□♣♣
+♣□■■■■■♣♣
+♣♣♣♣♣□■♣♣
+♣♣♣♣♣♣■♣♣
+♣♣♣♣♣♣S♣♣</pre></td><td class=r>17</td><td class=r>8</td><td class=r>×1.5 → ×3</td><td class=r>1050 → 1050</td><td class=r>49/49 → 49/49</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_C01</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+□□□□□□□□□
+□□□□□□□□□
+S■■■■■■■N
+□□□□□□□□□</pre></td><td class=r>9</td><td class=r>27</td><td class=r>×1 → ×1.5</td><td class=r>966 → 966</td><td class=r>59/59 → 59/59</td><td>EMP + 나노봇 ×32</td></tr>
+<tr><td>S2_C02</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+□□□□□□□□□
+□□□□□□□□□
+S■■■■■■■N
+□□□□□□□□□
+□□□□□□□□□
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣</pre></td><td class=r>9</td><td class=r>36</td><td class=r>×1 → ×1.5</td><td class=r>966 → 966</td><td class=r>59/59 → 59/59</td><td>EMP + 나노봇 ×32</td></tr>
+<tr><td>S2_C03</td><td><pre class=map>♣♣♣♣♣□□N□
+♣♣♣♣♣□□■□
+□□□□□□□■□
+□□□□□□□■□
+□■■■■■■■□
+□■□□□□□□□
+□■□□□□□□□
+□■□□♣♣♣♣♣
+□S□□♣♣♣♣♣</pre></td><td class=r>15</td><td class=r>46</td><td class=r>×1.5 → ×2</td><td class=r>966 → 966</td><td class=r>59/59 → 59/59</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_C04</td><td><pre class=map>♣♣♣□□□□□□
+♣♣♣□□□□□□
+♣♣♣□□■■■N
+♣♣♣□□■□□□
+□□□□□■□□□
+□□□□□■□□♣
+S■■■■■□□♣
+□□□□□□□□♣
+□□□□□□□□♣</pre></td><td class=r>13</td><td class=r>52</td><td class=r>×1.5 → ×2</td><td class=r>966 → 966</td><td class=r>59/59 → 59/59</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_C05</td><td><pre class=map>♣♣♣♣♣□□N□
+♣♣♣♣♣□□■□
+♣♣♣♣♣□□■□
+♣♣♣♣♣□□■□
+□□□□□□□■□
+□□□□□□□■□
+□■■■■■■■□
+□■□□□□□□□
+□S□□□□□□□</pre></td><td class=r>15</td><td class=r>46</td><td class=r>×1.5 → ×1.5</td><td class=r>966 → 966</td><td class=r>59/59 → 59/59</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_C06</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+□□□□□□□□□
+□□□□□□□□□
+N■■■■■■■S
+□□□□□□□□□</pre></td><td class=r>9</td><td class=r>27</td><td class=r>×1.5 → ×2</td><td class=r>966 → 966</td><td class=r>59/59 → 59/59</td><td>EMP + 나노봇 ×32</td></tr>
+<tr><td>S2_C07</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+□□□□□□□□□
+□□□□□□□□□
+N■■■■■■■S
+□□□□□□□□□
+□□□□□□□□□
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣</pre></td><td class=r>9</td><td class=r>36</td><td class=r>×1.5 → ×2</td><td class=r>966 → 966</td><td class=r>59/59 → 59/59</td><td>EMP + 나노봇 ×24</td></tr>
+<tr><td>S2_C08</td><td><pre class=map>□N□□♣♣♣♣♣
+□■□□♣♣♣♣♣
+□■□□□□□□□
+□■□□□□□□□
+□■■■■■■■□
+□□□□□□□■□
+□□□□□□□■□
+♣♣♣♣♣□□■□
+♣♣♣♣♣□□S□</pre></td><td class=r>15</td><td class=r>46</td><td class=r>×1.5 → ×3</td><td class=r>938 → 966</td><td class=r>47/59 → 59/59</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_C09</td><td><pre class=map>□□□□□□♣♣♣
+□□□□□□♣♣♣
+N■■■□□♣♣♣
+□□□■□□♣♣♣
+□□□■□□□□□
+♣□□■□□□□□
+♣□□■■■■■S
+♣□□□□□□□□
+♣□□□□□□□□</pre></td><td class=r>13</td><td class=r>52</td><td class=r>×1.5 → ×4</td><td class=r>966 → 966</td><td class=r>58/59 → 59/59</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_C10</td><td><pre class=map>□N□□♣♣♣♣♣
+□■□□♣♣♣♣♣
+□■□□♣♣♣♣♣
+□■□□♣♣♣♣♣
+□■□□□□□□□
+□■□□□□□□□
+□■■■■■■■□
+□□□□□□□■□
+□□□□□□□S□</pre></td><td class=r>15</td><td class=r>46</td><td class=r>×1 → ×1</td><td class=r>952 → 966</td><td class=r>52/59 → 59/59</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_D01</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣□□□□□♣♣
+♣♣□□□□□♣♣
+♣♣□□N□□♣♣
+♣♣□□■□□♣♣
+♣♣□□■□□♣♣
+♣♣□□■□□♣♣
+♣♣□□■□□♣♣
+♣♣□□S□□♣♣</pre></td><td class=r>6</td><td class=r>34</td><td class=r>×0 → ×0</td><td class=r>288 → 288</td><td class=r>32/54 → 32/54</td><td>EMP + 나노봇 ×32</td></tr>
+<tr><td>S2_D02</td><td><pre class=map>♣♣□□□□□♣♣
+♣♣□□□□□♣♣
+□□□□N□□♣♣
+□□□□■□□♣♣
+S■■■■□□♣♣
+□□□□□□□♣♣
+□□□□□□□♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣</pre></td><td class=r>7</td><td class=r>38</td><td class=r>×0 → ×0</td><td class=r>299 → 299</td><td class=r>33/54 → 33/54</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_D03</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+□□□□□□□♣♣
+□□□□□□□♣♣
+S■■■N□□♣♣
+□□□□■□□♣♣
+□□□□■□□♣♣
+♣♣□□■□□♣♣
+♣♣□□S□□♣♣</pre></td><td class=r>5/5</td><td class=r>36</td><td class=r>×0 → ×0</td><td class=r>217 → 217</td><td class=r>27/54 → 27/54</td><td>EMP + 플라즈마 + 백린 ×16</td></tr>
+<tr><td>S2_D04</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+□□□□□□□□♣
+□□□□□□□□♣
+□■■■■N□□♣
+□■□□□□□□♣
+□■□□□□□□♣
+□S□□♣♣♣♣♣</pre></td><td class=r>8</td><td class=r>36</td><td class=r>×0 → ×0</td><td class=r>304 → 304</td><td class=r>33/54 → 33/54</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_D05</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣□□□□□□□
+♣♣□□□□□□□
+♣♣□□N■■■S
+□□□□■□□□□
+□□□□■□□□□
+S■■■■□□♣♣
+□□□□□□□♣♣
+□□□□□□□♣♣</pre></td><td class=r>8/5</td><td class=r>48</td><td class=r>×0 → ×0</td><td class=r>246 → 246</td><td class=r>28/54 → 28/54</td><td>화염방사 + 미니건 + 플라즈마 ×4</td></tr>
+<tr><td>S2_D06</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣□□□□□♣♣
+♣♣□□□□□♣♣
+♣♣□□N□□♣♣
+♣♣□□■□□♣♣
+♣♣□□■□□♣♣
+♣♣□□■□□♣♣
+♣♣□□■□□♣♣
+♣♣□□S□□♣♣</pre></td><td class=r>6</td><td class=r>34</td><td class=r>×0 → ×0</td><td class=r>288 → 288</td><td class=r>32/54 → 32/54</td><td>EMP + 나노봇 ×32</td></tr>
+<tr><td>S2_D07</td><td><pre class=map>♣♣□□□□□♣♣
+♣♣□□□□□♣♣
+♣♣□□N□□□□
+♣♣□□■□□□□
+♣♣□□■■■■S
+♣♣□□□□□□□
+♣♣□□□□□□□
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣</pre></td><td class=r>7</td><td class=r>38</td><td class=r>×0 → ×0</td><td class=r>298 → 298</td><td class=r>34/54 → 34/54</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_D08</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣□□□□□□□
+♣♣□□□□□□□
+♣♣□□N■■■S
+♣♣□□■□□□□
+♣♣□□■□□□□
+♣♣□□■□□♣♣
+♣♣□□S□□♣♣</pre></td><td class=r>5/5</td><td class=r>36</td><td class=r>×0 → ×0</td><td class=r>225 → 225</td><td class=r>23/54 → 23/54</td><td>EMP + 플라즈마 + 백린 ×8</td></tr>
+<tr><td>S2_D09</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣
+♣□□□□□□□□
+♣□□□□□□□□
+♣□□N■■■■□
+♣□□□□□□■□
+♣□□□□□□■□
+♣♣♣♣♣□□S□</pre></td><td class=r>8</td><td class=r>36</td><td class=r>×0 → ×0</td><td class=r>256 → 256</td><td class=r>28/54 → 28/54</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_D10</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+□□□□□□□♣♣
+□□□□□□□♣♣
+S■■■N□□♣♣
+□□□□■□□□□
+□□□□■□□□□
+♣♣□□■■■■S
+♣♣□□□□□□□
+♣♣□□□□□□□</pre></td><td class=r>8/5</td><td class=r>48</td><td class=r>×0 → ×0</td><td class=r>256 → 256</td><td class=r>22/54 → 22/54</td><td>화염방사 + EMP + 플라즈마 ×16</td></tr>
+<tr><td>S2_E01</td><td><pre class=map>♣♣♣♣♣♣♣N♣
+♣□♣♣♣□♣■♣
+♣■■■■■■■♣
+♣■♣♣♣♣♣□♣
+♣■■■■■■■♣
+♣□♣□♣□♣■♣
+♣■■■■■■■♣
+♣■♣♣♣♣♣♣♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>27</td><td class=r>6</td><td class=r>×4 → ×4</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E02</td><td><pre class=map>♣♣♣♣♣□♣♣♣
+♣N■■■■■■♣
+♣♣♣♣♣♣♣■♣
+♣■■■■■■■□
+♣■♣□♣□♣♣♣
+□■■■■■■■♣
+♣♣♣♣♣♣♣■♣
+S■■■■■■■□
+♣♣♣□♣♣♣♣♣</pre></td><td class=r>32</td><td class=r>7</td><td class=r>×6 → ×6</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E03</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣■■■♣■■■♣
+♣■□■♣■□■♣
+♣■♣■♣■♣■♣
+♣■□■♣■□■♣
+♣■♣■♣■♣■♣
+♣■♣■♣■♣■♣
+♣■♣■■■♣■♣
+♣S♣♣□♣♣N♣</pre></td><td class=r>33</td><td class=r>5</td><td class=r>×4 → ×4</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E04</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+□■♣♣♣♣♣♣♣
+♣■■■■■■■♣
+♣♣♣♣□♣□■♣
+♣■■■■■■■♣
+□■♣♣♣♣♣♣♣
+♣■■■■■■■♣
+♣♣♣♣□♣□■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>27</td><td class=r>6</td><td class=r>×4 → ×4</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E05</td><td><pre class=map>♣♣□♣♣♣♣♣♣
+S■■■■■■□♣
+♣♣♣♣♣♣■♣♣
+♣■■■■■■♣♣
+♣■□♣□♣♣♣♣
+♣■■■■■■♣♣
+♣♣♣♣♣♣■♣♣
+♣♣♣♣♣♣■■N
+♣♣♣♣♣♣□♣♣</pre></td><td class=r>25</td><td class=r>5</td><td class=r>×3 → ×3</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E06</td><td><pre class=map>♣N♣♣♣♣♣♣♣
+♣■□♣♣♣□♣♣
+♣■■■■■■■♣
+♣♣♣♣♣♣♣■♣
+♣■■■■■■■♣
+♣■□♣♣♣□♣♣
+♣■■■■■■■♣
+♣♣♣♣♣♣♣■♣
+♣♣♣♣♣♣♣S♣</pre></td><td class=r>27</td><td class=r>4</td><td class=r>×3 → ×3</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E07</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+♣■■■■■■N♣
+♣■□♣□♣♣♣♣
+♣■■■■■■■♣
+♣♣♣♣♣♣♣■□
+♣■■■■■■■♣
+♣■□♣□♣♣♣♣
+♣■■■■■■■S
+♣♣♣♣♣♣♣♣♣</pre></td><td class=r>32</td><td class=r>5</td><td class=r>×4 → ×4</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E08</td><td><pre class=map>♣♣♣♣♣♣♣♣♣
+□■■■□■■■♣
+♣■♣■♣■♣■♣
+♣■□■♣■□■♣
+♣■♣■♣■♣■♣
+♣■□■♣■□■♣
+♣■♣■♣■♣■♣
+♣■□■■■□■♣
+♣N♣♣♣♣♣S♣</pre></td><td class=r>33</td><td class=r>8</td><td class=r>×4 → ×4</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E09</td><td><pre class=map>♣♣♣♣♣♣♣N♣
+♣□♣♣♣□♣■♣
+♣■■■■■■■♣
+♣■♣♣♣♣♣□♣
+♣■■■■■■■♣
+♣□♣□♣□♣■♣
+♣■■■■■■■♣
+♣■♣♣♣♣♣♣♣
+♣S♣♣♣♣♣♣♣</pre></td><td class=r>27</td><td class=r>6</td><td class=r>×4 → ×4</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+<tr><td>S2_E10</td><td><pre class=map>♣♣♣♣♣□♣♣♣
+♣♣■■■■■■S
+♣□■♣♣♣♣♣♣
+♣♣■■■■■■♣
+♣♣♣□♣□♣■♣
+♣♣■■■■■■♣
+♣□■♣♣♣♣□♣
+N■■♣♣♣♣♣♣
+♣♣♣♣♣♣♣♣♣</pre></td><td class=r>25</td><td class=r>6</td><td class=r>×4 → ×4</td><td class=r>658 → 658</td><td class=r>14/14 → 14/14</td><td>듀얼샷 + 화염방사 + EMP + 플라즈마 ×32</td></tr>
+</tbody></table></div><p class="note">기호: S 스타트 · N 넥서스 · ■ 경로 · □ 잔디(설치) · ♣ 나무. 모든 맵 × 모든 조합 원본은 LevelDesign_Stage2_combos.csv.</p></main></body></html>

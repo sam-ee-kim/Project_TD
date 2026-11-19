@@ -90,7 +90,7 @@ namespace TowerDefence.Tests
         }
 
         [Test]
-        public void Tier2_ShowInPalette_IsTestFlagOnly()
+        public void Tier2_UpgradeOnly_LinkedFromDualShotTechTree()
         {
             Assert.AreEqual(2, minigun.tier);
             Assert.IsFalse(minigun.showInPalette, "기본은 진화 전용 (건축 목록에 안 나옴)");
@@ -98,7 +98,11 @@ namespace TowerDefence.Tests
             if (asset != null)
             {
                 Assert.AreEqual(2, asset.tier);
-                Assert.IsTrue(asset.showInPalette, "테스트 환경: 건축 목록에 표시");
+                Assert.IsFalse(asset.showInPalette, "진화 전용: 건축 목록에 없음");
+                var basicAsset = AssetDatabase.LoadAssetAtPath<TowerDef>("Assets/Data/Towers/basic.asset");
+                CollectionAssert.IsSubsetOf(new[] { "cryo", "electro", "minigun" }, basicAsset.upgradeTo, "듀얼샷 테크트리");
+                var flameAsset = AssetDatabase.LoadAssetAtPath<TowerDef>("Assets/Data/Towers/flamethrower.asset");
+                CollectionAssert.IsSubsetOf(new[] { "plasma", "dust", "phosphorus" }, flameAsset.upgradeTo, "화염방사 테크트리");
             }
         }
     }

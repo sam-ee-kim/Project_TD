@@ -14,18 +14,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerDefence.TowerDef
   id: cryo
   displayName: "\uB0C9\uAE30 \uD0C0\uC6CC"
-  description: "\uB0C9\uAC01\uD55C \uC5BC\uC74C \uD0C4\uC744 \uD55C \uBC1C\uC529
-    \uC3E9\uB2C8\uB2E4. \uB0C9\uAE30 \uC18D\uC131 (\uC774\uC0C1\uD6A8\uACFC\uB294
-    \uC900\uBE44 \uC911)."
-  buildCost: 50
-  damage: 3
+  description: "\uB0C9\uAC01\uD55C \uC11C\uB9AC\uD0C4\uC744 \uD55C \uBC1C\uC529 \uC3E9\uB2C8\uB2E4.
+    \uB9DE\uC740 \uBAAC\uC2A4\uD130\uC5D0 \uC11C\uB9AC\uAC00 \uC313\uC5EC 3\uBC88\uC774\uBA74
+    1\uCD08 \uC5BC\uC74C(\uC815\uC9C0), \uC0DD\uBB3C \uBAAC\uC2A4\uD130\uB294 2\uCD08."
+  buildCost: 130
+  damage: 4.5
   interval: 1
   bonusTrait: 
   bonusMultiplier: 1
+  status:
+    kind: 4
+    hitsPerStack: 1
+    procStacks: 2
+    procDamageRatio: 0
+    cooldown: 0
+    stunSec: 1
+    stunBonusTrait: biological
+    stunBonusSec: 1
+    dotPerStack: 0.001
+    dotMax: 0.2
+    dotInterval: 1
+    splashRadius: 0
+    splashMaxTargets: 5
+    fxPrefab: {fileID: 6497475202598580486, guid: ec26fadc1153cd94482048ecffd0decc, type: 3}
   burstCount: 1
   burstGap: 0.12
   chargeTime: 0
   range: 2
+  frontWidth: 0
   lockMode: 0
   targetRule: 0
   typePriority: []
@@ -34,13 +50,18 @@ MonoBehaviour:
   upgradeTo: []
   tier: 2
   unlockFloor: 1
-  showInPalette: 1
+  unlockPrice: 1
+  showInPalette: 0
   spinUpTime: 0
   spinUpStartInterval: 0.6
   spinUpClip: {fileID: 0}
   spinLoopClip: {fileID: 0}
+  overheatAfter: 0
+  overheatRest: 3
+  focusBonusPerSec: 0
   fieldRadius: 0
   fieldDuration: 3
+  fieldDamageBonus: 0
   fieldSlow: 0.6
   fieldFxPrefab: {fileID: 0}
   fieldFxRadius: 1.6
@@ -48,13 +69,26 @@ MonoBehaviour:
   pulseSpeed: 6
   coneAngle: 90
   coneLength: 1.6
+  coneWholeArea: 0
+  maxTargets: 0
   viewPrefab: {fileID: 6269796506021353457, guid: 029d8c07667f53141bf44686488a7b0b, type: 3}
+  icon: {fileID: 2800000, guid: 8ccae60884700404598b9ec06bcd3bba, type: 3}
   viewScale: 0.3
   projectilePrefab: {fileID: 126958415562337013, guid: 3f7507c667c61a84a926913bbfcc46cb, type: 3}
   projectileScale: 1
   projectileModelForward: {x: 0, y: 0, z: 1}
   projectileTurnSpeed: 1080
   muzzleFxPrefab: {fileID: 4816463635121310530, guid: 07a4b0dd5db72164198eab3d567a0b0f, type: 3}
+  fireSound: {fileID: 0}
+  fireSoundLoop: 0
+  fireVolume: 0.5
+  firePitchRange: {x: 0.94, y: 1.06}
+  spinSound: {fileID: 0}
+  spinVolume: 0.3
+  spinSoundShotsPerSec: 5
+  spinBarrel: 
+  barrelCount: 6
+  spinBarrelAxis: {x: 0, y: -1, z: 0}
   coneFxReach: 2.28
   buildClip: {fileID: -623603649343465320, guid: d81f138501837f742adfb7e705f7e24a, type: 3}
   chargeClip: {fileID: 0}

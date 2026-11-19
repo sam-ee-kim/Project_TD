@@ -33,6 +33,10 @@ public class CameraController : MonoBehaviour
     [SerializeField] bool clampToMap = true;
 
     Vector3 focus;  // 카메라가 바라보는 바닥 위 지점
+    float fallbackSize = 7f; // 맵이 없을 때(맵 제작 씬 편집 중) 맞출 크기
+
+    // 맵이 표시되지 않은 동안 이 크기(칸)의 영역을 비춘다 (맵 제작 씬).
+    public void SetFallbackSize(float size) => fallbackSize = Mathf.Max(1f, size);
     float pitch, yaw, distance;
 
     public CameraViewMode Mode => mode;
@@ -80,7 +84,7 @@ public class CameraController : MonoBehaviour
         if (clampToMap && map != null)
         {
             var center = map.transform.position;
-            var half = map.WorldExtent * 0.5f;
+            var half = map.GridSize > 0 ? map.WorldExtent * 0.5f : new Vector2(fallbackSize, fallbackSize) * 0.5f;
             focus.x = Mathf.Clamp(focus.x, center.x - half.x, center.x + half.x);
             focus.z = Mathf.Clamp(focus.z, center.z - half.y, center.z + half.y);
         }
@@ -106,7 +110,7 @@ public class CameraController : MonoBehaviour
         // 맵이 아직 없으면(첫 맵 생성 전) 7×7 맵 기준 거리로 둔다.
         float mapSize = map != null ? Mathf.Max(map.WorldExtent.x, map.WorldExtent.y) : 0f;
         if (mapSize <= 0f)
-            mapSize = 7f;
+            mapSize = fallbackSize;
         return mapSize * view.distanceFactor;
     }
 

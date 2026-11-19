@@ -184,7 +184,7 @@ namespace TowerDefence.Tests
         {
             monsters.HandleStateChanged(new StateChange(GameState.Wave, 10, 5));
             var h = SpawnOne();
-            Assert.AreEqual(37f, monsters.Get(h).Hp, "10층 5웨이브 일반 몬스터 = 37 (HpLevelDesign)");
+            Assert.AreEqual(37f, monsters.Get(h).Hp, "10층 5웨이브 일반 몬스터 = 37 (HpLevelDesign, 맵 배율 6.0 × 복잡성 0.94 × 두 번째 층 1.25 × 웨이브 1.32)");
 
             monsters.HandleStateChanged(new StateChange(GameState.Wave, 1, 1));
             BeginWave(1);

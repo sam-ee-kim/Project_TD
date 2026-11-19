@@ -14,7 +14,7 @@ namespace TowerDefence
         public TowerDef[] towerPattern;    // 자동 배치 순서 (반복). 예: basic, basic, basic, basic_prefer
 
         [Header("진행")]
-        [Tooltip("이 층의 마지막 웨이브를 즉시 끝내고 다음 층으로 넘어가며 Tier 전환을 측정한다 (9 → 10층, 13×13 → 15×15).")]
+        [Tooltip("이 층의 마지막 웨이브를 즉시 끝내고 다음 층으로 넘어가며 Tier 전환을 측정한다 (9 → 10층, 복잡성 4 → 5, 맵 11×11).")]
         public int startFloor = 9;
         public int towerCount = 100;
         [Tooltip("측정할 웨이브 수 (다음 층 1번 웨이브부터). 구성은 config.waves 테이블이 정한다.")]

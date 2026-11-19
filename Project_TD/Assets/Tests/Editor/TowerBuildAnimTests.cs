@@ -23,7 +23,7 @@ namespace TowerDefence.Tests
         public void SetUp()
         {
             config = AssetDatabase.LoadAssetAtPath<GameConfig>("Assets/Data/GameConfig.asset");
-            basic = AssetDatabase.LoadAssetAtPath<TowerDef>("Assets/Data/Towers/basic.asset");
+            basic = TestAssets.SquareBasicCopy(); // 모델·Build 클립은 그대로, 사거리만 넓게 (테스트 경로에 닿도록)
             if (basic.buildClip == null || basic.viewPrefab == null)
                 Assert.Ignore("basic 타워에 모델·Build 클립이 연결되지 않음");
 
@@ -61,6 +61,8 @@ namespace TowerDefence.Tests
         {
             if (towerRoot != null)
                 Object.DestroyImmediate(towerRoot);
+            if (basic != null)
+                Object.DestroyImmediate(basic);
         }
 
         static Transform Part(TowerInstance t, string name)

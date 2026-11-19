@@ -15,18 +15,34 @@ MonoBehaviour:
   id: dust
   displayName: "\uD63C\uD569\uBD84\uC9C4 \uD0C0\uC6CC"
   description: "\uAC00\uC5F0\uC131 \uBD84\uC9C4\uC744 \uC11E\uC740 \uC9E7\uACE0 \uB113\uC740
-    \uBD88\uAE38\uC744 \uBFDC\uC2B5\uB2C8\uB2E4. \uD280\uB294 \uBD88\uD2F0\uC640
-    \uBD84\uC9C4 \uC54C\uAC31\uC774\uAC00 \uC11E\uC5EC \uC788\uC2B5\uB2C8\uB2E4 (\uBD84\uC9C4
-    \uC790\uAC00\uD3ED\uBC1C\uC740 \uC900\uBE44 \uC911)."
-  buildCost: 50
+    \uBD88\uAE38\uC744 \uBFDC\uC2B5\uB2C8\uB2E4. \uAE30\uACC4 \uBAAC\uC2A4\uD130\uC5D0
+    30% \uCD94\uAC00 \uD53C\uD574. \uBD84\uC9C4 5\uC2A4\uD0DD\uC774\uBA74 \uACF5\uACA9\uB825
+    50% \uD3ED\uBC1C \uD53C\uD574 (5\uCD08\uB9C8\uB2E4)."
+  buildCost: 160
   damage: 0.7
   interval: 0.2
-  bonusTrait: 
-  bonusMultiplier: 1
+  bonusTrait: mechanical
+  bonusMultiplier: 1.3
+  status:
+    kind: 2
+    hitsPerStack: 1
+    procStacks: 5
+    procDamageRatio: 0.5
+    cooldown: 5
+    stunSec: 1
+    stunBonusTrait: 
+    stunBonusSec: 1
+    dotPerStack: 0.001
+    dotMax: 0.2
+    dotInterval: 1
+    splashRadius: 1
+    splashMaxTargets: 5
+    fxPrefab: {fileID: 0}
   burstCount: 1
   burstGap: 0.12
   chargeTime: 0
   range: 2
+  frontWidth: 0
   lockMode: 0
   targetRule: 0
   typePriority: []
@@ -35,13 +51,18 @@ MonoBehaviour:
   upgradeTo: []
   tier: 2
   unlockFloor: 1
-  showInPalette: 1
+  unlockPrice: 2
+  showInPalette: 0
   spinUpTime: 0
   spinUpStartInterval: 0.6
   spinUpClip: {fileID: 0}
   spinLoopClip: {fileID: 0}
+  overheatAfter: 0
+  overheatRest: 3
+  focusBonusPerSec: 0
   fieldRadius: 0
   fieldDuration: 3
+  fieldDamageBonus: 0
   fieldSlow: 0.6
   fieldFxPrefab: {fileID: 0}
   fieldFxRadius: 1.6
@@ -49,13 +70,26 @@ MonoBehaviour:
   pulseSpeed: 6
   coneAngle: 60
   coneLength: 1.6
+  coneWholeArea: 1
+  maxTargets: 5
   viewPrefab: {fileID: 7630334659651320877, guid: 60da2f0704d56344d963c6a9a15c1881, type: 3}
+  icon: {fileID: 2800000, guid: dc3f98a1286a9b54f94e2ebf9baee91a, type: 3}
   viewScale: 0.3
   projectilePrefab: {fileID: 0}
   projectileScale: 1
   projectileModelForward: {x: 0, y: 0, z: 1}
   projectileTurnSpeed: 720
   muzzleFxPrefab: {fileID: 2405302282125608836, guid: cbc784c0f82db6c459acaf0d826dff21, type: 3}
+  fireSound: {fileID: 0}
+  fireSoundLoop: 0
+  fireVolume: 0.5
+  firePitchRange: {x: 0.94, y: 1.06}
+  spinSound: {fileID: 0}
+  spinVolume: 0.3
+  spinSoundShotsPerSec: 5
+  spinBarrel: 
+  barrelCount: 6
+  spinBarrelAxis: {x: 0, y: -1, z: 0}
   coneFxReach: 1.6
   buildClip: {fileID: -623603649343465320, guid: 8bc47a3e0f45b9245850eebd370a4383, type: 3}
   chargeClip: {fileID: 0}
